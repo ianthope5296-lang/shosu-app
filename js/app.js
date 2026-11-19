@@ -176,8 +176,28 @@
     rev.appendChild(rg);
     main.appendChild(rev);
 
+    var mk = h('section', 'home-make');
+    mk.appendChild(h('h2', null, 'もんだいづくり'));
+    var mg = h('div', 'make-grid');
+    var c1 = link('', 'make-card', '#/make');
+    c1.appendChild(h('span', 'make-icon', '✎'));
+    var c1t = h('span', null, 'もんだいをつくる');
+    c1t.appendChild(h('span', 'make-sub', '問題を作って、ともだちに送ろう'));
+    c1.appendChild(c1t);
+    mg.appendChild(c1);
+    var c2 = link('', 'make-card my', '#/my');
+    c2.appendChild(h('span', 'make-icon', '📁'));
+    var c2t = h('span', null, 'つくった問題');
+    var myN = myCount();
+    c2t.appendChild(h('span', 'make-sub', myN ? 'ほぞんした問題 ' + myN + 'こ' : 'ほぞんした問題を見る・直す・送る'));
+    c2.appendChild(c2t);
+    mg.appendChild(c2);
+    mk.appendChild(mg);
+    main.appendChild(mk);
+
     var ex = h('section', 'home-extra');
     ex.appendChild(link('✎ 数字を書く練習（読み取りをためそう）', 'extra-link', '#/practice-write'));
+    ex.appendChild(link('もんだいボックス（先生用）', 'extra-link small', '#/box'));
     main.appendChild(ex);
     app.appendChild(main);
   }
@@ -477,6 +497,7 @@
     var rows = [];
     lessons().forEach(function (l) { rows.push({ key: 'lesson-' + l.no, label: '第' + l.no + '時 ' + (l.title || '') }); });
     topics().forEach(function (t) { rows.push({ key: 'review-' + t.id, label: 'ふくしゅう：' + t.title }); });
+    rows.push({ key: 'friend', label: 'ともだちの問題' });
     var known = rows.map(function (r) { return r.key; });
     (store() ? store().keys() : []).forEach(function (k) { if (known.indexOf(k) < 0) rows.push({ key: k, label: k }); });
     rows.forEach(function (r) {
@@ -498,6 +519,7 @@
 
     var sec4 = h('section', 'tcard');
     sec4.appendChild(h('h2', null, 'そのほか'));
+    sec4.appendChild(link('もんだいボックス（集まった問題を提示する）', 'btn primary', '#/box'));
     sec4.appendChild(link('数字を書く練習のページ', 'btn', '#/practice-write'));
     if (S.Pad && S.Pad.resetPen) sec4.appendChild(button('ペンの検出をリセット（指で書けるようにする）', '', function () { S.Pad.resetPen(); toast('指でも書けるようにしました'); }));
     main.appendChild(sec4);
@@ -558,8 +580,280 @@
     app.appendChild(main);
   }
 
+  /* ---------- もんだいづくり（作る画面は Shosu.Maker：担当F） ---------- */
+  var routeGen = 0; // 画面が切りかわったら増える（非同期の処理が古い画面に書きこまないように）
+  var KIND_LABEL = { hissan: '筆算', fill: '文章題・□うめ', compare: '大小くらべ', masu: 'ますの図', numberline: '数直線' };
+  function shareApi() { return S.Share || null; }
+  function myCount() {
+    try { return store() && store().myList ? (store().myList() || []).length : 0; } catch (e) { return 0; }
+  }
+  function decodeToken(token) {
+    var sh = shareApi();
+    if (!sh || !sh.decode) return Promise.reject(new Error('Share がありません'));
+    try { return Promise.resolve(sh.decode(token)); } catch (e) { return Promise.reject(e); }
+  }
+  function inkNode(ink, o) {
+    if (S.Present && S.Present.drawInk && ink && ink.strokes) {
+      try { return S.Present.drawInk(ink, o); } catch (e) { console.error(e); }
+    }
+    return h('span', null, '（名前）');
+  }
+
+  function viewMaker(r) {
+    var holder = h('div', 'maker-root');
+    app.appendChild(holder);
+    if (!S.Maker || !S.Maker.mount) {
+      app.insertBefore(topbar(r === 'my' ? 'つくった問題' : 'もんだいをつくる'), holder);
+      var m = h('main');
+      m.appendChild(h('div', 'empty-note', 'この画面は、じゅんび中です。'));
+      holder.appendChild(m);
+      return;
+    }
+    var hd = null;
+    try { hd = S.Maker.mount(holder, r); }
+    catch (e) { console.error('Maker.mount', e); holder.appendChild(h('div', 'empty-note', '画面を表示できませんでした。')); }
+    cleanups.push(function () { if (hd && hd.destroy) hd.destroy(); });
+  }
+
+  /* #/q/<token>：リンクを開いた人。まず提示画面、「自分で解く」でいつもの問題画面 */
+  function viewQ(token) {
+    var gen = routeGen;
+    app.appendChild(h('div', 'q-loading', '問題をひらいています…'));
+    decodeToken(token).then(function (up) {
+      if (gen !== routeGen) return;
+      app.innerHTML = '';
+      presentAndSolve(up, token, { back: { href: '#/', label: '◀ ホーム' } });
+    }, function (e) {
+      if (gen !== routeGen) return;
+      console.warn('この問題は開けませんでした', e && e.message);
+      app.innerHTML = '';
+      openError();
+    });
+  }
+  function openError() {
+    app.appendChild(topbar('ともだちの問題'));
+    var m = h('main', 'q-error');
+    m.appendChild(h('div', 'qe-msg', 'この問題は開けませんでした'));
+    m.appendChild(h('p', 'tnote', 'リンクがとちゅうで切れているかもしれません。送った人に、もう一度送ってもらおう。'));
+    m.appendChild(link('ホームへ', 'btn primary', '#/'));
+    app.appendChild(m);
+  }
+
+  /* 提示画面 ⇔ 自分で解く画面 を同じルートの中で切りかえる */
+  function presentAndSolve(up, token, presentOpts) {
+    var cur = null;
+    cleanups.push(function () { if (cur) { try { cur.destroy(); } catch (e) {} } cur = null; });
+    function clear() {
+      if (cur) { try { cur.destroy(); } catch (e) { console.error(e); } }
+      cur = null;
+      app.innerHTML = '';
+    }
+    function present() {
+      clear();
+      if (!S.Present || !S.Present.mount) { solve(); return; }
+      var o = {};
+      for (var k in presentOpts) o[k] = presentOpts[k];
+      o.token = token;
+      o.onSolve = solve;
+      try { cur = S.Present.mount(app, up, o); }
+      catch (e) { console.error('Present.mount', e); solve(); return; }
+      window.scrollTo(0, 0);
+    }
+    function solve() {
+      clear();
+      cur = solveView(up, token, S.Present && S.Present.mount ? present : null);
+      window.scrollTo(0, 0);
+    }
+    present();
+  }
+
+  function solveView(up, token, onPresent) {
+    var right = onPresent ? button('みんなに見せる画面', 'small', onPresent) : null;
+    if (right) right.classList.add('back');
+    app.appendChild(topbar('ともだちの問題' + (KIND_LABEL[up.kind] ? '（' + KIND_LABEL[up.kind] + '）' : ''), { right: right }));
+    var main = h('main', 'friend');
+    var card = h('div', 'friend-card');
+    var area = h('div', 'friend-problem');
+    card.appendChild(area);
+    main.appendChild(card);
+    var act = h('div', 'friend-actions');
+    main.appendChild(act);
+    app.appendChild(main);
+
+    var problem = null;
+    try { problem = shareApi().toProblem(up, token); } catch (e) { console.error('Share.toProblem', e); }
+    var handle = null;
+    var pid = String(token || '').slice(0, 16) || null;
+    function start() {
+      if (handle) handle.destroy();
+      handle = null;
+      if (!problem || !S.Problems) { area.innerHTML = ''; area.appendChild(h('div', 'empty-note', '問題を表示できません。')); return; }
+      handle = S.Problems.render(area, problem, {
+        onResult: function (r) { record('friend', pid, r); }
+      });
+    }
+    start();
+    act.appendChild(button('もう一度とく', '', function () { start(); window.scrollTo(0, 0); }));
+    if (store() && store().mySave) {
+      var saveB = button('この問題をほぞん', 'primary', function () {
+        try {
+          if (store().mySave(up) === false) { toast('ほぞんできませんでした（いっぱいです）'); return; }
+          saveB.disabled = true;
+          saveB.textContent = 'ほぞんしました';
+          toast('「つくった問題」にほぞんしました');
+        } catch (e) { console.error(e); toast('ほぞんできませんでした'); }
+      });
+      act.appendChild(saveB);
+    }
+    if (onPresent) act.appendChild(button('みんなに見せる画面', '', onPresent));
+    act.appendChild(link('ホームへ', 'btn', '#/'));
+    return { destroy: function () { if (handle) handle.destroy(); handle = null; } };
+  }
+
+  /* ---------- もんだいボックス（先生用） ---------- */
+  function boxReady() { return !!(store() && store().boxList && store().boxAdd && shareApi() && shareApi().extractTokens); }
+  function boxItems() { try { return store().boxList() || []; } catch (e) { console.error(e); return []; } }
+  function describe(up) {
+    if (!up) return '';
+    if (up.kind === 'hissan') return up.a + ' ' + (up.op === '-' ? '−' : '＋') + ' ' + up.b;
+    if (up.kind === 'compare') return up.a + ' □ ' + up.b;
+    if (up.kind === 'numberline') return up.min + ' 〜 ' + up.max + '（↑' + ((up.arrows || []).length || 1) + '本）';
+    if (up.kind === 'masu') return up.level === 3 ? '0.001Lまで' : '0.01Lまで';
+    if (up.kind === 'fill') return '手書きの問題文' + (up.unit ? '（' + up.unit + '）' : '');
+    return '';
+  }
+
+  function viewBox() {
+    app.appendChild(topbar('もんだいボックス', { sub: '先生用' }));
+    var main = h('main', 'box');
+    app.appendChild(main);
+    if (!boxReady()) { main.appendChild(h('div', 'empty-note', 'もんだいボックスは、じゅんび中です。')); return; }
+    var gen = routeGen;
+
+    var sec1 = h('section', 'tcard');
+    sec1.appendChild(h('h2', null, 'リンクをとりこむ'));
+    sec1.appendChild(h('p', 'tnote', 'Teams や Classroom のチャットを、そのままコピーしてはりつけてください。中にある問題のリンクを、全部見つけてとりこみます。'));
+    var ta = h('textarea', 'box-paste');
+    ta.setAttribute('aria-label', 'リンクをはりつける');
+    ta.placeholder = 'ここにはりつけ（Ctrl + V）';
+    sec1.appendChild(ta);
+    var row = h('div', 'box-row');
+    var msg = h('span', 'box-msg');
+    msg.setAttribute('role', 'status');
+    var importB = button('とりこむ', 'primary', importText);
+    row.appendChild(importB);
+    row.appendChild(msg);
+    sec1.appendChild(row);
+    main.appendChild(sec1);
+
+    var sec2 = h('section', 'tcard');
+    main.appendChild(sec2);
+
+    function setMsg(t, warn) { msg.textContent = t; msg.className = 'box-msg' + (warn ? ' warn' : ''); }
+    function importText() {
+      var toks = [], text = ta.value || '';
+      try { toks = shareApi().extractTokens(text) || []; } catch (e) { console.error(e); }
+      if (!toks.length) {
+        setMsg(/(?:#|%23)\/q\//i.test(text) ? 'リンクが見つかりましたが、開けませんでした（とちゅうで切れているかもしれません）。' : '問題のリンクが見つかりませんでした。', true);
+        return;
+      }
+      importB.disabled = true;
+      setMsg('とりこみ中…');
+      Promise.all(toks.map(function (t) {
+        return decodeToken(t).then(function (up) { return { token: t, up: up }; }, function () { return null; });
+      })).then(function (res) {
+        if (gen !== routeGen) return;
+        importB.disabled = false;
+        var ok = res.filter(Boolean);
+        // 文章の中の「#/q/」の数と、取り出せたリンクの数をくらべて、こわれたリンクも数える
+        var found = (text.match(/(?:#|%23)\/q\//gi) || []).length;
+        var occ = 0, sameInText = 0;
+        toks.forEach(function (t, i) {
+          var n = Math.max(1, text.split(t).length - 1);
+          occ += n;
+          if (res[i]) sameInText += n - 1;
+        });
+        var bad = (res.length - ok.length) + Math.max(0, found - occ);
+        var before = boxItems().length;
+        if (ok.length) { try { store().boxAdd(ok); } catch (e) { console.error(e); } }
+        var added = Math.max(0, boxItems().length - before);
+        var dup = ok.length - added + sameInText;
+        var parts = [added + 'こ追加'];
+        if (dup > 0) parts.push(dup + 'こは同じ問題でした');
+        if (bad > 0) parts.push(bad + 'こは開けませんでした');
+        setMsg(parts.join('、'), !added);
+        if (added) ta.value = '';
+        drawList();
+      });
+    }
+
+    function drawList() {
+      sec2.innerHTML = '';
+      var list = boxItems();
+      sec2.appendChild(h('h2', null, '集まった問題（' + list.length + 'こ）'));
+      if (!list.length) { sec2.appendChild(h('p', 'tnote', 'まだ問題がありません。上の欄にリンクをはりつけて「とりこむ」をおしてください。')); return; }
+      var r = h('div', 'box-row');
+      r.appendChild(link('はじめから提示 ▶', 'btn primary', '#/box/1'));
+      r.appendChild(button('ぜんぶけす', 'danger', function () {
+        confirmDialog('もんだいボックスの問題を、ぜんぶ消します。よろしいですか？', 'ぜんぶけす', function () {
+          try { store().boxClear(); } catch (e) { console.error(e); }
+          setMsg('');
+          drawList();
+        });
+      }));
+      sec2.appendChild(r);
+      var ol = h('ol', 'box-list');
+      list.forEach(function (it, i) {
+        var up = it.up || {};
+        var li = h('li', 'box-item');
+        li.appendChild(h('span', 'box-no', String(i + 1)));
+        var nm = h('span', 'box-name');
+        nm.appendChild(inkNode(up.author, { height: 40, width: 200, trim: true, lineWidth: 6, label: 'つくった人の名前' }));
+        li.appendChild(nm);
+        li.appendChild(h('span', 'box-kind', KIND_LABEL[up.kind] || ''));
+        li.appendChild(h('span', 'box-desc', describe(up)));
+        li.appendChild(link('提示', 'btn small', '#/box/' + (i + 1)));
+        li.appendChild(button('けす', 'small', function () {
+          try { store().boxRemove(it.token); } catch (e) { console.error(e); }
+          drawList();
+        }));
+        ol.appendChild(li);
+      });
+      sec2.appendChild(ol);
+    }
+    drawList();
+  }
+
+  function viewBoxItem(n) {
+    var list = boxReady() ? boxItems() : [];
+    if (!(n >= 1 && n <= list.length)) {
+      app.appendChild(topbar('もんだいボックス'));
+      var m = h('main', 'q-error');
+      m.appendChild(h('div', 'qe-msg', list.length ? 'この番号の問題はありません。' : 'もんだいボックスは、からっぽです。'));
+      m.appendChild(link('もんだいボックスへ', 'btn primary', '#/box'));
+      app.appendChild(m);
+      return;
+    }
+    var it = list[n - 1];
+    var opts = {
+      back: { href: '#/box', label: '◀ ボックス' },
+      list: {
+        index: n - 1, total: list.length,
+        onPrev: function () { if (n > 1) location.hash = '#/box/' + (n - 1); },
+        onNext: function () { if (n < list.length) location.hash = '#/box/' + (n + 1); }
+      }
+    };
+    if (it.up) { presentAndSolve(it.up, it.token, opts); return; }
+    var gen = routeGen;
+    decodeToken(it.token).then(function (up) {
+      if (gen !== routeGen) return;
+      presentAndSolve(up, it.token, opts);
+    }, function () { if (gen === routeGen) openError(); });
+  }
+
   /* ---------- ルーティング ---------- */
   function route() {
+    routeGen++;
     while (cleanups.length) { try { cleanups.pop()(); } catch (e) { console.error(e); } }
     app.innerHTML = '';
     applySettings();
@@ -570,6 +864,10 @@
       else if (parts[0] === 'review' && parts[1]) viewReview(decodeURIComponent(parts[1]));
       else if (parts[0] === 'teacher') viewTeacher();
       else if (parts[0] === 'practice-write') viewPracticeWrite();
+      else if (parts[0] === 'make' || parts[0] === 'my' || parts[0] === 'edit') viewMaker(hash);
+      else if (parts[0] === 'q' && parts[1]) viewQ(hash.slice(2));
+      else if (parts[0] === 'box' && parts[1]) viewBoxItem(parseInt(parts[1], 10));
+      else if (parts[0] === 'box') viewBox();
       else viewHome();
     } catch (e) {
       console.error(e);

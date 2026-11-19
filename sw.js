@@ -1,21 +1,26 @@
 /* sw.js — オフライン用キャッシュ（キャッシュファースト）
  * ファイルを更新したら VERSION を上げる。古いキャッシュは activate で消える。 */
-var VERSION = 'shosu-v1';
+var VERSION = 'shosu-v2';
 var CORE = [
   './',
   './index.html',
   './manifest.json',
   './css/style.css',
   './css/demos.css',
+  './css/maker.css',
+  './css/present.css',
   './model/digit-model.js',
   './js/store.js',
+  './js/share.js',
   './js/recognizer.js',
   './js/figures.js',
   './js/pad.js',
   './js/problems.js',
+  './js/present.js',
   './js/generators.js',
   './js/demos/core.js',
   './js/lessons.js',
+  './js/maker.js',
   './js/app.js'
 ];
 

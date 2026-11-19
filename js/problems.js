@@ -45,6 +45,38 @@
     }
   }
 
+  /* ---------- 手書きの絵（子どもが作った問題の問題文・ヒント・名前） ---------- */
+  function hasInk(ink) {
+    return !!(ink && Array.isArray(ink.strokes) && ink.strokes.some(function (s) { return s && s.length; }));
+  }
+  function inkCanvas(ink, o) {
+    if (S.Present && S.Present.drawInk) {
+      try { return S.Present.drawInk(ink, o); } catch (e) { console.error('Present.drawInk', e); }
+    }
+    // 簡易描画（present.js がないとき）：幅に合わせて縦横比を保つ
+    var iw = ink.w || 800, ih = ink.h || 300;
+    var sc = Math.min((o.width || iw) / iw, o.height ? o.height / ih : Infinity);
+    var r = Math.max(1, window.devicePixelRatio || 1);
+    var c = document.createElement('canvas');
+    c.className = 'ink-canvas';
+    c.width = Math.round(iw * sc * r); c.height = Math.round(ih * sc * r);
+    c.style.width = Math.round(iw * sc) + 'px'; c.style.height = Math.round(ih * sc) + 'px';
+    var ctx = c.getContext('2d');
+    if (!ctx) return c;
+    ctx.setTransform(sc * r, 0, 0, sc * r, 0, 0);
+    ctx.lineWidth = Math.max(o.lineWidth || 5, 1.3 / sc);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#1f2a44';
+    ink.strokes.forEach(function (s) {
+      if (!s || !s.length) return;
+      ctx.beginPath();
+      ctx.moveTo(s[0].x, s[0].y);
+      for (var i = 1; i < s.length; i++) ctx.lineTo(s[i].x, s[i].y);
+      if (s.length === 1) ctx.lineTo(s[0].x + 0.1, s[0].y);
+      ctx.stroke();
+    });
+    return c;
+  }
+
   /* ---------- 共通の枠 ---------- */
   function Frame(container, problem, opts, type) {
     opts = opts || {};
@@ -61,7 +93,20 @@
     var root = h('div', 'problem p-' + type);
     var markEl = h('div', 'p-mark');
     root.appendChild(markEl);
+    // 子どもが作った問題：つくった人の名前・問題文の手書きの絵
+    var availW = Math.max(280, Math.min(900, (container.clientWidth || 900) - 130));
+    if (hasInk(problem.authorInk)) {
+      var au = h('div', 'p-author');
+      au.appendChild(h('span', 'p-author-label', 'つくった人：'));
+      au.appendChild(inkCanvas(problem.authorInk, { height: 40, width: 320, trim: true, lineWidth: 6, label: 'つくった人の名前' }));
+      root.appendChild(au);
+    }
     if (problem.q) root.appendChild(h('div', 'p-q', problem.q));
+    if (hasInk(problem.qInk)) {
+      var qi = h('div', 'p-qink');
+      qi.appendChild(inkCanvas(problem.qInk, { width: availW, height: 300, trim: true, lineWidth: 5, label: '問題文' }));
+      root.appendChild(qi);
+    }
     var figEl = h('div', 'p-fig');
     if (problem.fig && S.Figures && S.Figures.render) {
       try {
@@ -87,14 +132,17 @@
     f.root = root;
 
     var hints = (problem.hints || []).slice();
+    if (hasInk(problem.hintInk)) hints.unshift({ ink: problem.hintInk }); // 作った人の手書きのヒントを先に
     f.hasHints = function () { return hints.length > 0; };
     f.hintButton = function () {
       if (!hints.length) return null;
       var b = button('', 'hint', function () {
         if (f.hintsUsed < hints.length) {
-          var p = h('div', 'hint-item');
+          var item = hints[f.hintsUsed];
+          var p = h('div', 'hint-item' + (item && item.ink ? ' hint-ink' : ''));
           p.appendChild(h('span', 'hint-no', 'ヒント' + (f.hintsUsed + 1)));
-          p.appendChild(document.createTextNode(hints[f.hintsUsed]));
+          if (item && item.ink) p.appendChild(inkCanvas(item.ink, { width: Math.min(availW, 640), height: 220, trim: true, lineWidth: 5, label: 'ヒントの絵' }));
+          else p.appendChild(document.createTextNode(item));
           f.hintsEl.appendChild(p);
           f.hintsUsed++;
         }

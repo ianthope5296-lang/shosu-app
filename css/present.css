@@ -1,0 +1,164 @@
+/* present.css — 提示画面・もんだいボックス・ともだちの問題・手書きの問題文（担当G） */
+
+/* ---------- 手書きの絵（問題画面の中） ---------- */
+.ink-canvas { display: block; }
+.p-qink { margin: 0 110px 0.6rem 0; padding: 0.3rem; background: #fffef8; border: 2px solid #e6e1cf; border-radius: var(--radius); }
+.p-qink .ink-canvas { max-width: 100%; height: auto !important; }
+.p-author { display: flex; align-items: center; gap: 0.5rem; margin: 0 0 0.5rem; font-size: 0.85rem; color: var(--ink-soft); }
+.p-author .ink-canvas { max-width: 50vw; height: auto !important; }
+.hint-item.hint-ink { display: flex; align-items: flex-start; gap: 0.4rem; flex-wrap: wrap; }
+.hint-item.hint-ink .ink-canvas { max-width: 100%; height: auto !important; background: #fffdf0; border-radius: 4px; }
+
+/* ---------- 提示画面 ---------- */
+.present {
+  position: fixed; inset: 0; z-index: 40;
+  display: flex; flex-direction: column;
+  background: #fffefa; color: var(--ink);
+}
+.pr-top {
+  display: flex; align-items: center; gap: 1rem; flex-wrap: nowrap;
+  padding: 0.4rem 1rem; min-height: 64px;
+  background: #eef1f6; border-bottom: 2px solid var(--line);
+}
+.pr-back { flex: none; }
+.pr-kind { flex: none; font-weight: bold; color: #fff; background: var(--primary); padding: 0.2em 0.9em; border-radius: 999px; font-size: 1rem; }
+.pr-author { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+.pr-author-label { flex: none; font-size: 0.95rem; color: var(--ink-soft); }
+.pr-author-ink { display: inline-flex; background: #fff; border-radius: 8px; padding: 2px 8px; border: 1px solid var(--line); }
+.pr-spacer { flex: 1; }
+.pr-count { flex: none; font-size: 1.3rem; font-weight: bold; font-family: var(--num-font); color: var(--ink-soft); }
+.pr-fs { flex: none; }
+
+.pr-body { flex: 1; min-height: 0; display: flex; }
+.pr-stage {
+  flex: 1; min-width: 0; min-height: 0;
+  display: flex; flex-direction: column; align-items: stretch;
+  padding: 2vh 3vw;
+  container-type: size;
+  overflow: hidden;
+}
+.pr-q { flex: none; font-size: clamp(1.2rem, 6cqh, 3.2rem); font-weight: bold; line-height: 1.35; margin-bottom: 2cqh; }
+.pr-visual {
+  flex: 1; min-height: 0; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2cqh;
+  overflow: hidden;
+}
+.pr-qink { display: flex; justify-content: center; }
+.pr-qink .ink-canvas { background: transparent; }
+.pr-fig { flex: 1; min-height: 0; width: 100%; display: flex; align-items: center; justify-content: center; }
+.pr-fig svg { max-height: 100%; }
+.pr-foot { flex: none; display: flex; justify-content: center; margin-top: 2cqh; }
+.pr-empty { font-size: 2rem; color: var(--ink-soft); }
+
+/* 答えのマス（文の中の □） */
+.pr-ans-line { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.2em 0.3em; font-size: clamp(1.4rem, min(9cqh, 5cqw), 4rem); line-height: 1.3; }
+.pr-ans-text { white-space: pre-wrap; }
+.pr-slot { display: inline-flex; align-items: flex-end; gap: 0.12em; }
+.pr-box {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.2em; height: 1.4em; border: 0.07em solid #5d6880; border-radius: 0.12em; background: #fff;
+  font-family: var(--num-font); font-weight: bold; color: var(--ok);
+}
+.pr-dot { font-family: var(--num-font); font-weight: bold; font-size: 1.4em; line-height: 1; width: 0.3em; text-align: center; }
+.pr-ch { font-weight: bold; }
+
+/* 大小くらべ */
+.pr-compare { display: flex; align-items: center; justify-content: center; gap: 0.35em; font-family: var(--num-font); font-weight: bold; font-size: min(22cqh, 11cqw); line-height: 1.2; }
+.pr-cbox {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.1em; height: 1.1em; border: 0.06em solid var(--ink); border-radius: 0.08em; background: #fff; color: var(--ok);
+}
+
+/* 筆算 */
+.pr-hissan {
+  display: grid; align-items: end; justify-content: center; row-gap: 0.04em;
+  font-family: var(--num-font); font-weight: bold; line-height: 1.1;
+  font-size: min(17cqh, calc(80cqw / var(--n, 5)));
+}
+.pr-hd, .pr-hdot, .pr-hop { text-align: center; }
+.pr-hdot { line-height: 1; }
+.pr-hline { border-top: 0.07em solid var(--ink); margin: 0.04em 0 0.08em; }
+.pr-hans { color: var(--ok); }
+.pr-hissan.ans-hidden .pr-hans { visibility: hidden; }
+
+/* 横のパネル（ヒント・答え・リンク） */
+.pr-side {
+  flex: none; width: min(40vw, 640px); overflow-y: auto;
+  background: #f6f8fc; border-left: 2px solid var(--line); padding: 1rem 1.2rem;
+  display: flex; flex-direction: column; gap: 1rem;
+}
+.pr-sec { background: #fff; border-radius: var(--radius); border: 2px solid var(--line); padding: 0.6rem 1rem 1rem; }
+.pr-sec-title { margin: 0 0 0.4rem; font-size: 1.3rem; }
+.pr-sec-hint { border-color: #e0b400; background: #fffbea; }
+.pr-sec-hint .pr-sec-title { color: #8a6500; }
+.pr-hint-ink { display: flex; justify-content: center; }
+.pr-hint-text { font-size: 1.5rem; margin-top: 0.4rem; }
+.pr-sec-ans { border-color: var(--ok); }
+.pr-sec-ans .pr-sec-title { color: var(--ok); }
+.pr-answer-text { font-family: var(--num-font); font-weight: bold; color: var(--ok); font-size: clamp(2.4rem, 6vw, 5rem); line-height: 1.2; text-align: center; word-break: break-all; }
+.pr-link-note { font-size: 1.2rem; margin: 0 0 0.5rem; }
+.pr-link-url {
+  width: 100%; font-family: var(--num-font); font-size: 1.15rem; line-height: 1.4; padding: 0.5rem;
+  border: 2px solid #9db3d6; border-radius: 8px; background: #f8fbff; color: var(--ink); resize: vertical;
+  word-break: break-all; max-height: 30vh;
+}
+.pr-copy { margin-top: 0.6rem; font-size: 1.4rem; min-height: 64px; width: 100%; }
+.pr-link-len { font-size: 0.85rem; color: var(--ink-soft); text-align: right; margin-top: 0.2rem; }
+
+/* 下のボタン */
+.pr-bottom {
+  flex: none; display: flex; align-items: center; gap: 0.8rem;
+  padding: 0.6rem 1rem; background: #eef1f6; border-top: 2px solid var(--line);
+}
+.pr-actions { flex: 1; display: flex; justify-content: center; flex-wrap: wrap; gap: 0.8rem; }
+.pr-bottom .btn { font-size: clamp(1rem, 1.6vw, 1.5rem); min-height: clamp(52px, 7vh, 80px); padding: 0.3em 1.3em; }
+.pr-bottom .btn.on { background: #fff6cc; border-color: #e0b400; }
+.btn.pr-hint { border-color: #e0b400; background: #fffbe8; }
+.btn.pr-answer { border-color: var(--ok); color: var(--ok); font-weight: bold; }
+.btn.pr-answer.on { background: var(--ok-bg); border-color: var(--ok); }
+.btn.pr-link { border-color: #5a8fd0; color: #2f5f9a; font-weight: bold; }
+.btn.pr-link.on { background: #e8f0fb; border-color: #5a8fd0; }
+.btn.pr-nav { flex: none; min-width: 7.5em; font-weight: bold; }
+
+@media (max-height: 640px) {
+  .pr-top { min-height: 52px; padding: 0.2rem 0.8rem; }
+  .pr-bottom { padding: 0.4rem 0.8rem; }
+}
+
+/* ---------- ともだちの問題（自分で解く） ---------- */
+.friend-head { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 0.6rem; }
+.friend-author { display: flex; align-items: center; gap: 0.5rem; color: var(--ink-soft); }
+.friend-author .ink-canvas { background: #fff; border: 1px solid var(--line); border-radius: 6px; }
+.friend-card { background: var(--card); border-radius: var(--radius); padding: 1rem; }
+.friend-actions { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-top: 1rem; }
+.q-error { text-align: center; padding: 3rem 1rem; }
+.q-error .qe-msg { font-size: 1.5rem; font-weight: bold; margin-bottom: 1.2rem; }
+.q-loading { text-align: center; padding: 3rem 1rem; font-size: 1.3rem; color: var(--ink-soft); }
+
+/* ---------- もんだいボックス ---------- */
+.box-paste { width: 100%; min-height: 160px; font-family: inherit; font-size: 1rem; padding: 0.6rem; border: 2px solid #9db3d6; border-radius: var(--radius); background: #fbfdff; resize: vertical; }
+.box-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.8rem; margin-top: 0.6rem; }
+.box-msg { font-weight: bold; color: var(--good); }
+.box-msg.warn { color: #8a5a00; }
+.box-list { list-style: none; margin: 0.6rem 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.box-item { display: flex; align-items: center; gap: 0.8rem; background: #fff; border: 2px solid var(--line); border-radius: var(--radius); padding: 0.4rem 0.8rem; }
+.box-no { flex: none; width: 2.4em; height: 2.4em; border-radius: 50%; background: var(--primary); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; }
+.box-name { flex: none; min-width: 120px; display: inline-flex; }
+.box-name .ink-canvas { background: #fffef8; border: 1px solid var(--line); border-radius: 6px; }
+.box-kind { flex: none; font-weight: bold; color: var(--primary); min-width: 7em; }
+.box-desc { flex: 1; min-width: 0; color: var(--ink-soft); font-family: var(--num-font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.box-item .btn { flex: none; }
+
+/* ---------- ホームの追加カード ---------- */
+.home-make { margin-top: 1rem; }
+.make-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.7rem; }
+.make-card {
+  display: flex; align-items: center; gap: 0.8rem; min-height: 72px; padding: 0.5rem 1.1rem;
+  background: var(--card); border: 2px solid var(--line); border-left: 8px solid #d27a2c; border-radius: var(--radius);
+  text-decoration: none; font-weight: bold; font-size: 1.1rem; touch-action: manipulation;
+}
+.make-card.my { border-left-color: #4e9a68; }
+.make-icon { font-size: 1.6rem; }
+.make-sub { display: block; font-weight: normal; font-size: 0.8rem; color: var(--ink-soft); }
+.home-extra { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
+.extra-link.small { min-height: 44px; font-size: 0.85rem; background: #eef0f3; color: var(--ink-soft); }
