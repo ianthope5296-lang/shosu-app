@@ -6,7 +6,7 @@
   var KEYS = ['1', '0.1', '0.01', '0.001'], PL = [0, -1, -2, -3];
 
   function relationSvg() {
-    var W = 900, H = 250, gap = 220, x0 = 120, cy = 128;
+    var W = 900, H = 262, gap = 220, x0 = 120, cy = 128;
     var svg = F.root(W, H, 'sd-rel', 1.0);
     KEYS.forEach(function (k, i) {
       var cx = x0 + i * gap;
@@ -19,7 +19,7 @@
       svg.appendChild(s('rect', { x: cx - 46, y: cy + 22, width: 92, height: 36, rx: 8, fill: ui.placeColor(PL[i]), stroke: '#777' }));
       svg.appendChild(txt(cx, cy + 48, k, { 'font-size': 26, 'font-weight': 'bold' }));
       if (i < KEYS.length - 1) {
-        var ax = cx + 40, bx = cx + gap - 40;
+        var ax = cx + 66, bx = cx + gap - 66;
         // 上の弧：1/10（右へ）
         svg.appendChild(s('path', { d: 'M' + ax + ' ' + (cy - 70) + ' Q' + (cx + gap / 2) + ' ' + (cy - 140) + ' ' + bx + ' ' + (cy - 70), fill: 'none', stroke: '#1971c2', 'stroke-width': 3.5 }));
         svg.appendChild(s('path', { d: 'M' + bx + ' ' + (cy - 70) + ' l-15 -5 l6 -12 z', fill: '#1971c2' }));
@@ -27,7 +27,7 @@
         // 下の弧：10倍（左へ）
         svg.appendChild(s('path', { d: 'M' + bx + ' ' + (cy + 62) + ' Q' + (cx + gap / 2) + ' ' + (cy + 128) + ' ' + ax + ' ' + (cy + 62), fill: 'none', stroke: '#e8590c', 'stroke-width': 3.5 }));
         svg.appendChild(s('path', { d: 'M' + ax + ' ' + (cy + 62) + ' l15 5 l-6 12 z', fill: '#e8590c' }));
-        svg.appendChild(txt(cx + gap / 2, cy + 110, '10倍', { 'font-size': 22, 'font-weight': 'bold', fill: '#e8590c' }));
+        svg.appendChild(txt(cx + gap / 2, cy + 122, '10倍', { 'font-size': 22, 'font-weight': 'bold', fill: '#e8590c' }));
       }
     });
     return svg;

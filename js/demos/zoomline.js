@@ -27,16 +27,16 @@
         ui.button('−0.01m', nudge(-1), { kind: 'sub' }),
         valEl,
         ui.button('＋0.01m', nudge(1), { kind: 'sub' }),
-        ui.button('＋0.1m', nudge(10), { kind: 'sub' })
+        ui.button('＋0.1m', nudge(10), { kind: 'sub' }),
+        slider
       ]));
-      el.appendChild(h('div', { 'class': 'sd-row sd-center' }, slider));
       el.appendChild(info);
 
       function render(anim) {
         var W = 1000, x0 = 60, x1 = 920, L = x1 - x0;
         var per = L / (maxM * 10); // 0.1m の幅
         var a = Math.floor(v / 10) * 10; // 区間の左（cm）
-        var svg = F.root(W, zoomed ? 400 : 190, 'sd-zoom-svg', 1.25);
+        var svg = F.root(W, zoomed ? 400 : 190, 'sd-zoom-svg', 0.9);
         var X = function (cm) { return x0 + cm / 10 * per; };
         // 上のテープ
         var ty = 70, th = 40;
@@ -70,8 +70,7 @@
             var zx = zx0 + j * zp, end = j === 0 || j === 10, half = j === 5;
             g.appendChild(s('line', { x1: zx, y1: zy - 12, x2: zx, y2: zy - 12 + (end ? 20 : half ? 15 : 10), stroke: '#333', 'stroke-width': end ? 2.4 : 1.5 }));
             if (end) g.appendChild(txt(zx, zy + 34, num.fromInt(a + j, 2), { 'font-size': 24, 'font-weight': 'bold' }));
-            else g.appendChild(txt(zx, zy + 30, num.fromInt(a + j, 2), { 'font-size': 15, fill: '#888' }));
-          }
+                      }
           g.appendChild(txt(zx1 + 34, zy + 34, 'm', { 'font-size': 24 }));
           // 0.01m のしるし
           g.appendChild(s('path', { d: 'M' + zx0 + ' ' + (zy - 52) + ' q' + (zp / 2) + ' -16 ' + zp + ' 0', fill: 'none', stroke: '#1971c2', 'stroke-width': 2 }));

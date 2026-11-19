@@ -522,7 +522,7 @@
         c.box.mark(good ? (unsure ? 'unsure' : 'ok') : 'ng');
         if (good && !unsure) ok++;
       });
-      score.textContent = n ? (n + 'こ中 ' + ok + 'こ 正しく読めたよ。黄色や赤のマスは、形に気をつけてもう一度書いてみよう。') : 'マスに数字を書いてね。';
+      score.textContent = n ? (n + 'こ中 ' + ok + 'こ 正しく読めたよ。黄色や青のマスは、形に気をつけてもう一度書いてみよう。') : 'マスに数字を書いてね。';
     }));
     row.appendChild(button('ぜんぶけす', '', function () {
       cells.forEach(function (c) { if (c.box) { c.box.clear(); c.box.mark(null); } c.res.textContent = ''; });

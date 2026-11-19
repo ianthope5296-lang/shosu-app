@@ -225,6 +225,10 @@
         var ly = y + 62 + a.lv * 44;
         g.appendChild(s('line', { x1: a.x, y1: y + 9, x2: a.x, y2: ly - 18, stroke: col, 'stroke-width': 3 }));
         g.appendChild(s('path', { d: 'M' + a.x + ' ' + (y + 4) + ' l-7 13 h14 z', fill: col }));
+      });
+      arr.forEach(function (a) {
+        var col = a.color || '#d9480f';
+        var ly = y + 62 + a.lv * 44;
         if (a.label.length <= 1) {
           g.appendChild(s('circle', { cx: a.x, cy: ly, r: 17, fill: '#fff', stroke: col, 'stroke-width': 2.5 }));
         } else {
@@ -264,7 +268,7 @@
     var cols = sp.cols || ['1', '0.1', '0.01', '0.001'];
     var rows = sp.rows || [];
     var ps = cols.map(placeOf);
-    var cw = sp.cellWidth || 92, hh = sp.sub ? 84 : 66, rh = 72;
+    var cw = sp.cellWidth || 100, hh = sp.sub ? 84 : 66, rh = 72;
     var lw = sp.rowLabels ? 70 : 0;
     var W = lw + cw * cols.length + 4, H = hh + rh * Math.max(1, rows.length) + 4;
     var svg = root(W, H, 'fig-placetable', 1.1);

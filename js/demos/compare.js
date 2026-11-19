@@ -107,7 +107,7 @@
         var shownZeros = {};
         plan.steps.forEach(function (st, k) { if (k <= step) st.zeros.forEach(function (i) { shownZeros[i + ',' + st.p] = 1; }); });
         var lastCol = plan.steps.length ? plan.steps[plan.steps.length - 1].col : -1;
-        function passed(c) { return step >= 0 && (cur ? c < cur.col : c <= lastCol); }
+        function passed(c) { return step >= 0 && cur && c < cur.col; }
         var t = h('table', { 'class': 'sd-table sd-ptable sd-cmp' });
         var hr = h('tr', null, h('th', { 'class': 'sd-rowhead' }, ''));
         ps.forEach(function (p, c) {

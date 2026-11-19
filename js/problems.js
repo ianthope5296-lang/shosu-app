@@ -401,7 +401,7 @@
     f.body.appendChild(ans);
     var hintB = f.hintButton();
     var checkB = button('こたえあわせ', 'primary check', check);
-    var resetB = button('やりなおし', 'retry', function () { placed = []; draw(); f.setStatus(null); f.showMark(null); });
+    var resetB = button('やりなおし', 'retry', function () { placed = []; draw(); f.setStatus(null); f.showMark(null); f.answerEl.innerHTML = ''; f.setActions([checkB, resetB, hintB]); });
     var locked = false;
 
     function draw() {
@@ -458,11 +458,11 @@
         var bad = ans.querySelector('[data-pos="' + firstBad + '"]');
         if (bad) bad.classList.add('ng');
         f.showMark('ng');
-        f.setStatus('ざんねん。赤いところから見なおそう。タップすると、もどせるよ。', 'bad');
+        f.setStatus('ざんねん。色がついたところから見なおそう。ならべた数をタップすると、もどせるよ。', 'bad');
         f.report(false, 'auto');
-        f.setActions([resetB, hintB, button('答えを見る', 'show', function () {
+        f.setActions([checkB, resetB, hintB, button('答えを見る', 'show', function () {
           f.revealAnswer(h('span', 'answer-num', sortedValues().join(dir === 'desc' ? '  >  ' : '  <  ')));
-          f.setActions([resetB, f.nextButton()]);
+          f.setActions([checkB, resetB, f.nextButton()]);
         })]);
       }
     }
