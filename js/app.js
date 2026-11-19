@@ -245,7 +245,7 @@
         onNext: function () { go(idx + 1); }
       });
       drawProgress();
-      if (shown++) window.scrollTo({ top: Math.max(0, wrap.getBoundingClientRect().top + window.scrollY - 80), behavior: 'smooth' });
+      if (shown++) window.scrollTo({ top: Math.max(0, wrap.getBoundingClientRect().top + window.scrollY - 80), behavior: 'auto' });
     }
     function go(i) {
       if (i < 0) return;
@@ -310,14 +310,35 @@
     function mountDemo() {
       var holder = h('div', 'demo-holder');
       pMiru.appendChild(holder);
-      if (lesson.demo && S.Demos && S.Demos.mount) {
-        try {
-          var d = S.Demos.mount(holder, lesson.demo.id, lesson.demo.opts || {});
-          cleanups.push(function () { try { d && d.destroy && d.destroy(); } catch (e) {} });
-        } catch (e) {
-          console.error('Demos.mount', e);
-          holder.appendChild(h('div', 'empty-note', '「みる」の教材を表示できませんでした。'));
-        }
+      var demos = lesson.demos && lesson.demos.length ? lesson.demos : (lesson.demo ? [lesson.demo] : []);
+      if (demos.length && S.Demos && S.Demos.mount) {
+        var titles = {};
+        (S.Demos.list ? S.Demos.list() : []).forEach(function (x) { titles[x.id] = x.title; });
+        var cur = null;
+        var head = h('div', 'demo-head');
+        var stage = h('div', 'demo-stage');
+        holder.appendChild(head); holder.appendChild(stage);
+        var show = function (i) {
+          if (cur) { try { cur.destroy && cur.destroy(); } catch (e) {} cur = null; }
+          stage.innerHTML = '';
+          head.innerHTML = '';
+          if (demos.length > 1) {
+            demos.forEach(function (dm, j) {
+              var b = button(titles[dm.id] || dm.id, j === i ? 'primary' : '', function () { show(j); });
+              head.appendChild(b);
+            });
+          } else if (titles[demos[i].id]) {
+            head.appendChild(h('h3', 'demo-title', titles[demos[i].id]));
+          }
+          try {
+            cur = S.Demos.mount(stage, demos[i].id, demos[i].opts || {});
+          } catch (e) {
+            console.error('Demos.mount', e);
+            stage.appendChild(h('div', 'empty-note', '「みる」の教材を表示できませんでした。'));
+          }
+        };
+        show(0);
+        cleanups.push(function () { try { cur && cur.destroy && cur.destroy(); } catch (e) {} });
       } else {
         holder.appendChild(h('div', 'empty-note', 'この時の「みる」は、じゅんび中です。'));
       }

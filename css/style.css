@@ -171,7 +171,9 @@ button.tab {
 button.tab.on { background: var(--su, var(--primary)); border-color: var(--su, var(--primary)); color: #fff; }
 .panel { background: var(--card); border-radius: 0 0 var(--radius) var(--radius); padding: 1rem; min-height: 300px; }
 .panel-foot { display: flex; justify-content: flex-end; margin-top: 1rem; }
-.demo-holder { min-height: 200px; }
+.demo-holder { min-height: 200px; overflow-x: auto; }
+.demo-head { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.demo-title { margin: 0 0 4px; font-size: 1.15rem; }
 
 /* 問題を順に解く */
 .set-progress { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.6rem; }
@@ -390,3 +392,6 @@ button.tab.on { background: var(--su, var(--primary)); border-color: var(--su, v
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* 書いている途中で画面がずれないように */
+html, body { overflow-anchor: none; }

@@ -505,8 +505,11 @@
     var f = Frame(container, p, opts, 'hissan');
     var op = p.op === '-' ? '-' : '+';
     var A = splitNum(p.a), B = splitNum(p.b);
-    var nInt = Math.max(A.int.length, B.int.length) + 1; // くり上がり用に1列多く
+    var nInt = Math.max(A.int.length, B.int.length) + (op === '+' ? 1 : 0); // たし算はくり上がり用に1列多く
     var nDec = Math.max(A.dec.length, B.dec.length);
+    if (p.showZeros === undefined && op === '-' && A.dec.length < B.dec.length) {
+      p = Object.assign({}, p, { showZeros: true }); // 6−0.52 は 6.00 とみる
+    }
     var nCols = nInt + nDec;
     var ans = hissanAnswer(op, p.a, p.b);
     var size = boxSize();
