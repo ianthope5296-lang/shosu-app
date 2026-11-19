@@ -104,3 +104,72 @@ Shosu.Lessons = [{ no:1, subunit:'小数の表し方', title:'0.1Lより少な�
   meate:'…', matome:'…', demo:{id:'masu', opts:{level:2}}, problems:[...], more:['masuRead'] }, ... 10件 ]
 Shosu.ReviewTopics = [{ id:'hyoshikata', title:'表し方・単位', gens:['masuRead','unitConvert','numberlineRead'] }, ...]
 ```
+
+---
+
+# 追加：もんだいづくり（PLAN.md 後半）
+
+## 新しいファイルと担当
+| 担当 | ファイル |
+|---|---|
+| E 共有 | js/share.js, js/store.js への追加（下記APIのみ追加。既存部分は変えない）, tools/share-test.js |
+| F 作る画面 | js/maker.js, css/maker.css |
+| G 提示・解く | js/present.js, css/present.css, js/app.js（ルート・ホームのボタン追加）, js/problems.js（qInk・hintInk 表示）, index.html（script/css 追加）, sw.js（バージョン更新） |
+
+## インク（手書きの絵）
+```js
+Ink = { w: 800, h: 300, strokes: [[{x,y}, ...], ...] }   // 書いた欄の大きさと、その中の座標
+```
+`Shosu.Pad.memo` から取り出せるよう、F は必要なら maker.js 内で独自の手書き欄を作ってよい（pad.js は変えない）。
+
+## 子どもが作った問題（UserProblem）
+```js
+{ v: 1, kind: 'hissan' | 'fill' | 'compare' | 'masu' | 'numberline',
+  author: Ink,            // 名前（手書き、必須）
+  hint: Ink | null,       // ヒント（手書き、任意）
+  // kind ごと
+  hissan:     { op: '+'|'-', a: '4.25', b: '2.18' }
+  fill:       { q: Ink, answer: '1.26', unit: 'L' }        // unit: 'L','m','km','kg','g','mL','cm','mm','こ','倍',''
+  compare:    { a: '0.43', b: '0.425' }
+  masu:       { level: 2|3, L: 1, d1: 2, d2: 6, d3: 0 }
+  numberline: { min: '0', max: '1', step: '0.01', labelEvery: 10, arrows: ['0.25', ...] } // 1〜3本
+}
+```
+（kind ごとの項目は UserProblem のトップレベルに置く。例：`{v:1, kind:'hissan', op:'+', a:'4.25', b:'2.18', author, hint}`）
+
+## Shosu.Share（E）
+```js
+Share.encode(up)          -> Promise<string>   // base64url トークン（圧縮・線の間引き込み）
+Share.decode(token)       -> Promise<UserProblem>  // 検証込み。不正なら reject(Error)
+Share.url(token)          -> string            // location の origin+pathname + '#/q/' + token
+Share.extractTokens(text) -> string[]          // 貼りつけた文章から '#/q/<token>' を全部取り出す（重複なし）
+Share.validate(up)        -> { ok, error }
+Share.toProblem(up)       -> problem           // 既存の問題形式に変換。fill/masu/numberline は type:'fill'、
+                                               // compare は type:'choice'、hissan は type:'hissan'。
+                                               // 変換後に qInk（問題文の絵）・hintInk・authorInk を付ける
+Share.answerText(up)      -> '1.26L' など      // 提示画面の「答えを見せる」用
+Share.MAX_LEN = 6000
+Share.simplify(ink)       -> Ink               // 間引き後の線（作る画面で長さの目安を出すのに使える）
+```
+圧縮は CompressionStream('deflate-raw')（Edge/Chrome 対応）。トークンは URL にそのまま入る文字だけ。
+
+## Shosu.Store 追加（E）
+```js
+Store.myList() -> [{id, up, created, updated}]   Store.mySave(up, id?) -> id   Store.myDelete(id)
+Store.boxList() -> [{token, up, added}]          Store.boxAdd([{token, up}]) -> 追加数（重複除く）
+Store.boxRemove(token)  Store.boxClear()
+// ともだちの問題の結果は既存の Store.record('friend', token先頭16文字, {...}) を使う
+```
+
+## Shosu.Maker（F）
+```js
+Maker.mount(el, route) -> { destroy() }   // route: 'make' | 'make/<kind>' | 'my' | 'edit/<id>'
+```
+作成→ためしに解く（Shosu.Problems.render(Share.toProblem(up))）→できあがり（みんなに見せる＝location.hash='#/q/<token>'、リンクをコピー、ほぞん）。
+
+## Shosu.Present（G）
+```js
+Present.mount(el, up, { token, onSolve, list?: {index, total, onPrev, onNext} }) -> { destroy() }
+Present.drawInk(ink, opts?) -> HTMLCanvasElement  // 絵を表示用に描く（problems.js でも使う）
+```
+ルート（G が app.js に追加）：`#/make…` `#/my` `#/edit/<id>` → Maker、`#/q/<token>` → 提示画面→「自分で解く」、`#/box` → もんだいボックス、`#/box/<n>` → ボックスのn番目を提示。
