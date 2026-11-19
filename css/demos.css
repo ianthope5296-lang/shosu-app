@@ -171,7 +171,7 @@
 .sd-hs-dot { position: absolute; right: -6px; bottom: 12px; width: 12px; height: 12px; border-radius: 50%; background: #222; z-index: 2; }
 .sd-hs-dot.sd-faint { background: #adb5bd; }
 .sd-drop { animation: sd-drop .7s ease-out; background: #e8590c; }
-.sd-slash-dot { box-shadow: 0 0 0 4px #fff, 0 0 0 7px rgba(201, 42, 42, .5); }
+.sd-slash-dot::after { content: ''; position: absolute; left: -9px; right: -9px; top: 50%; border-top: 4px solid #c92a2a; transform: rotate(-60deg); }
 .sd-hs-small-grid { --hs-cw: 44px; --hs-opw: 34px; }
 .sd-hs-small-grid .sd-hs-cell { height: 52px; font-size: 32px; }
 .sd-hs-small-grid .sd-hs-dot { width: 9px; height: 9px; bottom: 8px; right: -4px; }

@@ -7,7 +7,7 @@
   /* 100マスの正方形(1)・10マスの列(0.1)・1マス(0.01) で表す */
   function gridPic(n100, mode) {
     var ones = Math.floor(n100 / 100), tenths = Math.floor(n100 / 10) % 10, hund = n100 % 10;
-    var c = 11, gap = 18;
+    var c = 11, gap = 34;
     var parts = [];
     var i;
     for (i = 0; i < ones; i++) parts.push({ type: 1 });
@@ -38,9 +38,10 @@
       count += cells;
       segs[pt.type].push([startX, x + w]);
       x += w + (pt.type === 1 ? 10 : 4);
-      if (mode === 3) g.appendChild(txt(x - (w + (pt.type === 1 ? 10 : 4)) / 2 - 2, y0 + 10 * c + 26, String(count), { 'font-size': pt.type === 1 ? 18 : 12, fill: '#b35c00' }));
+      var lastOfType = !parts[k + 1] || parts[k + 1].type !== pt.type;
+      if (mode === 3 && (pt.type === 1 || lastOfType)) g.appendChild(txt(x - (w + (pt.type === 1 ? 10 : 4)) / 2 - 2, y0 + 10 * c + (pt.type === 0.01 ? 48 : 26), String(count), { 'font-size': 18, fill: '#b35c00' }));
     });
-    var W = x + 20, H = y0 + 10 * c + 70;
+    var W = x + 20, H = y0 + 10 * c + 90;
     function brace(a, b, label, y, color) {
       g.appendChild(s('path', { d: 'M' + a + ' ' + (y - 8) + ' v8 H' + b + ' v-8', fill: 'none', stroke: color || '#333', 'stroke-width': 2.2 }));
       g.appendChild(txt((a + b) / 2, y + 26, label, { 'font-size': 22, 'font-weight': 'bold', fill: color || '#333' }));
@@ -53,10 +54,10 @@
       if (rest.length) brace(rest[0][0], rest[rest.length - 1][1], num.fromInt(n100 % 100, 2), by, '#1971c2');
     } else if (mode === 2) {
       [[1, ones, '1'], [0.1, tenths, '0.1'], [0.01, hund, '0.01']].forEach(function (q) {
-        var sp = span(q[0]); if (sp) brace(sp[0], sp[1], q[2] + 'が' + q[1] + 'こ', by);
+        var sp = span(q[0]); if (sp) brace(sp[0], sp[1], q[2] + 'が' + q[1] + 'こ', by + (q[0] === 0.01 ? 34 : 0));
       });
     }
-    var svg = F.root(W, H, 'sd-furi-pic', 1.25);
+    var svg = F.root(W, H, 'sd-furi-pic', 1.0);
     svg.appendChild(g);
     return svg;
   }
@@ -69,19 +70,19 @@
     var cw = 100, hh = 66, rh = 72, W = cw * cols.length + 4, H = hh + rh * rows.length + 4;
     var hlRow = 2;
     svg.insertBefore(s('rect', { x: 2, y: 2 + hh + rh * hlRow, width: W - 4, height: rh, fill: '#fff3bf', opacity: 0.9 }), svg.childNodes[cols.length * 2] || null);
-    var ext = 230;
+    var ext = 290;
     svg.setAttribute('viewBox', '0 0 ' + (W + ext) + ' ' + H);
-    svg.style.maxWidth = Math.round((W + ext) * 1.05) + 'px';
+    svg.style.maxWidth = Math.round((W + ext) * 0.8) + 'px';
     for (var i = 0; i < rows.length - 1; i++) {
       var y1 = 2 + hh + rh * i + rh / 2, y2 = y1 + rh;
       var x = W + 12;
       svg.appendChild(s('path', { d: 'M' + x + ' ' + (y1 + 6) + ' Q' + (x + 50) + ' ' + ((y1 + y2) / 2) + ' ' + x + ' ' + (y2 - 6), fill: 'none', stroke: '#1971c2', 'stroke-width': 3 }));
       svg.appendChild(s('path', { d: 'M' + x + ' ' + (y2 - 6) + ' l12 -4 l-5 -10 z', fill: '#1971c2' }));
-      svg.appendChild(F.frac(x + 62, (y1 + y2) / 2 + 2, '1', '10', 17, { fill: '#1971c2' }));
-      var x2 = W + 110;
+      svg.appendChild(F.frac(x + 66, (y1 + y2) / 2 + 2, '1', '10', 22, { fill: '#1971c2' }));
+      var x2 = W + 120;
       svg.appendChild(s('path', { d: 'M' + x2 + ' ' + (y2 - 6) + ' Q' + (x2 + 50) + ' ' + ((y1 + y2) / 2) + ' ' + x2 + ' ' + (y1 + 6), fill: 'none', stroke: '#e8590c', 'stroke-width': 3 }));
       svg.appendChild(s('path', { d: 'M' + x2 + ' ' + (y1 + 6) + ' l12 4 l-5 10 z', fill: '#e8590c' }));
-      svg.appendChild(txt(x2 + 78, (y1 + y2) / 2 + 8, '10倍', { 'font-size': 18, 'font-weight': 'bold', fill: '#e8590c' }));
+      svg.appendChild(txt(x2 + 100, (y1 + y2) / 2 + 8, '10倍', { 'font-size': 24, 'font-weight': 'bold', fill: '#e8590c' }));
     }
     return svg;
   }
@@ -102,8 +103,12 @@
 
       el.appendChild(h('div', { 'class': 'sd-row' }, [h('span', { 'class': 'sd-lead' }, 'いろいろな見方をしてみよう'), numSeg.el]));
       el.appendChild(h('div', { 'class': 'sd-cols' }, [
-        h('div', { 'class': 'sd-col-main' }, [seg.el, picBox, viewText]),
-        h('div', { 'class': 'sd-col-side' }, [tableBox, tableText])
+        h('div', { 'class': 'sd-col-main' }, [seg.el, picBox]),
+        h('div', { 'class': 'sd-col-side' }, [viewText])
+      ]));
+      el.appendChild(h('div', { 'class': 'sd-cols' }, [
+        h('div', { 'class': 'sd-col-main' }, [tableBox]),
+        h('div', { 'class': 'sd-col-side' }, [tableText])
       ]));
 
       function render() {
