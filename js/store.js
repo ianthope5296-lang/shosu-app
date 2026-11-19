@@ -100,6 +100,85 @@
     setJSON('keys', []);
   }
 
+  /* ---------- もんだいづくり：つくった問題（'shosu.my'）・もんだいボックス（'shosu.box'） ---------- */
+  // 保存に失敗したとき（容量超過など）は例外を投げず false を返す。
+  function trySetJSON(k, v) {
+    var s;
+    try { s = JSON.stringify(v); } catch (e) { return false; }
+    if (!ls) { mem[k] = s; return true; }
+    try { ls.setItem(PREFIX + k, s); return true; } catch (e) { return false; }
+  }
+  function getList(k) {
+    var v = getJSON(k, []);
+    return Array.isArray(v) ? v : [];
+  }
+  // 手書きの座標を小数第1位までにして容量を節約する（元の up は変えない）
+  function compactInk(ink) {
+    if (!ink || !Array.isArray(ink.strokes)) return ink || null;
+    return {
+      w: ink.w, h: ink.h,
+      strokes: ink.strokes.map(function (st) {
+        return (st || []).map(function (p) { return { x: Math.round(p.x * 10) / 10, y: Math.round(p.y * 10) / 10 }; });
+      })
+    };
+  }
+  function compactUp(up) {
+    if (!up || typeof up !== 'object') return up;
+    var o = {};
+    for (var k in up) if (Object.prototype.hasOwnProperty.call(up, k)) o[k] = up[k];
+    if (o.author) o.author = compactInk(o.author);
+    if (o.hint) o.hint = compactInk(o.hint);
+    if (o.q) o.q = compactInk(o.q);
+    return o;
+  }
+
+  function myList() { return getList('my'); }
+  function mySave(up, id) {
+    var list = getList('my');
+    var now = Date.now();
+    var item = null;
+    if (id) for (var i = 0; i < list.length; i++) if (list[i] && list[i].id === id) { item = list[i]; break; }
+    if (item) {
+      item.up = compactUp(up);
+      item.updated = now;
+    } else {
+      id = id || ('my-' + now.toString(36) + '-' + Math.floor(Math.random() * 1e6).toString(36));
+      item = { id: id, up: compactUp(up), created: now, updated: now };
+      list.unshift(item);
+    }
+    return trySetJSON('my', list) ? id : false;
+  }
+  function myDelete(id) {
+    var list = getList('my');
+    var out = list.filter(function (x) { return !x || x.id !== id; });
+    if (out.length === list.length) return false;
+    return trySetJSON('my', out);
+  }
+
+  function boxList() { return getList('box'); }
+  // items: [{token, up}]。重複（同じトークン）は除く。戻り値は追加した数（保存に失敗したら false）
+  function boxAdd(items) {
+    var list = getList('box');
+    var have = {};
+    list.forEach(function (x) { if (x && x.token) have[x.token] = 1; });
+    var n = 0, now = Date.now();
+    (items || []).forEach(function (it) {
+      if (!it || typeof it.token !== 'string' || !it.token || have[it.token]) return;
+      have[it.token] = 1;
+      list.push({ token: it.token, up: compactUp(it.up), added: now });
+      n++;
+    });
+    if (!n) return 0;
+    return trySetJSON('box', list) ? n : false;
+  }
+  function boxRemove(token) {
+    var list = getList('box');
+    var out = list.filter(function (x) { return !x || x.token !== token; });
+    if (out.length === list.length) return false;
+    return trySetJSON('box', out);
+  }
+  function boxClear() { return trySetJSON('box', []); }
+
   S.Store = {
     getSettings: getSettings,
     setSettings: setSettings,
@@ -107,6 +186,13 @@
     stats: stats,
     keys: keys,
     resetAll: resetAll,
+    myList: myList,
+    mySave: mySave,
+    myDelete: myDelete,
+    boxList: boxList,
+    boxAdd: boxAdd,
+    boxRemove: boxRemove,
+    boxClear: boxClear,
     persistent: !!ls
   };
 })(window.Shosu = window.Shosu || {});
