@@ -102,6 +102,8 @@
       credit[t] = rng() * 0.5; // はじめの順番をばらす
       sumW += w[t];
     });
+    // にがてな内容は先に出しはじめる（短い時間でも1回多く出るように）
+    TAGS.forEach(function (t) { credit[t] += (w[t] - 1) * sumW / 4; });
 
     var genUse = {};   // 内容ごとに、生成器を使った回数
     var lastGen = {};  // 内容ごとに、前に使った生成器

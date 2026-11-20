@@ -301,54 +301,6 @@ function verifyFixed(where, p) {
   } catch (e) { err(where, '検算エラー: ' + e.message); }
 }
 
-// ---------- レッスン全体 ----------
-var genNames = G.names();
-var ids = {};
-var total = 0, byType = {};
-if (!Array.isArray(Lessons) || Lessons.length !== 10) err('Lessons', '10件ではない');
-Lessons.forEach(function (L, li) {
-  var w = 'L' + L.no;
-  if (L.no !== li + 1) err(w, 'no の順番');
-  ['subunit', 'title', 'page', 'meate', 'matome'].forEach(function (k) { if (typeof L[k] !== 'string' || !L[k]) err(w, k + ' がない'); });
-  if (!L.demo || DEMOS.indexOf(L.demo.id) < 0) err(w, 'demo.id が不明');
-  (L.demos || []).forEach(function (d) { if (DEMOS.indexOf(d.id) < 0) err(w, 'demos.id が不明: ' + d.id); });
-  (L.more || []).forEach(function (n) { if (genNames.indexOf(n) < 0) err(w, 'more の生成器が不明: ' + n); });
-  if (!L.more || !L.more.length) err(w, 'more がない');
-  if (!Array.isArray(L.problems) || !L.problems.length) err(w, 'problems がない');
-  L.problems.forEach(function (p) {
-    var pw = p.id || (w + '-?');
-    if (ids[p.id]) err(pw, 'id が重複'); ids[p.id] = true;
-    if (!/^L\d+-\d\d$/.test(p.id)) err(pw, 'id の形');
-    checkProblem(pw, p);
-    verifyFixed(pw, p);
-    total++; byType[p.type] = (byType[p.type] || 0) + 1;
-  });
-});
-// 走りはばとびの合計（問題文中）
-(function () {
-  var p = Lessons[9].problems.filter(function (x) { return x.id === 'L10-21'; })[0];
-  var re = /([A-D])チーム：([^（]*?)（合計([\d.]+)m）/g, m;
-  var n = 0;
-  while ((m = re.exec(p.q))) {
-    var sum = m[2].split('、').map(function (s) { return D(s.replace('m', '').trim()); }).reduce(function (a, b) { return a + b; }, 0n);
-    if (S(sum) !== m[3]) err('L10-21', m[1] + 'チームの合計がちがう: ' + S(sum) + ' / ' + m[3]);
-    n++;
-  }
-  if (n !== 3) err('L10-21', 'チームの合計を読めない');
-})();
-
-var topicIds = ['hyoshikata', 'shikumi', 'daisho', 'jubai', 'tashizan', 'hikizan'];
-if (!Array.isArray(ReviewTopics) || ReviewTopics.length !== 6) err('ReviewTopics', '6件ではない');
-ReviewTopics.forEach(function (t, i) {
-  if (t.id !== topicIds[i]) err('ReviewTopics', 'id: ' + t.id);
-  if (!t.title) err('ReviewTopics', 'title');
-  (t.gens || []).forEach(function (n) { if (genNames.indexOf(n) < 0) err('ReviewTopics', '生成器が不明: ' + n); });
-});
-
-// ---------- 生成器 ----------
-var CONTRACT_GENS = ['masuRead', 'unitConvert', 'compose', 'decompose', 'countUnits', 'compare', 'order', 'times10', 'numberlineRead', 'hissanAdd', 'hissanSub', 'laws'];
-CONTRACT_GENS.forEach(function (n) { if (genNames.indexOf(n) < 0) err('Generators', '生成器がない: ' + n); });
-
 // 再現できる乱数
 function mulberry32(a) {
   return function () {
@@ -361,7 +313,7 @@ function mulberry32(a) {
 var PLACE_NAMES = ['一の位', '小数第一位', '小数第二位', '小数第三位'];
 var UNIT_VAL = ['1', '0.1', '0.01', '0.001'];
 
-function verifyGen(name, p, where) {
+function verifyGen(name, p, where, level) {
   var ss = p.type === 'fill' ? slots(p) : [];
   var src = p.src || {};
   if (src.gen !== name) err(where, 'src.gen');
@@ -385,16 +337,27 @@ function verifyGen(name, p, where) {
       break;
     }
     case 'decompose': {
-      var x = src.x, digits = x.replace('.', '').split('');
-      if (decimals(x) !== 3 || intDigits(x) !== 1) err(where, 'decompose の数の形 ' + x);
+      var x = src.x;
+      if (!level || level === 'normal') { if (decimals(x) !== 3 || intDigits(x) !== 1) err(where, 'decompose の数の形 ' + x); }
+      var xip = x.split('.')[0], xfp = x.split('.')[1] || '';
+      var digitAtPos = function (pos) { return pos === 0 ? xip[xip.length - 1] : (xfp[pos - 1] || '0'); };
+      var digits = x.replace('.', '').split('');
       if (p.type === 'choice') {
         var dq = /「(\d)」/.exec(p.q)[1];
         var pos = PLACE_NAMES.indexOf(p.a);
-        if (digits[pos] !== dq) err(where, 'decompose 位ちがい');
+        if (pos < 0) err(where, 'decompose 位の名前');
+        if (digitAtPos(pos) !== dq) err(where, 'decompose 位ちがい');
         if (digits.filter(function (d) { return d === dq; }).length !== 1) err(where, 'decompose 数字が重複');
       } else if (src.kind === 'digit') {
         var pn = PLACE_NAMES.filter(function (n) { return p.parts[0].indexOf('の' + n) >= 0; })[0];
-        if (digits[PLACE_NAMES.indexOf(pn)] !== ss[0]) err(where, 'decompose 数字ちがい');
+        var pi = PLACE_NAMES.indexOf(pn);
+        if (pi > decimals(x)) err(where, 'decompose 書いていない位を聞いている');
+        if (digitAtPos(pi) !== ss[0]) err(where, 'decompose 数字ちがい');
+      } else if (src.kind === 'split') {
+        var ms = /^([\d.]+)は、(\d+)と$/.exec(p.parts[0]);
+        if (!ms || ms[1] !== x) err(where, 'decompose split の文');
+        else if (S(D(ms[2]) + D(ss[0])) !== x) err(where, 'decompose split 合計ちがい');
+        if (!(D(ss[0]) < D('1'))) err(where, 'decompose split 小数の部分が1以上');
       } else {
         var tot = 0n;
         p.parts.forEach(function (y, idx) {
@@ -424,10 +387,19 @@ function verifyGen(name, p, where) {
       break;
     }
     case 'order':
-      if (p.items.length < 4 || p.items.length > 5) err(where, 'order の項目数');
+      var cntR = level === 'easy' ? [3, 3] : level === 'hard' ? [5, 6] : [4, 5];
+      if (p.items.length < cntR[0] || p.items.length > cntR[1]) err(where, 'order の項目数');
       if (p.q.indexOf(p.dir === 'desc' ? '大きい順' : '小さい順') < 0) err(where, 'order の向きと文');
       break;
     case 'times10': {
+      if (src.inverse) {
+        var mi = /^ある数を(?:(10|100|1000)倍する|1\/10にする)と、([\d.]+)になりました。ある数はいくつですか。$/.exec(p.q);
+        if (!mi) { err(where, 'times10(逆) 文'); break; }
+        checkNumStr(where, mi[2], 'y');
+        var back = mi[1] ? D(ss[0]) * BigInt(mi[1]) : div(D(ss[0]), D('10'));
+        if (S(back) !== mi[2]) err(where, 'times10(逆) 答えちがい ' + ss[0] + ' → ' + S(back) + ' / ' + mi[2]);
+        break;
+      }
       var mt = /^([\d.]+)を(?:(10|100|1000)倍した数|1\/10にした数)は$/.exec(p.parts[0]);
       var xv = D(mt[1]);
       var r = mt[2] ? xv * BigInt(mt[2]) : div(xv, D('10'));
@@ -447,6 +419,15 @@ function verifyGen(name, p, where) {
       if (p.a !== src.a || p.b !== src.b) err(where, 'src');
       break;
     case 'laws': {
+      if (p.type === 'choice') {
+        var ml = /^(.+) は、どのきまりを表していますか。$/.exec(p.q);
+        if (!ml) { err(where, 'laws(選ぶ) 文'); break; }
+        var sl = ml[1].split('＝').map(evalExpr);
+        if (sl.length !== 2 || sl[0] !== sl[1]) err(where, 'laws(選ぶ) 式が成り立たない');
+        var want = ml[1].indexOf('(') >= 0 ? 1 : 0;
+        if (p.a !== p.options[want]) err(where, 'laws(選ぶ) 答えちがい');
+        break;
+      }
       var text = textWith(p);
       var sides = text.split('＝').map(evalExpr);
       sides.forEach(function (v2) { if (v2 !== sides[0]) err(where, 'laws 式が成り立たない: ' + text); });
@@ -454,39 +435,215 @@ function verifyGen(name, p, where) {
       if (decimals(lastV) > 2) err(where, 'laws 小数第二位まで');
       break;
     }
+    case 'threeSum': {
+      var t3 = textWith(p), s3 = t3.split('＝').map(evalExpr);
+      if (s3.length !== 2 || s3[0] !== s3[1]) err(where, 'threeSum 答えちがい: ' + t3);
+      if ((t3.match(/＋/g) || []).length !== 2) err(where, 'threeSum 3つの数でない');
+      break;
+    }
+    case 'wordAdd': case 'wordSub': {
+      if (typeof p.q !== 'string' || p.q.length < 15) err(where, '文章題に問題文がない');
+      if (p.parts.length !== 3 || ss.length !== 1) err(where, '文章題の parts の形');
+      var ev = evalExpr(src.expr);
+      if (S(ev) !== ss[0]) err(where, '文章題の答えちがい ' + src.expr + ' = ' + S(ev) + ' / ' + ss[0]);
+      if (ev <= 0n) err(where, '文章題の答えが0以下');
+      if ((name === 'wordAdd') !== (src.expr.indexOf('-') < 0)) err(where, '文章題の式の演算');
+      var qNums = p.q.match(/\d+(?:\.\d+)?(?:km|kg|mL|cm|m|g|L)/g) || [];
+      if (qNums.join('|') !== (src.show || []).join('|')) err(where, '問題文の数と式が合わない: ' + qNums.join(',') + ' / ' + (src.show || []).join(','));
+      if (typeof p.parts[2] !== 'string' || p.parts[2].indexOf(src.unit) !== 0) err(where, '文章題の答えの単位');
+      break;
+    }
   }
 }
 
-var N = 200, genStats = {};
-CONTRACT_GENS.forEach(function (name, gi) {
-  var rng = mulberry32(12345 + gi * 777);
-  var kinds = {};
-  for (var i = 0; i < N; i++) {
-    var where = 'gen ' + name + ' #' + i;
-    var p;
-    try { p = G.make(name, rng); } catch (e) { err(where, '例外: ' + e.message); continue; }
-    try {
-      checkProblem(where, p);
-      verifyGen(name, p, where);
-      var key = JSON.stringify(p.type === 'hissan' ? [p.a, p.b] : (p.parts || p.items || p.q));
-      kinds[key] = 1;
-    } catch (e) { err(where, '検証エラー: ' + e.message + ' ' + JSON.stringify(p)); }
-  }
-  genStats[name] = Object.keys(kinds).length;
-});
-// Math.random でも動く
-CONTRACT_GENS.forEach(function (name) { try { G.make(name); } catch (e) { err('gen ' + name, 'rng 省略で例外'); } });
-try { G.make('nope'); err('Generators', '不明な名前で例外にならない'); } catch (e) { /* ok */ }
 
-// ---------- 結果 ----------
-console.log('問題数: ' + total + '（' + Object.keys(byType).map(function (k) { return k + ' ' + byType[k]; }).join('、') + '）');
-Lessons.forEach(function (L) { console.log('  第' + L.no + '時 ' + L.title + ': ' + L.problems.length + '問'); });
-console.log('生成器: ' + CONTRACT_GENS.length + '種 × ' + N + '回（ちがう問題の数: ' +
-  CONTRACT_GENS.map(function (n) { return n + ' ' + genStats[n]; }).join(', ') + '）');
-if (warnings.length) { console.log('\n注意 ' + warnings.length + ' 件:'); warnings.forEach(function (w) { console.log('  - ' + w); }); }
-if (errors.length) {
-  console.log('\nエラー ' + errors.length + ' 件:');
-  errors.slice(0, 80).forEach(function (e) { console.log('  x ' + e); });
-  process.exit(1);
+// ---------- レベル（まとめモード）の決まり ----------
+var LEVELS = ['easy', 'normal', 'hard'];
+function alignInt(s, e) { var ps = String(s).split('.'), f = ps[1] || ''; while (f.length < e) f += '0'; return parseInt(ps[0] + f, 10); }
+function carries(a, b) { var c = 0, k = 0; while (a > 0 || b > 0) { var s = a % 10 + b % 10 + c; c = s >= 10 ? 1 : 0; k += c; a = Math.floor(a / 10); b = Math.floor(b / 10); } return k; }
+function borrows(a, b) { var br = 0, k = 0; while (a > 0 || b > 0) { var d = a % 10 - br - b % 10; br = d < 0 ? 1 : 0; k += br; a = Math.floor(a / 10); b = Math.floor(b / 10); } return k; }
+function allNumbers(p) {
+  var out = [], txt = [];
+  if (typeof p.q === 'string') txt.push(p.q);
+  (p.parts || []).forEach(function (x) { if (typeof x === 'string') txt.push(x); else if (x && x.a != null) out.push(String(x.a)); });
+  (p.items || []).forEach(function (x) { out.push(String(x)); });
+  if (p.type === 'hissan') { out.push(p.a, p.b); }
+  if (p.fig) {
+    if (p.fig.kind === 'numberline') { out.push(String(p.fig.min), String(p.fig.max)); (p.fig.arrows || []).forEach(function (a) { out.push(String(a.v)); }); }
+    if (p.fig.kind === 'placeTable') (p.fig.rows || []).forEach(function (r) { out.push(r); });
+  }
+  txt.forEach(function (t) { (t.match(/\d+(?:\.\d+)?/g) || []).forEach(function (m) { out.push(m); }); });
+  return out;
 }
-console.log('\nすべての検証に通りました。');
+// かんたん・むずかしい（と新しい生成器）で、レベルの決まりを守っているか
+function levelRules(name, p, where, level) {
+  var isNew = ['threeSum', 'wordAdd', 'wordSub'].indexOf(name) >= 0;
+  if (level === 'easy' || level === 'hard') {
+    if (!p.src || p.src.lv !== level) err(where, 'src.lv が ' + level + ' でない');
+  }
+  if (level !== 'normal' || isNew) {
+    // ヒントで答えを言っていない
+    if (p.type === 'fill') slots(p).forEach(function (a) {
+      if (a.length < 2) return;
+      var re = new RegExp('(^|[^\\d.])' + a.replace('.', '\\.') + '(?![\\d]|\\.\\d)');
+      (p.hints || []).forEach(function (h) { if (re.test(h)) err(where, 'ヒントに答え ' + a + ' が出ている: ' + h); });
+    });
+  }
+  if (level === 'easy') {
+    allNumbers(p).forEach(function (s) { if (decimals(s) > 2) err(where, 'かんたんに小数第三位: ' + s); });
+    if (p.type === 'hissan') {
+      if (decimals(p.a) !== decimals(p.b)) err(where, 'かんたんで小数のけたがちがう: ' + p.a + p.op + p.b);
+      var A = alignInt(p.a, 2), B = alignInt(p.b, 2);
+      if (p.op === '+' && carries(A, B)) err(where, 'かんたんにくり上がり: ' + p.a + '+' + p.b);
+      if (p.op === '-' && borrows(A, B)) err(where, 'かんたんにくり下がり: ' + p.a + '-' + p.b);
+    }
+    if (name === 'wordAdd' || name === 'wordSub') {
+      var m = /^([\d.]+)([+-])([\d.]+)$/.exec(p.src.expr);
+      if (!m) err(where, 'かんたんの文章題の式: ' + p.src.expr);
+      else {
+        if (decimals(m[1]) !== decimals(m[3])) err(where, 'かんたんで小数のけたがちがう: ' + p.src.expr);
+        var x = alignInt(m[1], 2), y = alignInt(m[3], 2);
+        if (m[2] === '+' ? carries(x, y) : borrows(x, y)) err(where, 'かんたんにくり上がり・くり下がり: ' + p.src.expr);
+      }
+    }
+    if (name === 'threeSum') {
+      var ns = p.src.nums.map(function (s) { return alignInt(s, 2); });
+      if (carries(ns[0], ns[1]) || carries(ns[0] + ns[1], ns[2])) err(where, 'かんたんにくり上がり: ' + p.src.nums.join('+'));
+    }
+    if (p.fig && p.fig.kind === 'masu' && p.fig.level !== 2) err(where, 'かんたんのますは level2');
+    if (p.fig && p.fig.kind === 'numberline' && (p.fig.min < 0 || p.fig.max > 1)) err(where, 'かんたんの数直線は0〜1');
+    if (name === 'compare' && (p.q.match(/[\d.]+ □ [\d.]+$/) || []).length !== 1) err(where, 'かんたんの大小は2つの数');
+    if (p.type === 'order' && p.items.length > 3) err(where, 'かんたんのならべかえが多い');
+  }
+  if (level === 'hard') {
+    if (p.type === 'hissan') {
+      var a2 = alignInt(p.a, 2), b2 = alignInt(p.b, 2);
+      var ok = decimals(p.a) !== decimals(p.b) || decimals(p.a) === 0 || decimals(p.b) === 0 ||
+        (p.op === '+' ? carries(a2, b2) >= 2 || (a2 + b2) % 100 === 0 : borrows(a2, b2) >= 2);
+      if (!ok) err(where, 'むずかしいの筆算がかんたんすぎる: ' + p.a + p.op + p.b);
+    }
+    if (p.type === 'order' && p.items.length < 5) err(where, 'むずかしいのならべかえは5つ以上');
+    if (name === 'laws' && p.src.kind === 'comm') err(where, 'むずかしいに交かんのきまりだけの問題');
+  }
+}
+
+// ---------- 全部の検査 ----------
+function main() {
+  // ---------- レッスン全体 ----------
+  var genNames = G.names();
+  var ids = {};
+  var total = 0, byType = {};
+  if (!Array.isArray(Lessons) || Lessons.length !== 10) err('Lessons', '10件ではない');
+  Lessons.forEach(function (L, li) {
+    var w = 'L' + L.no;
+    if (L.no !== li + 1) err(w, 'no の順番');
+    ['subunit', 'title', 'page', 'meate', 'matome'].forEach(function (k) { if (typeof L[k] !== 'string' || !L[k]) err(w, k + ' がない'); });
+    if (!L.demo || DEMOS.indexOf(L.demo.id) < 0) err(w, 'demo.id が不明');
+    (L.demos || []).forEach(function (d) { if (DEMOS.indexOf(d.id) < 0) err(w, 'demos.id が不明: ' + d.id); });
+    (L.more || []).forEach(function (n) { if (genNames.indexOf(n) < 0) err(w, 'more の生成器が不明: ' + n); });
+    if (!L.more || !L.more.length) err(w, 'more がない');
+    if (!Array.isArray(L.problems) || !L.problems.length) err(w, 'problems がない');
+    L.problems.forEach(function (p) {
+      var pw = p.id || (w + '-?');
+      if (ids[p.id]) err(pw, 'id が重複'); ids[p.id] = true;
+      if (!/^L\d+-\d\d$/.test(p.id)) err(pw, 'id の形');
+      checkProblem(pw, p);
+      verifyFixed(pw, p);
+      total++; byType[p.type] = (byType[p.type] || 0) + 1;
+    });
+  });
+  // 走りはばとびの合計（問題文中）
+  (function () {
+    var p = Lessons[9].problems.filter(function (x) { return x.id === 'L10-21'; })[0];
+    var re = /([A-D])チーム：([^（]*?)（合計([\d.]+)m）/g, m;
+    var n = 0;
+    while ((m = re.exec(p.q))) {
+      var sum = m[2].split('、').map(function (s) { return D(s.replace('m', '').trim()); }).reduce(function (a, b) { return a + b; }, 0n);
+      if (S(sum) !== m[3]) err('L10-21', m[1] + 'チームの合計がちがう: ' + S(sum) + ' / ' + m[3]);
+      n++;
+    }
+    if (n !== 3) err('L10-21', 'チームの合計を読めない');
+  })();
+
+  var topicIds = ['hyoshikata', 'shikumi', 'daisho', 'jubai', 'tashizan', 'hikizan'];
+  if (!Array.isArray(ReviewTopics) || ReviewTopics.length !== 6) err('ReviewTopics', '6件ではない');
+  ReviewTopics.forEach(function (t, i) {
+    if (t.id !== topicIds[i]) err('ReviewTopics', 'id: ' + t.id);
+    if (!t.title) err('ReviewTopics', 'title');
+    (t.gens || []).forEach(function (n) { if (genNames.indexOf(n) < 0) err('ReviewTopics', '生成器が不明: ' + n); });
+  });
+
+  // ---------- 生成器 ----------
+  var CONTRACT_GENS = ['masuRead', 'unitConvert', 'compose', 'decompose', 'countUnits', 'compare', 'order', 'times10', 'numberlineRead', 'hissanAdd', 'hissanSub', 'laws'];
+  CONTRACT_GENS.forEach(function (n) { if (genNames.indexOf(n) < 0) err('Generators', '生成器がない: ' + n); });
+
+  var N = 200, genStats = {};
+  CONTRACT_GENS.forEach(function (name, gi) {
+    var rng = mulberry32(12345 + gi * 777);
+    var kinds = {};
+    for (var i = 0; i < N; i++) {
+      var where = 'gen ' + name + ' #' + i;
+      var p;
+      try { p = G.make(name, rng); } catch (e) { err(where, '例外: ' + e.message); continue; }
+      try {
+        checkProblem(where, p);
+        verifyGen(name, p, where);
+        var key = JSON.stringify(p.type === 'hissan' ? [p.a, p.b] : (p.parts || p.items || p.q));
+        kinds[key] = 1;
+      } catch (e) { err(where, '検証エラー: ' + e.message + ' ' + JSON.stringify(p)); }
+    }
+    genStats[name] = Object.keys(kinds).length;
+  });
+  // Math.random でも動く
+  CONTRACT_GENS.forEach(function (name) { try { G.make(name); } catch (e) { err('gen ' + name, 'rng 省略で例外'); } });
+  try { G.make('nope'); err('Generators', '不明な名前で例外にならない'); } catch (e) { /* ok */ }
+
+
+  // ---------- レベルつきの生成器（3レベル × N回）----------
+  var ALL_GENS = G.names(), lvStats = {};
+  LEVELS.forEach(function (lv, li) {
+    ALL_GENS.forEach(function (name, gi) {
+      var rng = mulberry32(999 + li * 10007 + gi * 131);
+      var kinds = {};
+      for (var i = 0; i < N; i++) {
+        var where = 'gen ' + name + '[' + lv + '] #' + i, p;
+        try { p = G.make(name, rng, { level: lv }); } catch (e) { err(where, '例外: ' + e.message); continue; }
+        try {
+          checkProblem(where, p);
+          verifyGen(name, p, where, lv);
+          levelRules(name, p, where, lv);
+          kinds[JSON.stringify([p.q, p.parts, p.items, p.a, p.b])] = 1;
+        } catch (e) { err(where, '検証エラー: ' + e.message + ' ' + JSON.stringify(p)); }
+      }
+      lvStats[lv + ' ' + name] = Object.keys(kinds).length;
+      if (Object.keys(kinds).length < N * 0.25) warn('gen ' + name + '[' + lv + ']', 'ちがう問題が少ない: ' + Object.keys(kinds).length);
+    });
+  });
+  // level を省略したときと 'normal' は同じ問題（今までの呼び方はそのまま）
+  ALL_GENS.forEach(function (name, gi) {
+    var r1 = mulberry32(4242 + gi), r2 = mulberry32(4242 + gi);
+    for (var i = 0; i < 50; i++) {
+      if (JSON.stringify(G.make(name, r1)) !== JSON.stringify(G.make(name, r2, { level: 'normal' }))) { err('gen ' + name, 'level:normal と省略で問題がちがう'); break; }
+    }
+  });
+
+  // ---------- 結果 ----------
+  console.log('問題数: ' + total + '（' + Object.keys(byType).map(function (k) { return k + ' ' + byType[k]; }).join('、') + '）');
+  Lessons.forEach(function (L) { console.log('  第' + L.no + '時 ' + L.title + ': ' + L.problems.length + '問'); });
+  console.log('生成器: ' + CONTRACT_GENS.length + '種 × ' + N + '回（ちがう問題の数: ' +
+    CONTRACT_GENS.map(function (n) { return n + ' ' + genStats[n]; }).join(', ') + '）');
+  console.log('レベルつき: ' + LEVELS.length + 'レベル × ' + ALL_GENS.length + '種 × ' + N + '回（ちがう問題の数: ' +
+    LEVELS.map(function (lv) { return lv + ' ' + ALL_GENS.map(function (n) { return lvStats[lv + ' ' + n]; }).join('/'); }).join('、') + '）');
+  if (warnings.length) { console.log('\n注意 ' + warnings.length + ' 件:'); warnings.forEach(function (w) { console.log('  - ' + w); }); }
+  if (errors.length) {
+    console.log('\nエラー ' + errors.length + ' 件:');
+    errors.slice(0, 80).forEach(function (e) { console.log('  x ' + e); });
+    process.exitCode = 1;
+    return;
+  }
+  console.log('\nすべての検証に通りました。');
+}
+
+function takeErrors() { var e = errors.slice(); errors.length = 0; warnings.length = 0; return e; }
+module.exports = { checkProblem: checkProblem, verifyGen: verifyGen, levelRules: levelRules, mulberry32: mulberry32, takeErrors: takeErrors, LEVELS: LEVELS };
+if (require.main === module) main();

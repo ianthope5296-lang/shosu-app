@@ -740,7 +740,7 @@
   LV.easy.masuRead = function (rng) {
     var L = wpick(rng, [[3, 0], [4, 1], [2, 2]]);
     var d1 = rng() < 0.15 ? 0 : ri(rng, 1, 9);
-    var d2 = ri(rng, 1, 9);
+    var d2 = L === 0 && d1 === 0 ? ri(rng, 2, 9) : ri(rng, 1, 9);
     return lvFinish('masuRead', 'easy', {
       type: 'fill', tag: 'hyoshikata',
       q: 'かさは何Lですか。',
@@ -1135,7 +1135,7 @@
     for (t = 0; t < 50; t++) {
       if (op === '10') x = pick(rng, [ri(rng, 1, 9) * 1000 + ri(rng, 1, 9) * 10, ri(rng, 1, 9) * 10 + ri(rng, 1, 9), ri(rng, 1, 9) * 1000 + ri(rng, 1, 9) * 100 + ri(rng, 1, 9), ri(rng, 1, 9) * 1000 + ri(rng, 1, 9)]);
       else if (op === '100') x = pick(rng, [ri(rng, 1, 9) * 10 + ri(rng, 1, 9), ri(rng, 1, 9) * 100 + ri(rng, 1, 9), ri(rng, 1, 9) * 1000 + ri(rng, 1, 9) * 10, ri(rng, 1, 9) * 10]);
-      else if (op === '1000') x = pick(rng, [ri(rng, 1, 9) * 10, ri(rng, 1, 9) * 100 + ri(rng, 1, 9), ri(rng, 1, 9) * 1000 + ri(rng, 1, 9), ri(rng, 1, 9)]);
+      else if (op === '1000') x = pick(rng, [ri(rng, 2, 9) * 10, ri(rng, 1, 9) * 100 + ri(rng, 1, 9), ri(rng, 1, 9) * 1000 + ri(rng, 1, 9), ri(rng, 1, 9)]);
       else x = pick(rng, [ri(rng, 1, 9) * 1000 + ri(rng, 1, 9) * 10, ri(rng, 10, 99) * 1000 + ri(rng, 1, 9) * 100, ri(rng, 1, 9) * 100, ri(rng, 10, 99) * 1000 + ri(rng, 1, 9) * 10]);
       if (x % 1000 !== 0) break;
     }
@@ -1372,7 +1372,17 @@
     return wordProblem('wordAdd', lv, sc, [fmt(ab[0], 2), fmt(ab[1], 2)], '+');
   };
 
+  // ヒントの式に答えと同じ数が出ないように（2.2−1.1 など）作り直す
+  function answerInHints(p) {
+    var a = p.parts[1].a;
+    return p.hints.some(function (h) { return (h.match(/\d+(?:\.\d+)?/g) || []).indexOf(a) >= 0; });
+  }
   gens.wordSub = function (rng, lv) {
+    var p;
+    for (var t = 0; t < 30; t++) { p = wordSub1(rng, lv); if (!answerInHints(p)) break; }
+    return p;
+  };
+  function wordSub1(rng, lv) {
     lv = lv || 'normal';
     var sc, ab, a, b, c, t;
     if (lv !== 'hard') {
@@ -1406,7 +1416,7 @@
       if (a > b) break;
     }
     return wordProblem('wordSub', lv, sc, [fmt(a, 2), fmt(b, 2)], '-');
-  };
+  }
 
   var NAMES = ['masuRead', 'unitConvert', 'compose', 'decompose', 'countUnits',
     'compare', 'order', 'times10', 'numberlineRead', 'hissanAdd', 'hissanSub', 'laws',
