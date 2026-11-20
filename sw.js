@@ -1,6 +1,9 @@
-/* sw.js — オフライン用キャッシュ（キャッシュファースト）
- * ファイルを更新したら VERSION を上げる。古いキャッシュは activate で消える。 */
-var VERSION = 'shosu-v2';
+/* sw.js — オフライン用キャッシュ（ネットワーク優先）
+ * つながっているときは毎回いちばん新しいファイルを取りに行き、キャッシュも新しくする。
+ * つながらないとき（または応答がおそいとき）だけキャッシュを使う。
+ * そのため、ファイルを更新すれば子どもの端末にも自動で新しい版が届く。
+ * VERSION はキャッシュのしくみ自体を変えたときだけ上げる。 */
+var VERSION = 'shosu-v3';
 var CORE = [
   './',
   './index.html',
@@ -60,15 +63,21 @@ self.addEventListener('fetch', function (e) {
   var req = e.request;
   if (req.method !== 'GET' || req.url.indexOf(self.location.origin) !== 0) return;
   e.respondWith(caches.open(VERSION).then(function (c) {
-    return c.match(req, { ignoreSearch: true }).then(function (hit) {
-      if (hit) return hit;
-      return fetch(req).then(function (res) {
-        if (res && res.ok && res.type === 'basic') c.put(req, res.clone());
-        return res;
-      }).catch(function () {
+    var fromCache = function () {
+      return c.match(req, { ignoreSearch: true }).then(function (hit) {
+        if (hit) return hit;
         if (req.mode === 'navigate') return c.match('./index.html');
         return new Response('', { status: 504 });
       });
+    };
+    var net = fetch(req, { cache: 'no-cache' }).then(function (res) {
+      if (res && res.ok && res.type === 'basic') c.put(req, res.clone());
+      return res;
     });
+    // 4秒たっても返事がなければキャッシュを使う（学校の回線が混んでいるとき用）
+    var timeout = new Promise(function (resolve) { setTimeout(resolve, 4000); }).then(function () {
+      return c.match(req, { ignoreSearch: true }).then(function (hit) { return hit || net; });
+    });
+    return Promise.race([net, timeout]).catch(fromCache);
   }));
 });
