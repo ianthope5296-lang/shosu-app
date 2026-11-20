@@ -7,8 +7,8 @@
  *   trim:true なら書いた部分だけを切り出して描く（名前などを大きく見せるとき）。
  *
  * Present.mount(el, up, opts) -> { destroy() }
- *   opts = { token, onSolve(), list?: { index /* 0から */, total, onPrev(), onNext() },
- *            back?: { href, label } /* 左上の戻るボタン（ふだんは ◀ ホーム） */ }
+ *   opts = { token, onSolve(), list?: { index（0から）, total, onPrev(), onNext() },
+ *            back?: { href, label }（左上の戻るボタン。ふだんは ◀ ホーム） }
  */
 (function (S) {
   'use strict';
@@ -321,7 +321,7 @@
         box.appendChild(holder);
         fitters.push(function () {
           if (secHint.hidden) return;
-          var w = Math.max(200, side.clientWidth - 40);
+          var w = Math.max(160, box.clientWidth - 4);
           holder.innerHTML = '';
           holder.appendChild(drawInk(hintInk, { width: w, height: Math.round(window.innerHeight * 0.36), trim: true, lineWidth: 5, label: 'ヒントの絵' }));
         });
