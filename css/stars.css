@@ -130,6 +130,7 @@
 .st-coll {
   font-family: var(--font, sans-serif); color: var(--st-text);
   padding: 1.2rem; border-radius: 18px;
+  border: 1px solid rgba(255, 211, 77, .3); box-shadow: 0 8px 24px rgba(4, 6, 30, .45);  /* 全体の夜空となじませる（担当K） */
   background:
     radial-gradient(1.5px 1.5px at 12% 18%, #fff 60%, transparent 100%),
     radial-gradient(1px 1px at 33% 72%, #fff 60%, transparent 100%),

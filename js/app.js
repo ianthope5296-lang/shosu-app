@@ -14,13 +14,24 @@
     if (text != null) e.textContent = text;
     return e;
   }
+  /* アイコン（Shosu.Icons：自作のSVG）。ないときは文字だけで動く */
+  function arrows(el) { if (S.Icons && S.Icons.arrows) { try { S.Icons.arrows(el); } catch (e) {} } return el; }
+  function iconEl(name, cls) {
+    if (!(S.Icons && S.Icons.has && S.Icons.has(name))) return null;
+    return S.Icons.el(name, { wrapCls: cls });
+  }
+  function withIcon(el, name, text) {
+    if (S.Icons && S.Icons.label && S.Icons.has(name)) S.Icons.label(el, text, name);
+    else el.textContent = text;
+    return el;
+  }
   function button(label, cls, fn) {
     var b = h('button', 'btn ' + (cls || ''), label);
     b.type = 'button';
     if (fn) b.addEventListener('click', fn);
-    return b;
+    return arrows(b);
   }
-  function link(label, cls, href) { var a = h('a', cls, label); a.href = href; return a; }
+  function link(label, cls, href) { var a = h('a', cls, label); a.href = href; return arrows(a); }
   function lessons() { return Array.isArray(S.Lessons) ? S.Lessons : []; }
   function topics() { return Array.isArray(S.ReviewTopics) ? S.ReviewTopics : []; }
   function store() { return S.Store; }
@@ -102,10 +113,17 @@
     if (ok * 2 >= pids.length) return 2;
     return tried || st.tried ? 1 : 0;
   }
+  // 星3つ（Shosu.Stars の星のSVG。もらっていない星はうすく表示）
   function starsNode(n) {
     var s = h('div', 'stars');
+    s.setAttribute('role', 'img');
     s.setAttribute('aria-label', '星' + n + 'こ');
-    for (var i = 0; i < 3; i++) s.appendChild(h('span', i < n ? 'star on' : 'star', i < n ? '★' : '☆'));
+    var svg = S.Stars && S.Stars.SVG_STAR;
+    for (var i = 0; i < 3; i++) {
+      var st = h('span', i < n ? 'star on' : 'star');
+      if (svg) st.innerHTML = svg; else st.textContent = i < n ? '*' : '-';
+      s.appendChild(st);
+    }
     return s;
   }
 
@@ -129,8 +147,13 @@
     } catch (e) { console.error('Stars.badge', e); return null; }
   }
 
-  /* 絵文字を使わない、かんたんな自作の絵（わくせいと星） */
+  /* 絵文字を使わない、かんたんな自作の絵（わくせいと星）。ふつうは Shosu.Icons の saturn を使う */
   function cosmosIcon(cls) {
+    if (S.Icons && S.Icons.has && S.Icons.has('saturn')) {
+      var w = document.createElement('span');
+      w.innerHTML = S.Icons.get('saturn', { cls: cls });
+      return w.firstChild;
+    }
     var NS = 'http://www.w3.org/2000/svg';
     var svg = document.createElementNS(NS, 'svg');
     svg.setAttribute('viewBox', '0 0 64 64');
@@ -142,6 +165,22 @@
       '<path d="M52 6 L54 12 L60 14 L54 16 L52 22 L50 16 L44 14 L50 12 Z" fill="#fff"/>' +
       '<circle cx="10" cy="12" r="2" fill="#fff"/><circle cx="56" cy="52" r="2.2" fill="#fff"/>';
     return svg;
+  }
+
+  /* ホームの見出し：「小数コスモス」をロゴのように（読み上げは APP_TITLE のまま） */
+  function logoTitle(h1) {
+    if (!h1) return;
+    var m = APP_TITLE.match(/^(\S+)\s*(.*)$/) || [APP_TITLE, APP_TITLE, ''];
+    h1.textContent = '';
+    h1.className = 'logo';
+    h1.setAttribute('aria-label', APP_TITLE);
+    var em = iconEl('emblem', 'logo-mark');
+    if (em) h1.appendChild(em);
+    var w = h('span', 'logo-words');
+    w.setAttribute('aria-hidden', 'true');
+    w.appendChild(h('span', 'logo-main', m[1]));
+    if (m[2]) w.appendChild(h('span', 'logo-tag', m[2]));
+    h1.appendChild(w);
   }
 
   function topbar(title, opts) {
@@ -194,14 +233,22 @@
     var gear = h('button', 'gear');
     gear.type = 'button';
     gear.setAttribute('aria-label', '先生メニュー（1.5秒長おし）');
-    gear.innerHTML = '<span class="gear-icon">⚙</span><span class="gear-ring"></span>';
+    gear.innerHTML = '<span class="gear-ring"></span>';
+    var gIc = iconEl('telescope', 'gear-icon');
+    if (gIc) gear.insertBefore(gIc, gear.firstChild);
+    else gear.insertBefore(h('span', 'gear-icon', '先生'), gear.firstChild);
     longPress(gear, 1500, function () { location.hash = '#/teacher'; }, function () { toast('先生用メニューは、長おしで開きます'); });
-    app.appendChild(topbar(APP_TITLE, { back: false, sub: UNIT_TITLE + '（4年）', right: gear }));
+    var bar = topbar(APP_TITLE, { back: false, sub: UNIT_TITLE + '（4年）', right: gear });
+    bar.classList.add('topbar-home');
+    logoTitle(bar.querySelector('h1'));
+    app.appendChild(bar);
 
     var main = h('main', 'home');
     var sec = h('section', 'home-lessons');
     var head = h('div', 'sec-head');
-    head.appendChild(h('h2', null, 'じゅぎょう'));
+    var lh = h('h2', null, 'じゅぎょう');
+    lh.appendChild(h('span', 'sec-note', '星の旅の航路：第1時から じゅんに 星をあつめよう'));
+    head.appendChild(lh);
     var legend = h('div', 'legend');
     [['su-1', '小数の表し方'], ['su-2', '小数のしくみ'], ['su-3', '小数のたし算とひき算'], ['su-4', '単元のまとめ']].forEach(function (x) {
       var l = h('span', 'legend-item ' + x[0]);
@@ -219,11 +266,16 @@
     }
     ls.forEach(function (l) {
       var c = link('', 'lesson-card ' + subunitClass(l.subunit), '#/lesson/' + l.no);
-      c.appendChild(h('div', 'lc-no', '第' + l.no + '時'));
+      var nst = lessonStars(l);
+      if (nst >= 3) c.classList.add('lc-done');
+      var no = h('div', 'lc-no');
+      no.appendChild(h('span', 'lc-node', String(l.no)));
+      no.appendChild(h('span', 'lc-no-t', '第' + l.no + '時'));
+      c.appendChild(no);
       c.appendChild(h('div', 'lc-title', l.title || ''));
       var foot = h('div', 'lc-foot');
       foot.appendChild(h('span', 'lc-page', l.page || ''));
-      foot.appendChild(starsNode(lessonStars(l)));
+      foot.appendChild(starsNode(nst));
       c.appendChild(foot);
       grid.appendChild(c);
     });
@@ -241,10 +293,12 @@
     if (validMatome(mmSt)) mmSub = 'とちゅうのところがあるよ。つづきから できるよ';
     mmT.appendChild(h('span', 'matome-entry-sub', mmSub));
     mmA.appendChild(mmT);
-    mmA.appendChild(h('span', 'matome-entry-go', 'スタート ▶'));
+    mmA.appendChild(arrows(h('span', 'matome-entry-go', 'スタート ▶')));
     mm.appendChild(mmA);
     var zk = link('', 'stars-entry', '#/stars');
-    zk.appendChild(h('span', 'stars-entry-title', '星のずかん'));
+    var zkT = h('span', 'stars-entry-title');
+    withIcon(zkT, 'constellation', '星のずかん');
+    zk.appendChild(zkT);
     zk.appendChild(h('span', 'stars-entry-sub', 'もらった星と称号を見る'));
     if (S.Stars && S.Stars.summary) {
       try {
@@ -262,6 +316,8 @@
     if (!tp.length) rg.appendChild(h('div', 'empty-note', 'ふくしゅうの問題は、まだありません。'));
     tp.forEach(function (t) {
       var a = link('', 'review-btn', '#/review/' + encodeURIComponent(t.id));
+      var rvIc = iconEl('moon', 'rv-icon');
+      if (rvIc) a.appendChild(rvIc);
       a.appendChild(h('span', 'rv-title', t.title));
       var st = stats('review-' + t.id);
       if (st.tried) a.appendChild(h('span', 'rv-count', '○ ' + st.correct + ' / ' + st.tried));
@@ -274,20 +330,20 @@
     mk.appendChild(h('h2', null, 'もんだいづくり'));
     var mg = h('div', 'make-grid');
     var c1 = link('', 'make-card', '#/make');
-    c1.appendChild(h('span', 'make-icon', '✎'));
+    c1.appendChild(iconEl('pen', 'make-icon') || h('span', 'make-icon'));
     var c1t = h('span', null, 'もんだいをつくる');
     c1t.appendChild(h('span', 'make-sub', '問題を作って、ともだちに送ろう'));
     c1.appendChild(c1t);
     mg.appendChild(c1);
     var c2 = link('', 'make-card my', '#/my');
-    c2.appendChild(h('span', 'make-icon', '📁'));
+    c2.appendChild(iconEl('planet', 'make-icon') || h('span', 'make-icon'));
     var c2t = h('span', null, 'つくった問題');
     var myN = myCount();
     c2t.appendChild(h('span', 'make-sub', myN ? 'ほぞんした問題 ' + myN + 'こ' : 'ほぞんした問題を見る・直す・送る'));
     c2.appendChild(c2t);
     mg.appendChild(c2);
     var c3 = link('', 'make-card', '#/open');
-    c3.appendChild(h('span', 'make-icon', '📨'));
+    c3.appendChild(iconEl('letter', 'make-icon') || h('span', 'make-icon'));
     var c3t = h('span', null, 'もらった問題をひらく');
     c3t.appendChild(h('span', 'make-sub', 'ともだちから来たリンクやコードをはりつけよう'));
     c3.appendChild(c3t);
@@ -296,8 +352,8 @@
     main.appendChild(mk);
 
     var ex = h('section', 'home-extra');
-    ex.appendChild(link('✎ 数字を書く練習（読み取りをためそう）', 'extra-link', '#/practice-write'));
-    ex.appendChild(link('もんだいボックス（先生用）', 'extra-link small', '#/box'));
+    ex.appendChild(withIcon(link('', 'extra-link', '#/practice-write'), 'pen', '数字を書く練習（読み取りをためそう）'));
+    ex.appendChild(withIcon(link('', 'extra-link small', '#/box'), 'dish', 'もんだいボックス（先生用）'));
     main.appendChild(ex);
     app.appendChild(main);
   }
@@ -356,6 +412,7 @@
       count.textContent = (idx + 1) + ' / ' + items.length + ' 問';
       prev.disabled = idx === 0;
       next.textContent = idx === items.length - 1 ? 'おわり ▶' : 'つぎ ▶';
+      arrows(next);
     }
     function show() {
       if (handle) handle.destroy();

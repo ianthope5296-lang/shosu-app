@@ -26,7 +26,14 @@
     var b = h('button', 'btn ' + (cls || ''), label);
     b.type = 'button';
     if (fn) b.addEventListener('click', fn);
-    return b;
+    return arrows(b);
+  }
+  /* 自作のSVGアイコン（Shosu.Icons）。ないときは文字だけ */
+  function arrows(el) { if (S.Icons && S.Icons.arrows) { try { S.Icons.arrows(el); } catch (e) {} } return el; }
+  function withIcon(el, name, text, after) {
+    if (S.Icons && S.Icons.label && S.Icons.has(name)) S.Icons.label(el, text, name, { after: after });
+    else el.textContent = text;
+    return el;
   }
   function dpr() { return Math.max(1, Math.min(3, window.devicePixelRatio || 1)); }
   function toast(msg) {
@@ -220,7 +227,7 @@
     /* --- 上のバー --- */
     var top = h('div', 'pr-top');
     var back = opts.back || { href: '#/', label: '◀ ホーム' };
-    var backA = h('a', 'btn pr-back', back.label);
+    var backA = arrows(h('a', 'btn pr-back', back.label));
     backA.href = back.href;
     backA.addEventListener('click', function () { exitFullscreen(); });
     top.appendChild(backA);
@@ -251,7 +258,7 @@
     var fsBtn = null;
     var fsTarget = document.documentElement;
     if (fsTarget.requestFullscreen && document.fullscreenEnabled !== false) {
-      fsBtn = button('⛶ 全画面', 'pr-fs', toggleFullscreen);
+      fsBtn = withIcon(button('', 'pr-fs', toggleFullscreen), 'expand', '全画面');
       top.appendChild(fsBtn);
     }
     root.appendChild(top);
@@ -289,7 +296,8 @@
     });
     var secLink = section('みんなの端末で解こう', 'pr-sec-link');
     var linkB = button('みんなの端末で解く', 'pr-link', function () { toggle(secLink, linkB, 'みんなの端末で解く', 'リンクをとじる', fillLink); });
-    var solveB = button('自分で解く ✎', 'primary pr-solve', function () { exitFullscreen(); if (opts.onSolve) opts.onSolve(); });
+    var solveB = withIcon(button('', 'primary pr-solve', null), 'pen', '自分で解く', true);
+    solveB.addEventListener('click', function () { exitFullscreen(); if (opts.onSolve) opts.onSolve(); });
     if (!opts.onSolve) solveB.hidden = true;
     [hintB, ansB, linkB, solveB].forEach(function (b) { mid.appendChild(b); });
     bottom.appendChild(mid);
@@ -458,7 +466,7 @@
       try { if (isFs() && document.exitFullscreen) { var r = document.exitFullscreen(); if (r && r.catch) r.catch(function () {}); } } catch (e) {}
     }
     function onFs() {
-      if (fsBtn) fsBtn.textContent = isFs() ? '⛶ 全画面をやめる' : '⛶ 全画面';
+      if (fsBtn) { if (isFs()) withIcon(fsBtn, 'shrink', '全画面をやめる'); else withIcon(fsBtn, 'expand', '全画面'); }
       refit();
     }
     document.addEventListener('fullscreenchange', onFs);

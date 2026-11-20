@@ -110,6 +110,8 @@
     opts = opts || {};
     var b = h('button', { type: 'button', 'class': 'sd-btn' + (opts.kind ? ' sd-btn-' + opts.kind : '') + (opts.cls ? ' ' + opts.cls : ''), title: opts.title, 'aria-label': opts.aria });
     if (label instanceof Node) b.appendChild(label); else b.textContent = label;
+    // 「つぎへ ▶」の矢印は、自作のSVG（Shosu.Icons）にする
+    if (!(label instanceof Node) && S.Icons && S.Icons.arrows) { try { S.Icons.arrows(b); } catch (e) {} }
     b.addEventListener('click', function (ev) { if (!b.disabled && onClick) onClick(ev); });
     return b;
   }
@@ -144,7 +146,10 @@
     var keys = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '0', '.', '←'];
     var el = h('div', { 'class': 'sd-keypad' });
     keys.forEach(function (k) {
-      var b = button(k === '←' ? '⌫' : k, function () { if (o.onKey) o.onKey(k); }, { cls: 'sd-key', aria: k === '←' ? '1文字けす' : k });
+      var bsIcon = k === '←' && S.Icons && S.Icons.has('backspace');
+      var bsLabel = bsIcon ? document.createElement('span') : null;
+      if (bsLabel) { bsLabel.className = 'sd-bs'; bsLabel.innerHTML = S.Icons.get('backspace'); }
+      var b = button(k === '←' ? (bsLabel || 'けす') : k, function () { if (o.onKey) o.onKey(k); }, { cls: 'sd-key', aria: k === '←' ? '1文字けす' : k });
       if (k === '.' && o.allowDot === false) b.disabled = true;
       el.appendChild(b);
     });

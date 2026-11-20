@@ -71,9 +71,17 @@
     var b = h('button', 'btn ' + (cls || ''), label);
     b.type = 'button';
     if (fn) b.addEventListener('click', fn);
-    return b;
+    return arrows(b);
   }
-  function link(label, cls, href) { var a = h('a', cls, label); a.href = href; return a; }
+  /* 自作のSVGアイコン（Shosu.Icons）。ないときは文字だけ */
+  function arrows(el) { if (S.Icons && S.Icons.arrows) { try { S.Icons.arrows(el); } catch (e) {} } return el; }
+  function withIcon(el, name, text) {
+    if (S.Icons && S.Icons.label && S.Icons.has(name)) S.Icons.label(el, text, name);
+    else el.textContent = text;
+    return el;
+  }
+  function iconHTML(name, fallback) { return S.Icons && S.Icons.has(name) ? S.Icons.get(name) : fallback; }
+  function link(label, cls, href) { var a = h('a', cls, label); a.href = href; return arrows(a); }
   function toast(msg) {
     var t = h('div', 'toast', msg);
     document.body.appendChild(t);
@@ -323,7 +331,7 @@
     } else {
       el = h('div', 'sd-keypad');
       ['7', '8', '9', '4', '5', '6', '1', '2', '3', '0', '.', '←'].forEach(function (k) {
-        var b = h('button', 'sd-btn sd-key', k === '←' ? '⌫' : k);
+        var b = h('button', 'sd-btn sd-key', k === '←' ? 'けす' : k);
         b.type = 'button';
         b.addEventListener('click', function () { onKey(k); });
         el.appendChild(b);
@@ -334,7 +342,7 @@
     if (keys.length === 12) {
       keys[10].textContent = '．';
       keys[10].setAttribute('aria-label', '小数点');
-      keys[11].innerHTML = '<span class="mk-bs">⌫</span><small>1字けす</small>';
+      keys[11].innerHTML = '<span class="mk-bs">' + iconHTML('backspace', '←') + '</span><small>1字けす</small>';
       keys[11].setAttribute('aria-label', '1字けす');
     }
     return el;
@@ -617,9 +625,9 @@
         var hAns = h('div', 'mk-h-ans');
         grid.appendChild(hAns);
         left.appendChild(grid);
-        var swap = button('⇅ 2つの数を入れかえる', 'small mk-swap', function () {
+        var swap = withIcon(button('', 'small mk-swap', function () {
           var t = up.a; up.a = up.b; up.b = t; fa.field.set(up.a); fb.field.set(up.b); say(''); changed();
-        });
+        }), 'swap', '2つの数を入れかえる');
         left.appendChild(swap);
         var setOp = function (op) {
           up.op = op;
@@ -634,7 +642,7 @@
           var neg = a != null && a.charAt(0) === '-';
           hAns.textContent = a == null ? '' : neg ? '？' : a;
           swap.hidden = !(up.op === '-' && neg);
-          setAnswer(a == null ? '' : neg ? '' : a, neg ? 'ひかれる数のほうが小さいよ。⇅で入れかえよう。' : '');
+          setAnswer(a == null ? '' : neg ? '' : a, neg ? 'ひかれる数のほうが小さいよ。「2つの数を入れかえる」をおそう。' : '');
         };
         selectField(up.a ? fb : fa);
       } else if (kind === 'compare') {
@@ -947,7 +955,7 @@
       var right = button('できあがり ▶', 'primary mk-bar-go', function () { viewDone(kind, editId); });
       el.appendChild(topbar('ためしに解く：' + info.label, '◀ なおす', function () { viewEdit(kind, editId); }, right));
       var main = h('main', 'mk mk-try');
-      main.appendChild(h('p', 'mk-lead', '自分の問題を解いてみよう。まちがいを見つけたら「◀ なおす」で直せるよ。'));
+      main.appendChild(h('p', 'mk-lead', '自分の問題を解いてみよう。まちがいを見つけたら「なおす」で直せるよ。'));
       var card = h('section', 'mk-card mk-try-card');
       var area = h('div', 'mk-try-area');
       card.appendChild(area);
@@ -971,7 +979,7 @@
         });
       } catch (e) {
         console.error('toProblem', e);
-        area.appendChild(h('div', 'empty-note', 'この問題をひょうじできませんでした。「◀ なおす」でたしかめてね。'));
+        area.appendChild(h('div', 'empty-note', 'この問題をひょうじできませんでした。「なおす」でたしかめてね。'));
       }
       cleanups.push(function () { if (handle && handle.destroy) handle.destroy(); });
     }

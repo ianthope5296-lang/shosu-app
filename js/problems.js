@@ -21,6 +21,8 @@
     var b = h('button', 'btn ' + (cls || ''), label);
     b.type = 'button';
     if (fn) b.addEventListener('click', fn);
+    // 「つぎへ ▶」の矢印は、自作のSVG（Shosu.Icons）にする
+    if (S.Icons && S.Icons.arrows) { try { S.Icons.arrows(b); } catch (e) {} }
     return b;
   }
   function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
