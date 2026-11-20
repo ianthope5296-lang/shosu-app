@@ -1179,10 +1179,11 @@
     return h('span', null, '（名前）');
   }
 
-  /* 作った人の名前（手書き）から、作った人を区別する短い文字列を作る。
+  /* ともだちの問題の「作った人」：作った端末のID（up.aid）。aid の無い古いリンクは名前の絵から作る */
+  function friendAuthorKey(up) { return up && up.aid ? 'd' + up.aid : authorKey(up && up.author); }
+  /* 作った人の名前（手書き）から短い文字列を作る（aid の無い古いリンク用の代わり）。
      Share.encode と同じ間引き・丸め（長い辺を1023目）をした後の座標で計算するので、
-     作ったときの絵・リンクから開いた絵・ボックスに入れた絵のどれでも同じ値になる。
-     （作る画面は、前に書いた名前を次の問題にも使うので、同じ人の問題は同じ値になる） */
+     作ったときの絵・リンクから開いた絵・ボックスに入れた絵のどれでも同じ値になる。 */
   function authorKey(ink) {
     if (!ink || !Array.isArray(ink.strokes)) return '';
     var GRID = 1023;
@@ -1300,7 +1301,9 @@
       handle = S.Problems.render(area, problem, {
         onResult: function (r) {
           record('friend', pid, r);
-          starLog('friend', { token: token, correct: !!(r && r.correct), authorKey: authorKey(up && up.author) });
+          // 自分の端末で作った問題は「ともだちの問題」の星にしない
+          var mine = !!(up && up.aid && sess() && sess().deviceId && up.aid === sess().deviceId());
+          if (!mine) starLog('friend', { token: token, correct: !!(r && r.correct), authorKey: friendAuthorKey(up) });
         }
       });
     }

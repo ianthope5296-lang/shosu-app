@@ -389,24 +389,15 @@
     try { return S.Stars.log(type, data) || []; } catch (e) { console.error('Stars.log', e); return []; }
   }
 
-  /* ---------- 前に書いた名前（次の問題でも使う。同じ人の問題だと分かるように） ---------- */
-  var LAST_AUTHOR = 'shosu.maker.lastAuthor';
-  function lastAuthor() {
-    try {
-      var v = JSON.parse(window.localStorage.getItem(LAST_AUTHOR) || 'null');
-      return v && Array.isArray(v.strokes) && v.strokes.length && v.w && v.h ? v : null;
-    } catch (e) { return null; }
-  }
-  function rememberAuthor(ink) {
-    if (!inkHasStrokes(ink)) return;
-    try { window.localStorage.setItem(LAST_AUTHOR, JSON.stringify(ink)); } catch (e) {}
+  function deviceId() {
+    try { return S.Session && S.Session.deviceId ? S.Session.deviceId() : null; } catch (e) { return null; }
   }
 
   /* ---------- 作りかけ（ページ内で覚えておく） ---------- */
   var draft = null; // {kind, up, editId}
 
   function blankUp(kind) {
-    var up = { v: 1, kind: kind, author: lastAuthor(), hint: null };
+    var up = { v: 1, kind: kind, author: null, hint: null };
     if (kind === 'hissan') { up.op = '+'; up.a = ''; up.b = ''; }
     if (kind === 'fill') { up.q = null; up.answer = ''; up.unit = 'L'; }
     if (kind === 'compare') { up.a = ''; up.b = ''; }
@@ -705,9 +696,7 @@
       var bottom = h('div', 'mk-bottom');
       pads.hint = InkPad({ w: INK.hint.w, h: INK.hint.h, ink: up.hint, label: 'ヒント', note: '（なくてもいいよ）', cls: 'mk-pad-hint', placeholder: 'こまったときのヒントを書けるよ', lineWidth: 4.5 });
       pads.hint.onChange(function () { up.hint = pads.hint.isEmpty() ? null : pads.hint.ink(); changed(); });
-      var prevName = lastAuthor();
-      var sameName = !!(prevName && up.author && JSON.stringify(prevName) === JSON.stringify(up.author));
-      pads.author = InkPad({ w: INK.author.w, h: INK.author.h, ink: up.author, label: '作った人の名前', note: sameName ? '（まえに書いた名前。ちがうときは「けす」）' : '（かならず）', cls: 'mk-pad-name', placeholder: '名前を書いてね', compact: true, lineWidth: 4 });
+      pads.author = InkPad({ w: INK.author.w, h: INK.author.h, ink: up.author, label: '作った人の名前', note: '（かならず）', cls: 'mk-pad-name', placeholder: '名前を書いてね', compact: true, lineWidth: 4 });
       pads.author.onChange(function () { up.author = pads.author.isEmpty() ? null : pads.author.ink(); pads.author.flag(false); changed(); });
       cleanups.push(pads.hint.destroy, pads.author.destroy);
       var hb = h('section', 'mk-card mk-hint-card'); hb.appendChild(pads.hint.el);
@@ -940,6 +929,8 @@
     /* 保存・送信用に整える */
     function finalUp(up) {
       var o = { v: 1, kind: up.kind, author: up.author, hint: inkHasStrokes(up.hint) ? up.hint : null };
+      var aid = deviceId();
+      if (aid) o.aid = aid; // 作った端末（ともだちの問題で「作った人」を区別する）
       if (up.kind === 'hissan') { o.op = up.op === '-' ? '-' : '+'; o.a = up.a; o.b = up.b; }
       if (up.kind === 'fill') { o.q = up.q; o.answer = up.answer; o.unit = up.unit || ''; }
       if (up.kind === 'compare') { o.a = up.a; o.b = up.b; }
@@ -1029,13 +1020,11 @@
     }
     // 問題を作った（ほぞん・リンクのコピー）。星は同じ token で1回だけ（担当Hの Stars が判定）
     function made(up, token) {
-      rememberAuthor(up.author);
       starLog('made', { kind: up.kind, token: token });
     }
     // 自分の問題を「みんなに見せる」
     function showToAll(up) {
       return encodeUp(up).then(function (token) {
-        rememberAuthor(up.author);
         starLog('present', { token: token });
         location.hash = '#/q/' + token;
       }, function (err) { encodeErr(err); });
@@ -1077,7 +1066,7 @@
           if (!id) { toast('ほぞんできませんでした。この端末の空きがないかもしれません。'); return; }
           editId = id;
           draft.editId = editId;
-          encodeUp(up).then(function (token) { made(up, token); }, function () { rememberAuthor(up.author); });
+          encodeUp(up).then(function (token) { made(up, token); }, function () {});
           bSave.classList.add('done');
           bSave.querySelector('small').textContent = 'ほぞんしたよ！';
           saved.innerHTML = '';

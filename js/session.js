@@ -2,6 +2,7 @@
  * localStorage 'shosu.session.<key>' に JSON で保存する。
  *   Session.save(key, state)   Session.load(key) -> state | null   Session.clear(key)
  *   Session.clearAll()         （先生メニューの「記録をすべて消す」用）
+ *   Session.deviceId()         端末ごとのID（'shosu.deviceId'、英数字10文字）
  * key 例：'lesson-3'（各時のれんしゅう）, 'more-3'（もっとれんしゅう）, 'review-daisho', 'matome'
  * 書きかけの手書きは保存しない。答えた問題の結果と、出した問題そのもの（自動で作る問題）だけを保存する。
  */
@@ -50,5 +51,24 @@
     } catch (e) {}
   }
 
-  S.Session = { save: save, load: load, clear: clear, clearAll: clearAll };
+  // 端末ごとのID（初回に作って 'shosu.deviceId' に保存。clearAll では消さない）。
+  // 作った問題に aid として入れ、ともだちの問題の「作った人」の区別と、自分の問題かどうかの判定に使う。
+  var devId = null;
+  function deviceId() {
+    if (devId) return devId;
+    var v = null;
+    try { v = ls ? ls.getItem('shosu.deviceId') : null; } catch (e) { v = null; }
+    if (!v || !/^[A-Za-z0-9]{8,16}$/.test(v)) {
+      var c = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      var r = new Uint8Array(10);
+      try { (window.crypto || window.msCrypto).getRandomValues(r); } catch (e) { for (var j = 0; j < r.length; j++) r[j] = Math.floor(Math.random() * 256); }
+      v = '';
+      for (var i = 0; i < r.length; i++) v += c.charAt(r[i] % c.length);
+      try { if (ls) ls.setItem('shosu.deviceId', v); } catch (e) {}
+    }
+    devId = v;
+    return v;
+  }
+
+  S.Session = { save: save, load: load, clear: clear, clearAll: clearAll, deviceId: deviceId };
 })(window.Shosu = window.Shosu || {});
