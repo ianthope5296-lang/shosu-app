@@ -1,4 +1,6 @@
-/* Shosu.Stars — 星（★ふつうの星・✦とくべつな星）と称号（担当H）
+/* Shosu.Stars — 星（ふつうの星・とくべつな星）と称号（担当H）
+ * 絵文字は使わず、星・称号のアイコンは自前のSVG（ICONS / SVG_STAR / SVG_SPECIAL）で描く。
+ * 文の中の {N}=ふつうの星、{S}=とくべつな星、{T:id}=称号アイコン は、表示のときSVGに、読み上げ用には言葉にかえる。
  *
  * 星の決まり（CATALOG）・称号の表（TITLES）・記録からの計算・ゲット表示・称号アップのおいわい・星のずかん。
  * 保存：localStorage 'shosu.stars'
@@ -59,7 +61,7 @@
       add({ id: 'more-' + MORE_STEPS[i], kind: 'normal', group: 'more', sub: MORE_STEPS[i], label: 'もっとれんしゅう ○' + MORE_STEPS[i] + 'こ', short: '○' + MORE_STEPS[i] + 'こ',
         how: '「もっとれんしゅう」で、○をあわせて' + MORE_STEPS[i] + 'こ とろう' });
     }
-    // とくべつな星（✦）8しゅるい
+    // とくべつな星 8しゅるい
     add({ id: 'sp-make1', kind: 'special', group: 'make', label: 'はじめて問題を作った', short: 'はじめての問題',
       how: '「もんだいをつくる」で問題を作って、ほぞんするか、ともだちに送ろう' });
     add({ id: 'sp-make-kinds', kind: 'special', group: 'make', label: '5しゅるいの問題をぜんぶ作った', short: '5しゅるいぜんぶ',
@@ -82,16 +84,88 @@
   var NORMAL_MAX = CATALOG.filter(function (s) { return s.kind === 'normal'; }).length;   // 55
   var SPECIAL_MAX = CATALOG.filter(function (s) { return s.kind === 'special'; }).length; // 8
 
+  /* ---------- 自前のSVG（絵文字は使わない） ---------- */
+  function starPts(cx, cy, ro, ri, n, rot) {
+    var p = [];
+    for (var i = 0; i < n * 2; i++) {
+      var r = i % 2 ? ri : ro, a = (rot || -90) * Math.PI / 180 + i * Math.PI / n;
+      p.push((cx + r * Math.cos(a)).toFixed(1) + ',' + (cy + r * Math.sin(a)).toFixed(1));
+    }
+    return p.join(' ');
+  }
+  function svgWrap(body, vb, cls) {
+    return '<svg class="' + (cls || 'st-svg') + '" viewBox="' + (vb || '0 0 64 64') + '" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">' + body + '</svg>';
+  }
+  // ふつうの星：丸みのある5角星（線を同じ色で太く引いて角を丸くする）
+  var SVG_STAR = svgWrap(
+    '<polygon points="' + starPts(12, 12.8, 10, 4.6, 5) + '" fill="#ffd34d" stroke="#ffb81f" stroke-width="2.4" stroke-linejoin="round"/>' +
+    '<polygon points="' + starPts(10.6, 10.6, 3.2, 1.5, 5) + '" fill="#fff4c2" opacity=".85"/>', '0 0 24 24', 'st-svg st-ic-n');
+  // とくべつな星：金色の4方向にきらめく星
+  var SVG_SPECIAL = svgWrap(
+    '<path d="M12 .8C12.9 7.6 16.4 11.1 23.2 12 16.4 12.9 12.9 16.4 12 23.2 11.1 16.4 7.6 12.9 .8 12 7.6 11.1 11.1 7.6 12 .8Z" fill="#f5b81c" stroke="#fff1b0" stroke-width=".8" stroke-linejoin="round"/>' +
+    '<path d="M12 6.5C12.4 10 14 11.6 17.5 12 14 12.4 12.4 14 12 17.5 11.6 14 10 12.4 6.5 12 10 11.6 11.6 10 12 6.5Z" fill="#fffbe6"/>' +
+    '<circle cx="19.5" cy="4.5" r="1.3" fill="#fff"/><circle cx="4.6" cy="19.2" r=".9" fill="#ffe9a0"/>', '0 0 24 24', 'st-svg st-ic-s');
+  var ICONS = {
+    earth: svgWrap(
+      '<circle cx="32" cy="40" r="20" fill="#3f86d8"/>' +
+      '<path d="M18 33c5-3 9 1 13-1s4-7 9-6c4 1 6 5 9 6-1 4-4 4-7 6s-2 7-7 8-6-3-10-2-6 3-8 1c-2-4-4-8 1-12z" fill="#5cc27a"/>' +
+      '<path d="M15 46c6 3 13 5 22 4" stroke="#bfe3ff" stroke-width="2" fill="none" stroke-linecap="round" opacity=".7"/>' +
+      '<circle cx="32" cy="9" r="4" fill="#ffe2b8"/>' +
+      '<path d="M27 21c0-5 2-7.5 5-7.5s5 2.5 5 7.5z" fill="#ff8a5c"/>' +
+      '<path d="M29 21v-1.5M35 21v-1.5" stroke="#ffe2b8" stroke-width="2" stroke-linecap="round"/>' +
+      '<path d="M27 16.5l-4-3M37 16.5l4-3" stroke="#ffe2b8" stroke-width="2" stroke-linecap="round"/>'),
+    rocket: svgWrap(
+      '<path d="M26 46c-2 6 0 12 6 16 6-4 8-10 6-16z" fill="#ffb42e"/><path d="M29 47c-1 4 0 8 3 10 3-2 4-6 3-10z" fill="#fff0a8"/>' +
+      '<path d="M32 4c9 7 12 19 9 34H23C20 23 23 11 32 4z" fill="#eef2fa" stroke="#c6cfe2" stroke-width="1.5"/>' +
+      '<path d="M32 4c4 3 7 7 8.5 12h-17C25 11 28 7 32 4z" fill="#ff5d6c"/>' +
+      '<circle cx="32" cy="25" r="5.5" fill="#4fa3f7" stroke="#3d5a80" stroke-width="2"/>' +
+      '<path d="M23 30l-8 10v7l9-5zM41 30l8 10v7l-9-5z" fill="#ff5d6c"/>' +
+      '<path d="M28 38h8v8h-8z" fill="#c6cfe2"/>'),
+    moon: svgWrap(
+      '<path d="M38 6A26 26 0 1 0 58 42 21 21 0 1 1 38 6Z" fill="#ffe27a" stroke="#f3c43c" stroke-width="1.5" stroke-linejoin="round"/>' +
+      '<circle cx="22" cy="40" r="4" fill="#f3c43c" opacity=".7"/><circle cx="32" cy="51" r="2.6" fill="#f3c43c" opacity=".7"/><circle cx="17" cy="27" r="2" fill="#f3c43c" opacity=".7"/>' +
+      '<polygon points="' + starPts(52, 14, 4, 1.6, 4, -90) + '" fill="#fff6c8"/>'),
+    planet: svgWrap(
+      '<ellipse cx="32" cy="34" rx="29" ry="9" fill="none" stroke="#c9a6ff" stroke-width="4" transform="rotate(-18 32 34)"/>' +
+      '<circle cx="32" cy="32" r="16" fill="#f08a5d"/>' +
+      '<path d="M17 28c8 2 22 2 30-1M17.5 37c8 2 20 2 29-1" stroke="#ffc49b" stroke-width="3" fill="none" stroke-linecap="round"/>' +
+      '<path d="M5.6 42.6C12 50 46 39 58.4 25.4" fill="none" stroke="#c9a6ff" stroke-width="4" stroke-linecap="round" transform="rotate(0)"/>'),
+    star: svgWrap(
+      '<polygon points="' + starPts(32, 34, 26, 12, 5) + '" fill="#ffd34d" stroke="#ffb81f" stroke-width="5" stroke-linejoin="round"/>' +
+      '<polygon points="' + starPts(28, 29, 8, 3.6, 5) + '" fill="#fff4c2" opacity=".8"/>' +
+      '<polygon points="' + starPts(55, 9, 5, 1.8, 4) + '" fill="#fff"/><polygon points="' + starPts(8, 12, 3.5, 1.3, 4) + '" fill="#ffe9a0"/>'),
+    comet: svgWrap(
+      '<path d="M44 20L6 52l30-38z" fill="#7fd0ff" opacity=".35"/>' +
+      '<path d="M46 24L12 58l34-26z" fill="#a9e2ff" opacity=".5"/>' +
+      '<path d="M41 17L18 34l26-6z" fill="#d8f2ff" opacity=".7"/>' +
+      '<circle cx="47" cy="19" r="10" fill="#e8f8ff" stroke="#7fd0ff" stroke-width="3"/>' +
+      '<circle cx="44" cy="16" r="3" fill="#fff"/>'),
+    sun: svgWrap(
+      (function () {
+        var s = '';
+        for (var i = 0; i < 12; i++) s += '<path d="M32 2l4 9h-8z" fill="' + (i % 2 ? '#ffb02e' : '#ff7a2e') + '" transform="rotate(' + (i * 30) + ' 32 32)" stroke-linejoin="round"/>';
+        return s;
+      })() +
+      '<circle cx="32" cy="32" r="16" fill="#ffc93c" stroke="#ff9a2e" stroke-width="2.5"/>' +
+      '<circle cx="27" cy="27" r="5" fill="#fff0a8" opacity=".8"/>'),
+    galaxy: svgWrap(
+      '<ellipse cx="32" cy="32" rx="29" ry="22" fill="#5b3fa8" opacity=".35"/>' +
+      '<path d="M32 32c0-6 8-8 12-3s1 15-10 16-20-9-17-21 18-17 29-10" fill="none" stroke="#c18bff" stroke-width="4" stroke-linecap="round"/>' +
+      '<path d="M32 32c0 6-8 8-12 3s-1-15 10-16 20 9 17 21-18 17-29 10" fill="none" stroke="#ff9ad5" stroke-width="4" stroke-linecap="round"/>' +
+      '<circle cx="32" cy="32" r="6" fill="#fff6d0"/><circle cx="32" cy="32" r="3" fill="#fff"/>' +
+      '<circle cx="12" cy="14" r="1.6" fill="#fff"/><circle cx="54" cy="50" r="1.4" fill="#fff"/><circle cx="52" cy="12" r="1.1" fill="#ffe9a0"/><circle cx="10" cy="50" r="1.2" fill="#ffe9a0"/>')
+  };
+
   /* ---------- 称号（宇宙・スペース系） ---------- */
   var TITLES = [
-    { id: 'earth', icon: '🌍', name: '小数の地球人', need: { normal: 0, specialKinds: 0, specialTotal: 0 } },
-    { id: 'rocket', icon: '🚀', name: '小数ロケット', need: { normal: 5, specialKinds: 0, specialTotal: 0 } },
-    { id: 'moon', icon: '🌙', name: '小数ムーン', need: { normal: 12, specialKinds: 0, specialTotal: 0 } },
-    { id: 'planet', icon: '🪐', name: '小数プラネット', need: { normal: 22, specialKinds: 0, specialTotal: 0 } },
-    { id: 'star', icon: '⭐', name: '小数スター', need: { normal: 32, specialKinds: 0, specialTotal: 0 } },
-    { id: 'comet', icon: '☄️', name: '小数コメット', need: { normal: 42, specialKinds: 0, specialTotal: 0 } },
-    { id: 'sun', icon: '🌞', name: '小数サン', need: { normal: 50, specialKinds: 8, specialTotal: 0 } },
-    { id: 'galaxy', icon: '🌌', name: '小数ギャラクシー', need: { normal: 55, specialKinds: 8, specialTotal: 30 } }
+    { id: 'earth', icon: ICONS.earth, name: '小数の地球人', need: { normal: 0, specialKinds: 0, specialTotal: 0 } },
+    { id: 'rocket', icon: ICONS.rocket, name: '小数ロケット', need: { normal: 5, specialKinds: 0, specialTotal: 0 } },
+    { id: 'moon', icon: ICONS.moon, name: '小数ムーン', need: { normal: 12, specialKinds: 0, specialTotal: 0 } },
+    { id: 'planet', icon: ICONS.planet, name: '小数プラネット', need: { normal: 22, specialKinds: 0, specialTotal: 0 } },
+    { id: 'star', icon: ICONS.star, name: '小数スター', need: { normal: 32, specialKinds: 0, specialTotal: 0 } },
+    { id: 'comet', icon: ICONS.comet, name: '小数コメット', need: { normal: 42, specialKinds: 0, specialTotal: 0 } },
+    { id: 'sun', icon: ICONS.sun, name: '小数サン', need: { normal: 50, specialKinds: 8, specialTotal: 0 } },
+    { id: 'galaxy', icon: ICONS.galaxy, name: '小数ギャラクシー', need: { normal: 55, specialKinds: 8, specialTotal: 30 } }
   ];
 
   /* ---------- 保存 ---------- */
@@ -168,7 +242,7 @@
   function pushEv(type, info) { state.ev.push([type, Date.now(), info || 0]); if (state.ev.length > 100) state.ev = state.ev.slice(-100); }
 
   /* ---------- 判定 ---------- */
-  // ホームの☆と同じ考え（app.js lessonStars）：0〜3
+  // ホームの星3つと同じ考え（app.js lessonStars）：0〜3
   function lessonPids(lesson) {
     var out = [];
     (lesson.problems || []).forEach(function (p, i) {
@@ -290,20 +364,23 @@
     return { normal: normal, normalMax: NORMAL_MAX, specialTotal: total, specialKinds: kinds, specialKindsMax: SPECIAL_MAX,
       title: TITLES[ti], next: next, needForNext: need };
   }
+  function plain(str) {
+    return String(str).replace(/\{N\}/g, '星').replace(/\{S\}/g, 'とくべつな星').replace(/\{T:[a-z]+\}/g, '');
+  }
   function needText(sm) {
     if (!sm.next) return 'さいごの称号まで とどいたよ！';
     var n = sm.needForNext, parts = [];
-    if (n.normal) parts.push('★' + n.normal + 'こ');
-    if (n.specialKinds) parts.push('✦のしゅるい ' + n.specialKinds + 'こ');
-    if (n.specialTotal) parts.push('✦' + n.specialTotal + 'こ');
-    return sm.next.icon + sm.next.name + 'まで あと ' + (parts.join('・') || '少し');
+    if (n.normal) parts.push('{N}' + n.normal + 'こ');
+    if (n.specialKinds) parts.push('とくべつな星のしゅるい ' + n.specialKinds + 'こ');
+    if (n.specialTotal) parts.push('{S}' + n.specialTotal + 'こ');
+    return '{T:' + sm.next.id + '}' + sm.next.name + 'まで あと ' + (parts.join('・') || '少し');
   }
   function condText(t) {
     var nd = t.need, parts = [];
     if (!nd.normal && !nd.specialKinds && !nd.specialTotal) return 'はじめから';
-    if (nd.normal) parts.push(nd.normal >= NORMAL_MAX ? '★ぜんぶ（' + nd.normal + 'こ）' : '★' + nd.normal + 'こ');
-    if (nd.specialKinds) parts.push(nd.specialKinds >= SPECIAL_MAX ? '✦のしゅるい ぜんぶ（' + nd.specialKinds + '）' : '✦のしゅるい ' + nd.specialKinds);
-    if (nd.specialTotal) parts.push('✦ ' + nd.specialTotal + 'こ以上');
+    if (nd.normal) parts.push(nd.normal >= NORMAL_MAX ? '{N}ぜんぶ（' + nd.normal + 'こ）' : '{N}' + nd.normal + 'こ');
+    if (nd.specialKinds) parts.push(nd.specialKinds >= SPECIAL_MAX ? 'とくべつな星のしゅるい ぜんぶ（' + nd.specialKinds + '）' : 'とくべつな星のしゅるい ' + nd.specialKinds);
+    if (nd.specialTotal) parts.push('{S}' + nd.specialTotal + 'こ以上');
     return parts.join(' ＋ ');
   }
 
@@ -332,7 +409,7 @@
     if (hasDOM && !quiet) {
       got.forEach(function (s) { showGet(s); });
       if (!got.some(function (s) { return s.kind === 'special'; }) && sm.specialTotal > totalBefore) {
-        queueToast('✦ +' + (sm.specialTotal - totalBefore) + ' とくべつな星（ぜんぶで ' + sm.specialTotal + 'こ）', true);
+        queueToast('{S}+' + (sm.specialTotal - totalBefore) + ' とくべつな星（ぜんぶで ' + sm.specialTotal + 'こ）', true);
       }
       if (up) celebrate(sm.title);
     }
@@ -410,8 +487,8 @@
       if (fresh && !got.length) save();
       if (hasDOM && got.length) {
         var nN = got.filter(function (s) { return s.kind === 'normal'; }).length, nS = got.length - nN;
-        var msg = 'まとめて ' + (nN ? '★' + nN + 'こ' : '') + (nN && nS ? '・' : '') + (nS ? '✦' + nS + 'しゅるい' : '') + ' ゲットしていたよ';
-        if (r.up) msg += '　いまの称号は ' + r.sm.title.icon + r.sm.title.name;
+        var msg = 'まとめて ' + (nN ? '{N}' + nN + 'こ' : '') + (nN && nS ? '・' : '') + (nS ? '{S}' + nS + 'しゅるい' : '') + ' ゲットしていたよ';
+        if (r.up) msg += '　いまの称号は {T:' + r.sm.title.id + '}' + r.sm.title.name;
         queueToast(msg, nS > 0 && !nN, 4200);
       }
       return got;
@@ -427,6 +504,27 @@
     if (cls) e.className = cls;
     if (text != null) e.textContent = text;
     return e;
+  }
+  function svgEl(svg, cls, tag) {
+    var e = el(tag || 'span', cls);
+    e.innerHTML = svg;
+    return e;
+  }
+  var TOKEN_RE = /\{(N|S|T:[a-z]+)\}/g;
+  // {N}{S}{T:id} を含む文を、SVGつきの表示にする（読み上げ用の aria-label も付ける）
+  function rich(node, str) {
+    str = String(str);
+    var last = 0, m;
+    TOKEN_RE.lastIndex = 0;
+    while ((m = TOKEN_RE.exec(str))) {
+      if (m.index > last) node.appendChild(document.createTextNode(str.slice(last, m.index)));
+      var svg = m[1] === 'N' ? SVG_STAR : m[1] === 'S' ? SVG_SPECIAL : (ICONS[m[1].slice(2)] || '');
+      node.appendChild(svgEl(svg, 'st-in st-in-' + m[1].charAt(0)));
+      last = m.index + m[0].length;
+    }
+    if (last < str.length) node.appendChild(document.createTextNode(str.slice(last)));
+    if (str.indexOf('{') >= 0) node.setAttribute('aria-label', plain(str));
+    return node;
   }
   function reducedMotion() {
     try { return !!(root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) { return false; }
@@ -445,7 +543,7 @@
     if (!toastBusy) nextToast();
   }
   function showGet(s) {
-    queueToast((s.kind === 'special' ? '✦ ' : '★ ') + s.label + ' ゲット！', s.kind === 'special');
+    queueToast((s.kind === 'special' ? '{S} ' : '{N} ') + s.label + ' ゲット！', s.kind === 'special');
   }
   function nextToast() {
     var it = toastQ.shift();
@@ -457,7 +555,7 @@
       toastBox.setAttribute('aria-live', 'polite');
       document.body.appendChild(toastBox);
     }
-    var t = el('div', 'st-toast' + (it.gold ? ' st-gold' : ''), it.msg);
+    var t = rich(el('div', 'st-toast' + (it.gold ? ' st-gold' : '')), it.msg);
     toastBox.appendChild(t);
     setTimeout(function () { t.classList.add('st-show'); }, 20);
     setTimeout(function () {
@@ -478,7 +576,7 @@
     var sky = el('div', 'st-sky');
     var i;
     for (i = 0; i < 40; i++) {
-      var sp = el('span', 'st-spark' + (i % 3 === 0 ? ' st-gold' : ''), i % 4 === 0 ? '✦' : '★');
+      var sp = svgEl(i % 3 === 0 ? SVG_SPECIAL : SVG_STAR, 'st-spark');
       var ang = (i / 40) * Math.PI * 2 + Math.random() * 0.3;
       var dist = 28 + Math.random() * 30;
       sp.style.setProperty('--dx', (Math.cos(ang) * dist).toFixed(1) + 'vmax');
@@ -504,11 +602,11 @@
     back.appendChild(sky);
     var box = el('div', 'st-cel-box');
     box.appendChild(el('div', 'st-cel-head', '称号アップ！'));
-    box.appendChild(el('div', 'st-cel-icon', title.icon));
+    box.appendChild(svgEl(title.icon, 'st-cel-icon', 'div'));
     box.appendChild(el('div', 'st-cel-name', title.name));
     box.appendChild(el('div', 'st-cel-sub', 'あたらしい称号をもらったよ。おめでとう！'));
     var sm = summary();
-    if (sm.next) box.appendChild(el('div', 'st-cel-next', 'つぎは ' + needText(sm)));
+    if (sm.next) box.appendChild(rich(el('div', 'st-cel-next'), 'つぎは ' + needText(sm)));
     var close = el('button', 'btn primary st-cel-close', 'とじる');
     close.type = 'button';
     function shut() {
@@ -529,13 +627,13 @@
   var badges = [];
   function fillBadge(b, sm) {
     b.innerHTML = '';
-    b.appendChild(el('span', 'st-b-n', '★' + sm.normal));
-    b.appendChild(el('span', 'st-b-s', '✦' + sm.specialTotal));
+    b.appendChild(rich(el('span', 'st-b-n'), '{N}' + sm.normal));
+    b.appendChild(rich(el('span', 'st-b-s'), '{S}' + sm.specialTotal));
     var t = el('span', 'st-b-t');
-    t.appendChild(el('span', 'st-b-icon', sm.title.icon));
+    t.appendChild(svgEl(sm.title.icon, 'st-b-icon'));
     t.appendChild(el('span', 'st-b-name', sm.title.name));
     b.appendChild(t);
-    b.setAttribute('aria-label', '星のずかん（★' + sm.normal + 'こ、とくべつな星' + sm.specialTotal + 'こ、称号 ' + sm.title.name + '）');
+    b.setAttribute('aria-label', '星のずかん（星' + sm.normal + 'こ、とくべつな星' + sm.specialTotal + 'こ、称号 ' + sm.title.name + '）');
     b.title = '星のずかんをひらく';
   }
   function badge() {
@@ -566,7 +664,7 @@
     function chip(s) {
       var t = state.got[s.id];
       var c = el('div', 'st-chip' + (t ? ' st-got' : '') + (s.kind === 'special' ? ' st-sp' : ''));
-      c.appendChild(el('span', 'st-chip-star', s.kind === 'special' ? '✦' : '★'));
+      c.appendChild(svgEl(s.kind === 'special' ? SVG_SPECIAL : SVG_STAR, 'st-chip-star'));
       var tx = el('div', 'st-chip-tx');
       tx.appendChild(el('div', 'st-chip-label', s.short || s.label));
       tx.appendChild(el('div', 'st-chip-sub', t ? fmtDate(t) + ' にもらったよ' : s.how));
@@ -585,7 +683,7 @@
     function section(title, list, note, cls) {
       var sec = el('section', 'st-sec' + (cls ? ' ' + cls : ''));
       var hd = el('div', 'st-sec-head');
-      hd.appendChild(el('h2', null, title));
+      hd.appendChild(rich(el('h2'), title));
       var n = list.filter(function (s) { return state.got[s.id]; }).length;
       hd.appendChild(el('span', 'st-sec-count', n + ' / ' + list.length));
       sec.appendChild(hd);
@@ -599,7 +697,7 @@
       // いまの称号
       var top = el('section', 'st-now');
       var big = el('div', 'st-now-title');
-      big.appendChild(el('span', 'st-now-icon', sm.title.icon));
+      big.appendChild(svgEl(sm.title.icon, 'st-now-icon'));
       var nm = el('div', 'st-now-tx');
       nm.appendChild(el('div', 'st-now-label', 'いまの称号'));
       nm.appendChild(el('div', 'st-now-name', sm.title.name));
@@ -607,18 +705,18 @@
       top.appendChild(big);
       var nums = el('div', 'st-now-nums');
       var n1 = el('div', 'st-num');
-      n1.appendChild(el('span', 'st-num-v', '★ ' + sm.normal));
+      n1.appendChild(rich(el('span', 'st-num-v'), '{N}' + sm.normal));
       n1.appendChild(el('span', 'st-num-l', 'ふつうの星（ぜんぶで' + sm.normalMax + 'こ）'));
       var bar = el('div', 'st-bar'); var fill = el('div', 'st-bar-fill');
       fill.style.width = Math.round(sm.normal / sm.normalMax * 100) + '%';
       bar.appendChild(fill); n1.appendChild(bar);
       nums.appendChild(n1);
       var n2 = el('div', 'st-num st-gold');
-      n2.appendChild(el('span', 'st-num-v', '✦ ' + sm.specialTotal));
+      n2.appendChild(rich(el('span', 'st-num-v'), '{S}' + sm.specialTotal));
       n2.appendChild(el('span', 'st-num-l', 'とくべつな星の合計（しゅるい ' + sm.specialKinds + ' / ' + sm.specialKindsMax + '）'));
       nums.appendChild(n2);
       top.appendChild(nums);
-      top.appendChild(el('div', 'st-now-next', needText(sm)));
+      top.appendChild(rich(el('div', 'st-now-next'), needText(sm)));
       wrap.appendChild(top);
 
       // 称号の一覧
@@ -628,9 +726,9 @@
       var cur = titleIndex(sm.title.id);
       TITLES.forEach(function (t, i) {
         var c = el('div', 'st-title' + (i <= cur ? ' st-got' : '') + (i === cur ? ' st-cur' : ''));
-        c.appendChild(el('div', 'st-title-icon', t.icon));
+        c.appendChild(svgEl(t.icon, 'st-title-icon', 'div'));
         c.appendChild(el('div', 'st-title-name', i <= cur ? t.name : '？？？'));
-        c.appendChild(el('div', 'st-title-cond', condText(t)));
+        c.appendChild(rich(el('div', 'st-title-cond'), condText(t)));
         tl.appendChild(c);
       });
       ts.appendChild(tl);
@@ -663,10 +761,10 @@
       wrap.appendChild(sec);
       // とくべつな星
       var spAll = CATALOG.filter(function (s) { return s.kind === 'special'; });
-      sec = section('✦ とくべつな星', spAll, null, 'st-sec-sp');
+      sec = section('{S} とくべつな星', spAll, null, 'st-sec-sp');
       var tot = el('div', 'st-sp-total');
-      tot.appendChild(el('span', 'st-sp-total-v', '✦ ' + sm.specialTotal + 'こ'));
-      tot.appendChild(el('span', 'st-sp-total-l', '問題を1こ作るごと、ともだちの問題で○をとるごと、自分の問題を発表するごとに、✦が1こずつふえるよ（同じ問題は1回だけ）。'));
+      tot.appendChild(rich(el('span', 'st-sp-total-v'), '{S}' + sm.specialTotal + 'こ'));
+      tot.appendChild(el('span', 'st-sp-total-l', '問題を1こ作るごと、ともだちの問題で○をとるごと、自分の問題を発表するごとに、とくべつな星が1こずつふえるよ（同じ問題は1回だけ）。'));
       sec.appendChild(tot);
       sec.appendChild(rowOf('もんだいづくり', group('make'), 'st-row-sp'));
       sec.appendChild(rowOf('ともだちの問題', group('friend'), 'st-row-sp'));
@@ -688,7 +786,8 @@
     mountCollection: mountCollection,
     onChange: onChange,
     celebrate: celebrate,      // 確認用（ふつうは log が自分で呼ぶ）
-    needText: function () { return needText(summary()); },
+    needText: function () { return plain(needText(summary())); },
+    ICONS: ICONS, SVG_STAR: SVG_STAR, SVG_SPECIAL: SVG_SPECIAL,
     // テスト・先生用
     _reload: function () { state = load(); emit(); },
     _state: function () { return JSON.parse(JSON.stringify(state)); },

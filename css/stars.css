@@ -1,0 +1,219 @@
+/* 星と称号（担当H）— クラス名は st- で始める。宇宙のイメージ（深い紺〜紫の夜空、星は黄〜金） */
+:root {
+  --st-night1: #0f1640;
+  --st-night2: #2a1a5e;
+  --st-night3: #45237a;
+  --st-star: #ffd34d;
+  --st-gold: #f5b81c;
+  --st-gold-soft: #fff1b0;
+  --st-text: #eef0ff;
+  --st-text-soft: #b9bfe8;
+}
+
+.st-svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.st-in { display: inline-block; width: 1.05em; height: 1.05em; vertical-align: -0.16em; margin: 0 0.08em; }
+.st-in-T { width: 1.3em; height: 1.3em; vertical-align: -0.3em; margin-right: 0.15em; }
+
+/* ---------- 上のバーのバッジ ---------- */
+.st-badge {
+  display: inline-flex; align-items: center; gap: 0.5em;
+  min-height: 44px; padding: 0.2em 0.9em 0.2em 0.7em;
+  border-radius: 999px; border: 1.5px solid rgba(255, 225, 140, .55);
+  background: linear-gradient(135deg, var(--st-night1), var(--st-night3));
+  color: var(--st-text); font-family: var(--font, sans-serif); font-size: 0.95rem; line-height: 1;
+  cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(255,255,255,.06), 0 2px 8px rgba(10, 8, 40, .35);
+}
+.st-badge:hover { border-color: var(--st-star); }
+.st-badge:focus-visible { outline: 3px solid var(--st-star); outline-offset: 2px; }
+.st-b-n, .st-b-s { display: inline-flex; align-items: center; font-weight: bold; font-variant-numeric: tabular-nums; }
+.st-b-s { color: var(--st-gold-soft); }
+.st-b-n .st-in, .st-b-s .st-in { width: 1.2em; height: 1.2em; }
+.st-b-t { display: inline-flex; align-items: center; gap: 0.3em; padding-left: 0.4em; border-left: 1px solid rgba(255,255,255,.25); }
+.st-b-icon { display: inline-block; width: 1.7em; height: 1.7em; }
+.st-b-name { font-size: 0.9em; }
+@media (max-width: 760px) { .st-b-name { display: none; } }
+
+/* ---------- ゲット表示（画面の上に小さく） ---------- */
+.st-toasts {
+  position: fixed; top: 0.6rem; left: 50%; transform: translateX(-50%);
+  z-index: 1001; pointer-events: none; display: flex; flex-direction: column; align-items: center;
+}
+.st-toast {
+  display: inline-flex; align-items: center; gap: 0.2em;
+  padding: 0.45rem 1.2rem; border-radius: 999px;
+  background: linear-gradient(135deg, rgba(15,22,64,.95), rgba(69,35,122,.95));
+  color: var(--st-text); font-family: var(--font, sans-serif); font-size: 1rem; font-weight: bold;
+  border: 1.5px solid rgba(255, 211, 77, .7);
+  box-shadow: 0 4px 16px rgba(10, 8, 40, .35), 0 0 14px rgba(255, 211, 77, .25);
+  opacity: 0; transform: translateY(-14px) scale(.96);
+  transition: opacity .3s, transform .3s;
+}
+.st-toast .st-in { width: 1.35em; height: 1.35em; }
+.st-toast.st-show { opacity: 1; transform: none; }
+.st-toast.st-gold { color: #fff4c8; border-color: var(--st-gold); box-shadow: 0 4px 16px rgba(10,8,40,.35), 0 0 18px rgba(245,184,28,.5); }
+
+/* ---------- 称号アップのおいわい ---------- */
+.st-celebrate {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 45%, #3b2a86 0%, var(--st-night2) 40%, #080c2a 100%);
+  font-family: var(--font, sans-serif); color: var(--st-text);
+  animation: st-fade .4s ease-out;
+}
+.st-sky { position: absolute; inset: 0; pointer-events: none; }
+.st-twinkle {
+  position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #fff;
+  box-shadow: 0 0 6px #fff; opacity: .4;
+  animation: st-twinkle 2.2s ease-in-out infinite; animation-delay: var(--d, 0s);
+}
+.st-spark {
+  position: absolute; left: 50%; top: 45%; width: 2.2rem; height: 2.2rem; margin: -1.1rem 0 0 -1.1rem;
+  opacity: 0; transform: translate(0, 0) scale(.2);
+  filter: drop-shadow(0 0 6px rgba(255, 220, 120, .8));
+  animation: st-burst 1.8s cubic-bezier(.15,.7,.3,1) forwards; animation-delay: var(--d, 0s);
+}
+.st-shoot {
+  position: absolute; width: 9rem; height: 2px; border-radius: 2px;
+  background: linear-gradient(90deg, rgba(255,255,255,0), #fff 85%, #fff8d0);
+  box-shadow: 0 0 8px rgba(255,255,255,.8);
+  transform: rotate(-35deg) translateX(0); opacity: 0;
+  animation: st-shoot 2.6s ease-in infinite; animation-delay: var(--d, 0s);
+}
+.st-cel-box {
+  position: relative; z-index: 1; text-align: center; padding: 2rem 2.6rem 1.6rem; max-width: 90vw;
+  animation: st-pop .7s cubic-bezier(.2,1.4,.4,1) both .15s;
+}
+.st-cel-head { font-size: 1.6rem; font-weight: bold; letter-spacing: .2em; color: var(--st-gold-soft); text-shadow: 0 0 12px rgba(255,211,77,.7); }
+.st-cel-icon {
+  width: min(42vmin, 15rem); height: min(42vmin, 15rem); margin: 0.6rem auto 0.4rem;
+  filter: drop-shadow(0 0 22px rgba(255, 220, 140, .55));
+  animation: st-float 3s ease-in-out infinite 1s;
+}
+.st-cel-name { font-size: clamp(2rem, 6vw, 3.4rem); font-weight: bold; color: #fff; text-shadow: 0 0 18px rgba(200,170,255,.9), 0 2px 0 #2a1a5e; }
+.st-cel-sub { font-size: 1.15rem; margin-top: 0.4rem; color: var(--st-text); }
+.st-cel-next { font-size: 1rem; margin-top: 0.5rem; color: var(--st-text-soft); }
+.st-celebrate .btn.st-cel-close {
+  margin-top: 1.4rem; min-width: 10rem; font-size: 1.15rem; font-weight: bold;
+  background: linear-gradient(135deg, #ffd34d, #f5a81c); color: #2a1a5e; border: none;
+  box-shadow: 0 0 18px rgba(255, 211, 77, .6);
+}
+
+@keyframes st-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes st-twinkle { 0%, 100% { opacity: .2; transform: scale(.7); } 50% { opacity: 1; transform: scale(1.3); } }
+@keyframes st-burst {
+  0% { opacity: 0; transform: translate(0, 0) scale(.2) rotate(0deg); }
+  15% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(var(--s, 1)) rotate(200deg); }
+}
+@keyframes st-shoot {
+  0% { opacity: 0; transform: rotate(-35deg) translateX(0); }
+  10% { opacity: 1; }
+  40% { opacity: 0; transform: rotate(-35deg) translateX(-60vw); }
+  100% { opacity: 0; transform: rotate(-35deg) translateX(-60vw); }
+}
+@keyframes st-pop { from { opacity: 0; transform: scale(.5); } to { opacity: 1; transform: none; } }
+@keyframes st-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
+/* 動きをへらす設定のとき：とびちらず、その場で静かに表示 */
+.st-celebrate.st-still .st-spark { opacity: .5; animation: none; transform: translate(var(--dx), var(--dy)) scale(calc(var(--s, 1) * .7)); }
+.st-celebrate.st-still .st-shoot { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .st-celebrate, .st-cel-box, .st-cel-icon, .st-twinkle { animation: none !important; }
+  .st-spark { opacity: .5; animation: none !important; transform: translate(var(--dx), var(--dy)) scale(calc(var(--s, 1) * .7)); }
+  .st-shoot { display: none; }
+  .st-toast { transition: opacity .2s; transform: none; }
+}
+
+/* ---------- 星のずかん（夜空） ---------- */
+.st-coll {
+  font-family: var(--font, sans-serif); color: var(--st-text);
+  padding: 1.2rem; border-radius: 18px;
+  background:
+    radial-gradient(1.5px 1.5px at 12% 18%, #fff 60%, transparent 100%),
+    radial-gradient(1px 1px at 33% 72%, #fff 60%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 58% 26%, #ffe9a0 60%, transparent 100%),
+    radial-gradient(1px 1px at 76% 64%, #fff 60%, transparent 100%),
+    radial-gradient(2px 2px at 88% 12%, #fff 60%, transparent 100%),
+    radial-gradient(1px 1px at 46% 48%, #cfd6ff 60%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 22% 90%, #fff 60%, transparent 100%),
+    radial-gradient(1px 1px at 94% 86%, #ffe9a0 60%, transparent 100%),
+    linear-gradient(170deg, var(--st-night1) 0%, var(--st-night2) 55%, var(--st-night3) 100%);
+  background-size: 260px 260px, 310px 310px, 230px 230px, 290px 290px, 340px 340px, 200px 200px, 270px 270px, 320px 320px, 100% 100%;
+}
+.st-coll h2 { margin: 0; font-size: 1.2rem; display: flex; align-items: center; gap: 0.2em; }
+
+.st-now {
+  display: grid; grid-template-columns: auto 1fr; gap: 0.6rem 1.6rem; align-items: center;
+  padding: 1.2rem 1.4rem; border-radius: 16px;
+  background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14);
+}
+.st-now-title { display: flex; align-items: center; gap: 1rem; }
+.st-now-icon { display: block; width: 6.5rem; height: 6.5rem; filter: drop-shadow(0 0 14px rgba(255,220,140,.45)); }
+.st-now-label { font-size: 0.95rem; color: var(--st-text-soft); }
+.st-now-name { font-size: 2.1rem; font-weight: bold; line-height: 1.2; color: #fff; text-shadow: 0 0 12px rgba(200,170,255,.7); }
+.st-now-nums { display: flex; flex-wrap: wrap; gap: 0.8rem 2rem; }
+.st-num { display: flex; flex-direction: column; min-width: 14rem; }
+.st-num-v { display: inline-flex; align-items: center; font-size: 1.9rem; font-weight: bold; line-height: 1.2; }
+.st-num-v .st-in { width: 1.1em; height: 1.1em; margin-right: 0.15em; }
+.st-num.st-gold .st-num-v { color: var(--st-gold-soft); }
+.st-num-l { font-size: 0.85rem; color: var(--st-text-soft); }
+.st-bar { height: 10px; border-radius: 99px; background: rgba(255,255,255,.14); margin-top: 0.35rem; overflow: hidden; }
+.st-bar-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #ffe27a, #f5b81c); box-shadow: 0 0 8px rgba(255,211,77,.7); }
+.st-now-next {
+  grid-column: 1 / -1; font-size: 1.1rem; font-weight: bold;
+  padding: 0.5rem 1rem; border-radius: 12px; background: rgba(255, 211, 77, .12); color: var(--st-gold-soft);
+}
+
+.st-sec { margin-top: 1.2rem; padding: 1rem 1.1rem; border-radius: 16px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); }
+.st-sec-head { display: flex; align-items: baseline; gap: 0.8rem; margin-bottom: 0.4rem; }
+.st-sec-count { font-size: 0.95rem; color: var(--st-text-soft); }
+.st-note { margin: 0 0 0.6rem; font-size: 0.92rem; color: var(--st-text-soft); }
+
+.st-titles { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); gap: 0.6rem; }
+.st-title {
+  text-align: center; padding: 0.7rem 0.5rem; border-radius: 14px;
+  background: rgba(0,0,0,.18); border: 1.5px dashed rgba(255,255,255,.18);
+}
+.st-title-icon { width: 4rem; height: 4rem; margin: 0 auto 0.2rem; filter: brightness(0) invert(1) opacity(.22); }
+.st-title-name { font-weight: bold; font-size: 0.92rem; word-break: keep-all; color: var(--st-text-soft); }
+.st-title-cond { font-size: 0.8rem; color: var(--st-text-soft); line-height: 1.35; margin-top: 0.15rem; }
+.st-title-cond .st-in { filter: grayscale(1) opacity(.7); }
+.st-title.st-got { background: rgba(255,255,255,.1); border-style: solid; border-color: rgba(255,255,255,.3); }
+.st-title.st-got .st-title-icon { filter: drop-shadow(0 0 8px rgba(255,220,140,.4)); }
+.st-title.st-got .st-title-name { color: #fff; }
+.st-title.st-got .st-title-cond .st-in { filter: none; }
+.st-title.st-cur { border-color: var(--st-star); box-shadow: 0 0 14px rgba(255,211,77,.45); }
+
+.st-row { display: grid; grid-template-columns: 13rem 1fr; gap: 0.6rem; align-items: start; padding: 0.5rem 0; border-top: 1px solid rgba(255,255,255,.08); }
+.st-row:first-of-type { border-top: none; }
+.st-row-title { font-size: 0.95rem; font-weight: bold; padding-top: 0.45rem; }
+.st-row-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 0.5rem; }
+.st-chip {
+  display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.45rem 0.6rem; border-radius: 12px;
+  background: rgba(0,0,0,.2); border: 1px solid rgba(255,255,255,.1);
+}
+.st-chip-star { flex: none; width: 2rem; height: 2rem; filter: grayscale(1) brightness(.75) opacity(.45); }
+.st-chip-label { font-weight: bold; font-size: 0.95rem; color: var(--st-text-soft); line-height: 1.3; }
+.st-chip-sub { font-size: 0.78rem; color: #9097c4; line-height: 1.35; }
+.st-chip.st-got { background: rgba(255, 211, 77, .12); border-color: rgba(255, 211, 77, .45); }
+.st-chip.st-got .st-chip-star { filter: drop-shadow(0 0 5px rgba(255,211,77,.7)); }
+.st-chip.st-got .st-chip-label { color: #fff; }
+.st-chip.st-got .st-chip-sub { color: var(--st-gold-soft); }
+
+.st-sec-sp { background: linear-gradient(160deg, rgba(245,184,28,.12), rgba(255,255,255,.04)); border-color: rgba(245,184,28,.4); }
+.st-sec-sp h2 { color: var(--st-gold-soft); }
+.st-sp-total { display: flex; align-items: center; gap: 1rem; padding: 0.6rem 0.9rem; margin-bottom: 0.4rem; border-radius: 12px; background: rgba(0,0,0,.2); }
+.st-sp-total-v { display: inline-flex; align-items: center; flex: none; font-size: 1.8rem; font-weight: bold; color: var(--st-gold-soft); }
+.st-sp-total-v .st-in { width: 1.1em; height: 1.1em; }
+.st-sp-total-l { font-size: 0.9rem; color: var(--st-text-soft); }
+.st-chip.st-sp.st-got { background: linear-gradient(135deg, rgba(245,184,28,.25), rgba(255,241,176,.08)); border-color: var(--st-gold); box-shadow: 0 0 10px rgba(245,184,28,.3); }
+
+@media (max-width: 760px) {
+  .st-coll { padding: 0.8rem; }
+  .st-now { grid-template-columns: 1fr; }
+  .st-row { grid-template-columns: 1fr; }
+  .st-now-name { font-size: 1.6rem; }
+}
+@media (min-width: 1100px) { .st-titles { grid-template-columns: repeat(8, 1fr); } }
