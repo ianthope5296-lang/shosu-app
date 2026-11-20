@@ -705,8 +705,14 @@
         var sh = share();
         if (!sh || !sh.encode) return;
         var seq = ++measureSeq;
-        var test = clone(up);
-        if (!test.author) test.author = { w: INK.author.w, h: INK.author.h, strokes: [[{ x: 10, y: 10 }, { x: 20, y: 20 }]] };
+        // とちゅうの問題でも長さを測れるように、足りないところは仮の値で埋める（長さは絵でほぼ決まる）
+        var test = clone(finalUp(up));
+        var dot = function (w, hh) { return { w: w, h: hh, strokes: [[{ x: 10, y: 10 }, { x: 20, y: 20 }]] }; };
+        if (!inkHasStrokes(test.author)) test.author = dot(INK.author.w, INK.author.h);
+        if (test.kind === 'fill' && !inkHasStrokes(test.q)) test.q = dot(INK.q.w, INK.q.h);
+        ['a', 'b', 'answer'].forEach(function (k) { if (k in test && !N.valid(test[k])) test[k] = '1'; });
+        if (test.kind === 'hissan' && N.cmp(test.a, test.b) < 0) { var t0 = test.a; test.a = test.b; test.b = t0; }
+        if (test.kind === 'numberline' && !test.arrows.length) test.arrows = [test.min];
         var max = sh.MAX_LEN || 6000;
         var p;
         try { p = sh.encode(test); } catch (e) { p = Promise.reject(e); }
