@@ -409,10 +409,13 @@
   }
 
   /* ---------- リンク ---------- */
+  // http(s) で開いているときはURL。HTMLファイル（file://）で開いているときは、
+  // ほかの端末では開けないので「問題コード」（#/q/… を含む文）にする。
+  // どちらも extractTokens で取り出せるので、ホームの「もらった問題をひらく」やもんだいボックスに貼れる。
   function url(token) {
-    var base = '';
-    if (typeof location !== 'undefined' && location && location.href) base = String(location.href).split('#')[0];
-    return base + '#/q/' + token;
+    var href = (typeof location !== 'undefined' && location && location.href) ? String(location.href) : '';
+    if (/^https?:/i.test(href)) return href.split('#')[0] + '#/q/' + token;
+    return 'しょうすうもんだい #/q/' + token;
   }
 
   // 貼りつけた文章からトークンを取り出す。

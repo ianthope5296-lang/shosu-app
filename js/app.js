@@ -192,6 +192,12 @@
     c2t.appendChild(h('span', 'make-sub', myN ? 'ほぞんした問題 ' + myN + 'こ' : 'ほぞんした問題を見る・直す・送る'));
     c2.appendChild(c2t);
     mg.appendChild(c2);
+    var c3 = link('', 'make-card', '#/open');
+    c3.appendChild(h('span', 'make-icon', '📨'));
+    var c3t = h('span', null, 'もらった問題をひらく');
+    c3t.appendChild(h('span', 'make-sub', 'ともだちから来たリンクやコードをはりつけよう'));
+    c3.appendChild(c3t);
+    mg.appendChild(c3);
     mk.appendChild(mg);
     main.appendChild(mk);
 
@@ -729,6 +735,36 @@
     return '';
   }
 
+  /* #/open：もらった問題（リンク・問題コード）をはりつけて開く */
+  function viewOpen() {
+    app.appendChild(topbar('もらった問題をひらく'));
+    var main = h('main', 'box');
+    app.appendChild(main);
+    var sec = h('section', 'tcard');
+    sec.appendChild(h('h2', null, 'リンクや問題コードをはりつけよう'));
+    sec.appendChild(h('p', 'tnote', 'Teams や Classroom で送られてきたリンク（または「しょうすうもんだい #/q/…」というコード）をコピーして、下にはりつけてね。'));
+    var ta = h('textarea', 'box-paste');
+    ta.setAttribute('aria-label', 'リンクや問題コードをはりつける');
+    ta.placeholder = 'ここにはりつけ（Ctrl + V）';
+    sec.appendChild(ta);
+    var row = h('div', 'box-row');
+    var msg = h('span', 'box-msg');
+    msg.setAttribute('role', 'status');
+    row.appendChild(button('ひらく', 'primary', function () {
+      var toks = (S.Share && S.Share.extractTokens) ? S.Share.extractTokens(ta.value || '') : [];
+      if (!toks.length) {
+        msg.textContent = /(?:#|%23)\/q\//i.test(ta.value || '') ? 'とちゅうで切れているみたい。もう一度コピーしてね。' : '問題のリンクやコードが見つからなかったよ。';
+        msg.className = 'box-msg warn';
+        return;
+      }
+      location.hash = '#/q/' + toks[0];
+    }));
+    row.appendChild(msg);
+    sec.appendChild(row);
+    main.appendChild(sec);
+    setTimeout(function () { try { ta.focus(); } catch (e) {} }, 0);
+  }
+
   function viewBox() {
     app.appendChild(topbar('もんだいボックス', { sub: '先生用' }));
     var main = h('main', 'box');
@@ -874,6 +910,7 @@
       else if (parts[0] === 'q' && parts[1]) viewQ(hash.slice(2));
       else if (parts[0] === 'box' && parts[1]) viewBoxItem(parseInt(parts[1], 10));
       else if (parts[0] === 'box') viewBox();
+      else if (parts[0] === 'open') viewOpen();
       else viewHome();
     } catch (e) {
       console.error(e);

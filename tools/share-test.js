@@ -371,9 +371,11 @@ function noInk(up) {
     assert.strictEqual(up.answer, '1.26');
   });
   await test('url() は #/q/ をつける', async function () {
-    assert.strictEqual(Share.url('1abc'), '#/q/1abc');
+    assert.strictEqual(Share.url('1abc'), 'しょうすうもんだい #/q/1abc');
     globalThis.location = { href: 'https://x.jp/shosu-app/index.html#/home' };
     assert.strictEqual(Share.url('1abc'), 'https://x.jp/shosu-app/index.html#/q/1abc');
+    globalThis.location = { href: 'file:///C:/Users/a/Downloads/shosu-app.html#/' };
+    assert.strictEqual(Share.url('1abc'), 'しょうすうもんだい #/q/1abc');
     delete globalThis.location;
   });
 
