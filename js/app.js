@@ -108,6 +108,26 @@
     return s;
   }
 
+  /* ---------- 星と称号（Shosu.Stars：担当H）・とちゅうから（Shosu.Session） ---------- */
+  function sess() { return S.Session || null; }
+  function sessLoad(key) { try { return sess() ? sess().load(key) : null; } catch (e) { console.error(e); return null; } }
+  function sessSave(key, st) { try { if (sess()) sess().save(key, st); } catch (e) { console.error(e); } }
+  function sessClear(key) { try { if (sess()) sess().clear(key); } catch (e) { console.error(e); } }
+  function starLog(type, data) {
+    if (!(S.Stars && S.Stars.log)) return [];
+    try { return S.Stars.log(type, data) || []; } catch (e) { console.error('Stars.log', type, e); return []; }
+  }
+  function starBadge() {
+    if (!(S.Stars && S.Stars.badge)) return null;
+    try {
+      var b = S.Stars.badge();
+      if (!b) return null;
+      var w = h('span', 'topbar-stars');
+      w.appendChild(b);
+      return w;
+    } catch (e) { console.error('Stars.badge', e); return null; }
+  }
+
   function topbar(title, opts) {
     opts = opts || {};
     var bar = h('header', 'topbar');
@@ -116,8 +136,41 @@
     t.appendChild(h('h1', null, title));
     if (opts.sub) t.appendChild(h('span', 'topbar-sub', opts.sub));
     bar.appendChild(t);
+    var sb = opts.stars === false ? null : starBadge();
+    if (sb) bar.appendChild(sb);
     if (opts.right) bar.appendChild(opts.right);
     return bar;
+  }
+
+  /* 「とちゅうのところがあるよ」：つづきから／はじめから を大きく出す */
+  function resumePrompt(container, o) {
+    var box = h('div', 'resume');
+    box.setAttribute('role', 'dialog');
+    box.appendChild(h('div', 'resume-msg', o.msg || 'とちゅうのところがあるよ'));
+    if (o.sub) box.appendChild(h('div', 'resume-sub', o.sub));
+    var row = h('div', 'resume-row');
+    row.appendChild(button('つづきから ▶', 'primary resume-go', function () { box.remove(); o.onContinue(); }));
+    row.appendChild(button('はじめから', 'resume-restart', function () { box.remove(); o.onRestart(); }));
+    box.appendChild(row);
+    if (o.extra) box.appendChild(o.extra);
+    container.appendChild(box);
+    return box;
+  }
+  function firstOpen(items, results) {
+    for (var i = 0; i < items.length; i++) if (!results[items[i].pid]) return i;
+    return -1;
+  }
+  function slimResult(r) { return { correct: !!(r && r.correct), method: r && r.method === 'self' ? 'self' : 'auto', hints: (r && r.hints) || 0 }; }
+  function cleanResults(items, res) {
+    var out = {};
+    res = res || {};
+    items.forEach(function (it) { if (res[it.pid]) out[it.pid] = slimResult(res[it.pid]); });
+    return out;
+  }
+  function countAnswered(items, results) { var n = 0; items.forEach(function (it) { if (results[it.pid]) n++; }); return n; }
+  /* 自動で作った問題をそのまま保存したもの（[{p, pid}]）が正しい形か */
+  function validItems(a) {
+    return Array.isArray(a) && a.length > 0 && a.every(function (it) { return it && it.p && typeof it.p === 'object' && it.p.type && it.pid; });
   }
 
   /* ---------- ホーム ---------- */
@@ -229,9 +282,15 @@
 
   /* ---------- 問題を1問ずつ解く ---------- */
   // items: [{p, pid}], key: 記録キー, done(results) 全問のあと
-  function runSet(container, items, key, done) {
-    var idx = 0, handle = null, shown = 0;
+  // opts: { results: 前に答えた結果 {pid: r}（番号の丸に再現する）, start: 最初に出す番号,
+  //         onAnswer(it, r, results, first) 答えるたび（first は、その問題の最初の結果のとき true） }
+  // 戻り値: { stop() } … とちゅうでやめる（done は呼ばない）
+  function runSet(container, items, key, done, opts) {
+    opts = opts || {};
+    var idx = 0, handle = null, shown = 0, stopped = false;
     var results = {}; // pid -> 最新の結果
+    if (opts.results) for (var rk in opts.results) results[rk] = opts.results[rk];
+    if (opts.start > 0 && opts.start < items.length) idx = opts.start;
     var wrap = h('div', 'set');
     var prog = h('div', 'set-progress');
     var area = h('div', 'set-problem');
@@ -262,11 +321,16 @@
       var it = items[idx];
       area.innerHTML = '';
       if (!S.Problems) { area.appendChild(h('div', 'empty-note', '問題を表示できません。')); drawProgress(); return; }
+      var seen = false; // この表示で、もう結果を受け取ったか
       handle = S.Problems.render(area, it.p, {
         onResult: function (r) {
+          if (stopped) return;
           results[it.pid] = r;
           record(key, it.pid, r);
           drawProgress();
+          var first = !seen;
+          seen = true;
+          if (opts.onAnswer) { try { opts.onAnswer(it, r, results, first); } catch (e) { console.error(e); } }
         },
         onNext: function () { go(idx + 1); }
       });
@@ -274,10 +338,11 @@
       if (shown++) window.scrollTo({ top: Math.max(0, wrap.getBoundingClientRect().top + window.scrollY - 80), behavior: 'auto' });
     }
     function go(i) {
-      if (i < 0) return;
+      if (i < 0 || stopped) return;
       if (i >= items.length) {
         if (handle) handle.destroy();
         handle = null;
+        stopped = true;
         wrap.remove();
         done(results);
         return;
@@ -288,6 +353,9 @@
     if (!items.length) { area.appendChild(h('div', 'empty-note', '問題はまだありません。')); nav.remove(); }
     else show();
     cleanups.push(function () { if (handle) handle.destroy(); });
+    return {
+      stop: function () { stopped = true; if (handle) handle.destroy(); handle = null; wrap.remove(); }
+    };
   }
 
   function resultSummary(items, results) {
