@@ -173,3 +173,54 @@ Present.mount(el, up, { token, onSolve, list?: {index, total, onPrev, onNext} })
 Present.drawInk(ink, opts?) -> HTMLCanvasElement  // 絵を表示用に描く（problems.js でも使う）
 ```
 ルート（G が app.js に追加）：`#/make…` `#/my` `#/edit/<id>` → Maker、`#/q/<token>` → 提示画面→「自分で解く」、`#/box` → もんだいボックス、`#/box/<n>` → ボックスのn番目を提示。
+
+---
+
+# 追加2：途中から・まとめモード・星と称号（PLAN.md「追加機能2」）
+
+## ファイル担当
+| 担当 | ファイル |
+|---|---|
+| H 星と称号 | js/stars.js, css/stars.css, tools/stars-test.js |
+| I まとめモード | js/matome.js, js/generators.js（レベル対応の追加。既存の呼び方はそのまま動くこと）, tools/check-lessons.js（検査の追加）, tools/matome-test.js |
+| J 途中から・画面 | js/session.js, js/app.js, js/problems.js, js/maker.js, js/present.js, css/style.css, index.html, sw.js |
+
+読み込み順：store.js → share.js → … → generators.js → matome.js（generators の後）… stars.js と session.js は store.js の直後。
+
+## Shosu.Stars（H）
+```js
+Stars.CATALOG   // [{id, kind:'normal'|'special', group:'lesson'|'matome'|'review'|'more'|'make'|'friend'|'present', label, how}]
+Stars.TITLES    // [{id, icon, name, need:{normal, specialKinds, specialTotal}}]  宇宙・スペース系8段階（PLAN E）
+Stars.log(type, data) -> [新しくもらった星]   // 出来事を記録して評価。もらった星があれば自分でゲット表示・称号アップのおいわいを出す
+   // type と data：
+   //  'lesson'  {no}                         （Store.stats('lesson-'+no) と S.Lessons の問題数から判定）
+   //  'review'  {topic, total, correct}      （1回分が終わったとき）
+   //  'more'    {correct:true|false}         （もっとれんしゅうの1問ごと）
+   //  'matome'  {level:'easy'|'normal'|'hard', minutes, total, correct, finished:true|false}
+   //  'made'    {kind, token}                （問題を作った：ほぞん または リンク/コードのコピー。同じ token は1回）
+   //  'friend'  {token, correct, authorKey}  （ともだちの問題に答えた。authorKey は作った人を区別する文字列）
+   //  'present' {token}                      （自分の問題を「みんなに見せる」）
+Stars.evaluate() -> [新しくもらった星]          // 起動時に呼ぶ。前からの記録（Store）も星に変える
+Stars.summary() -> {normal, normalMax, specialTotal, specialKinds, specialKindsMax, title, next, needForNext:{normal, specialKinds, specialTotal}}
+Stars.badge() -> HTMLElement                    // 上のバー用「★23 ✦12 🪐小数プラネット」。押すと #/stars。変化に合わせて自動で更新
+Stars.mountCollection(el) -> {destroy()}        // 星のずかん画面の中身（#/stars は J が作る）
+Stars.onChange(fn)
+```
+保存：localStorage 'shosu.stars'（もらった星と日付、✦の合計、出来事の記録）。
+
+## Shosu.Matome（I）
+```js
+Matome.LEVELS = [{id:'easy', label:'かんたん'}, {id:'normal', label:'ふつう'}, {id:'hard', label:'むずかしい'}]
+Matome.TIMES  = [5, 10, 15, 20]
+Matome.TAGS   = ['hyoshikata','shikumi','daisho','jubai','tashizan','hikizan','kimari']
+Matome.build({level, minutes, weak /* {tag: 0..1 の×の割合} 任意 */, rng}) -> { problems:[problem...], seconds:[目安秒...], total秒 }
+Matome.estimate(problem, level) -> 秒
+```
+problem は既存の問題形式（fill/choice/order/hissan）。各 problem に tag を付ける。
+`Generators.make(name, rng, {level})` でレベル指定（省略時は今までどおり）。
+
+## Shosu.Session（J）
+```js
+Session.save(key, state)  Session.load(key) -> state|null  Session.clear(key)
+// key 例 'lesson-3', 'more-3', 'review-daisho', 'matome'
+```
