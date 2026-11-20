@@ -395,3 +395,98 @@ button.tab.on { background: var(--su, var(--primary)); border-color: var(--su, v
 
 /* 書いている途中で画面がずれないように */
 html, body { overflow-anchor: none; }
+
+/* ---------- 星と称号のバッジ（中身は css/stars.css：担当H） ---------- */
+.topbar-stars { flex: none; display: inline-flex; align-items: center; min-width: 0; max-width: 42vw; overflow: hidden; }
+.topbar .topbar-stars + .gear, .topbar .topbar-stars + .btn { margin-left: 0.2rem; }
+.pr-stars { color: var(--ink); }
+
+/* ---------- とちゅうから ---------- */
+.resume {
+  max-width: 760px; margin: 1.2rem auto; padding: 1.6rem 1.6rem 1.4rem;
+  background: #fffdf3; border: 3px solid #f0b400; border-radius: 18px;
+  text-align: center; box-shadow: 0 4px 14px rgba(0,0,0,.08);
+}
+.resume-msg { font-size: 1.6rem; font-weight: bold; line-height: 1.4; }
+.resume-sub { margin-top: 0.3rem; color: var(--ink-soft); font-size: 1.05rem; }
+.resume-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 1rem; margin-top: 1.2rem; }
+.resume-row .btn { min-height: 72px; min-width: 220px; font-size: 1.3rem; font-weight: bold; }
+.resume-extra { margin-top: 1rem; }
+
+/* ---------- ホーム：まとめモード・星のずかん ---------- */
+.home-matome { margin-top: 1.1rem; display: grid; grid-template-columns: 1fr auto; gap: 0.8rem; align-items: stretch; }
+@media (max-width: 800px) { .home-matome { grid-template-columns: 1fr; } }
+.matome-entry {
+  display: flex; align-items: center; gap: 1rem; min-height: 104px; padding: 0.8rem 1.4rem;
+  border-radius: 18px; text-decoration: none; color: #fff;
+  background: linear-gradient(120deg, #1f2b55 0%, #3d3f8f 55%, #6a4fb0 100%);
+  box-shadow: 0 3px 10px rgba(30,40,90,.25); touch-action: manipulation; transition: transform .1s;
+}
+.matome-entry:active { transform: scale(0.99); }
+.matome-entry-icon { flex: none; width: 64px; height: 64px; }
+.matome-entry-text { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.matome-entry-title { font-size: 1.6rem; font-weight: bold; letter-spacing: 0.05em; }
+.matome-entry-sub { font-size: 0.92rem; opacity: 0.9; }
+.matome-entry-go { flex: none; font-weight: bold; background: #ffd166; color: #3a2c00; border-radius: 999px; padding: 0.5em 1.3em; }
+.stars-entry {
+  display: flex; flex-direction: column; justify-content: center; gap: 0.2rem; min-width: 240px; padding: 0.7rem 1.2rem;
+  border-radius: 18px; text-decoration: none; background: var(--card); border: 2px solid #c9c2e6;
+  touch-action: manipulation;
+}
+.stars-entry-title { font-size: 1.25rem; font-weight: bold; color: #3d3f8f; }
+.stars-entry-sub { font-size: 0.85rem; color: var(--ink-soft); }
+.stars-entry-title-now { font-size: 0.95rem; font-weight: bold; color: var(--ink); }
+
+/* ---------- まとめモード ---------- */
+.mm-setup { max-width: 980px; margin: 0 auto; background: var(--card); border-radius: 18px; padding: 1.2rem 1.6rem 1.4rem; border: 2px solid var(--line); }
+.mm-lead { font-size: 1.1rem; margin: 0 0 0.4rem; }
+.mm-h { font-size: 1.2rem; margin: 0.9rem 0 0.5rem; }
+.mm-choices { display: grid; gap: 0.8rem; }
+.mm-levels { grid-template-columns: repeat(3, 1fr); }
+.mm-times { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 700px) { .mm-levels, .mm-times { grid-template-columns: repeat(2, 1fr); } }
+.btn.mm-choice {
+  flex-direction: column; gap: 0; min-height: 88px; border-radius: 16px; border-width: 3px;
+  font-size: 1.4rem; font-weight: bold;
+}
+.btn.mm-choice.on { background: #3d3f8f; border-color: #3d3f8f; color: #fff; box-shadow: 0 0 0 4px #ffd16699; }
+.mm-choice-sub { font-size: 0.9rem; font-weight: normal; opacity: 0.85; min-height: 1.3em; }
+.mm-foot { display: flex; justify-content: center; margin-top: 1.4rem; }
+.btn.mm-start { min-height: 76px; min-width: 300px; font-size: 1.6rem; }
+.mm-note { color: var(--ink-soft); text-align: center; margin: 0.8rem 0 0; }
+
+.mm-status {
+  position: sticky; top: 64px; z-index: 15;
+  display: flex; align-items: center; gap: 1.2rem; flex-wrap: wrap;
+  margin: -0.2rem 0 0.8rem; padding: 0.5rem 1rem;
+  background: #1f2b55; color: #fff; border-radius: 14px;
+}
+.mm-st-level { font-size: 0.95rem; opacity: 0.85; }
+.mm-st-time, .mm-st-left { font-size: 1.6rem; font-weight: bold; font-family: var(--num-font); font-variant-numeric: tabular-nums; }
+.mm-st-time.soon { color: #ffd166; }
+.mm-st-time.over { color: #ffb4a8; font-size: 1.3rem; }
+.mm-st-left { margin-right: auto; }
+.mm-status .btn.mm-st-end { background: rgba(255,255,255,.15); border-color: rgba(255,255,255,.45); color: #fff; }
+.mm-area { background: var(--card); border-radius: var(--radius); padding: 1rem; }
+.mm-timeup { text-align: center; }
+.mm-timeup-msg { font-size: 1.8rem; font-weight: bold; margin-bottom: 0.4rem; }
+.mm-timeup-row { justify-content: center; }
+.mm-timeup-row .btn { min-height: 64px; min-width: 180px; font-size: 1.2rem; }
+
+.mm-result { max-width: 900px; margin: 0 auto; background: var(--card); border-radius: 18px; padding: 1.2rem 1.6rem 1.4rem; text-align: center; }
+.mm-score { margin: 0.4rem 0; }
+.mm-score-big { font-size: 3rem; font-weight: bold; color: var(--ok); font-family: var(--num-font); }
+.mm-score-of { font-size: 1.4rem; color: var(--ink-soft); }
+.mm-meta { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.4rem 1.4rem; color: var(--ink-soft); }
+.mm-tags { text-align: left; margin-top: 0.6rem; }
+.mm-tag { display: grid; grid-template-columns: 11em 1fr 5em; align-items: center; gap: 0.8rem; padding: 0.3rem 0; }
+.mm-tag-name { font-weight: bold; }
+.mm-tag-meter { height: 16px; background: #eceef2; border-radius: 999px; overflow: hidden; }
+.mm-tag-fill { display: block; height: 100%; background: #4e9a68; border-radius: 999px; }
+.mm-tag.weak .mm-tag-fill { background: #d27a2c; }
+.mm-tag.weak .mm-tag-name { color: #b0581a; }
+.mm-tag-num { text-align: right; font-family: var(--num-font); }
+.mm-weak { margin-top: 0.8rem; font-size: 1.1rem; font-weight: bold; }
+.mm-got { margin-top: 0.6rem; }
+.mm-got-list { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; }
+.mm-got-list li { background: #fff6d6; border: 2px solid #f0b400; border-radius: 999px; padding: 0.2em 1em; font-weight: bold; }

@@ -242,6 +242,12 @@
     if (opts.list && opts.list.total) {
       top.appendChild(h('span', 'pr-count', (opts.list.index + 1) + ' / ' + opts.list.total));
     }
+    if (S.Stars && S.Stars.badge) {
+      try {
+        var sb = S.Stars.badge();
+        if (sb) { var sw = h('span', 'topbar-stars pr-stars'); sw.appendChild(sb); top.appendChild(sw); }
+      } catch (e) { console.error('Stars.badge', e); }
+    }
     var fsBtn = null;
     var fsTarget = document.documentElement;
     if (fsTarget.requestFullscreen && document.fullscreenEnabled !== false) {

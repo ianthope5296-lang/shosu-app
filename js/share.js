@@ -327,8 +327,10 @@
       case 'masu': o.level = up.level; o.L = up.L; o.d1 = up.d1; o.d2 = up.d2; o.d3 = up.d3 == null ? 0 : up.d3; break;
       case 'numberline': o.min = up.min; o.max = up.max; o.step = up.step; o.labelEvery = up.labelEvery; o.arrows = up.arrows.slice(); break;
     }
+    if (isAid(up.aid)) o.aid = up.aid; // 作った端末のID（任意）
     return o;
   }
+  function isAid(a) { return typeof a === 'string' && /^[A-Za-z0-9]{8,16}$/.test(a); }
   var KEYS = { hissan: ['op', 'a', 'b'], fill: ['answer', 'unit'], compare: ['a', 'b'],
     masu: ['level', 'L', 'd1', 'd2', 'd3'], numberline: ['min', 'max', 'step', 'labelEvery', 'arrows'] };
   function hasStrokes(ink) {
@@ -400,6 +402,7 @@
     KEYS[f.kind].forEach(function (k) { up[k] = own(f, k) ? f[k] : undefined; });
     if (up.kind === 'numberline') up.arrows = Array.isArray(f.arrows) ? f.arrows.slice() : null;
     if (up.kind === 'fill') up.q = q;
+    if (isAid(f.aid)) up.aid = f.aid;
     up.author = author;
     up.hint = hint;
     var r = validate(up);
