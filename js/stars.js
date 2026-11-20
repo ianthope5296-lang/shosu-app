@@ -477,6 +477,9 @@
       try { my = S.Store && S.Store.myList ? S.Store.myList() || [] : []; } catch (e) { my = []; }
       my.forEach(function (it) {
         if (!it || !it.id) return;
+        // ともだちの問題を「この問題をほぞん」したもの（ほかの端末で作った問題）は数えない
+        var me = S.Session && S.Session.deviceId ? S.Session.deviceId() : '';
+        if (me && it.up && it.up.aid && it.up.aid !== me) return;
         var h = hash(it.id), kd = it.up && it.up.kind ? String(it.up.kind) : '';
         if (!(h in state.made) || (!state.made[h] && kd)) state.made[h] = KIND_ALIAS[kd] || kd;
       });
