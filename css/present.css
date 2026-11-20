@@ -151,7 +151,7 @@
 
 /* ---------- ホームの追加カード ---------- */
 .home-make { margin-top: 1rem; }
-.make-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.7rem; }
+.make-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 0.7rem; }
 .make-card {
   display: flex; align-items: center; gap: 0.8rem; min-height: 72px; padding: 0.5rem 1.1rem;
   background: var(--card); border: 2px solid var(--line); border-left: 8px solid #d27a2c; border-radius: var(--radius);
@@ -162,3 +162,6 @@
 .make-sub { display: block; font-weight: normal; font-size: 0.8rem; color: var(--ink-soft); }
 .home-extra { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
 .extra-link.small { min-height: 44px; font-size: 0.85rem; background: #eef0f3; color: var(--ink-soft); }
+
+/* 提示画面の下のボタンに、お知らせが重ならないように */
+body:has(.present) .toast { bottom: auto; top: 5.5rem; }

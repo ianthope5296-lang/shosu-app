@@ -166,7 +166,7 @@
     var g = h('div', 'pr-hissan');
     g.style.setProperty('--n', String(nCols + 1));
     var tmpl = ['1.1em'];
-    for (var c = 0; c < nCols; c++) { tmpl.push('0.75em'); if (c < nCols - 1) tmpl.push('0.32em'); }
+    for (var c = 0; c < nCols; c++) { tmpl.push('0.72em'); if (c < nCols - 1) tmpl.push('0.24em'); }
     g.style.gridTemplateColumns = tmpl.join(' ');
     function colOf(c) { return 2 + c * 2; }
     function put(el, row, col, span) {
@@ -379,7 +379,7 @@
         head.textContent = '筆算でしましょう。　' + a + ' ' + opSign(op) + ' ' + b;
         visual.appendChild(hissanView(op, a, b, fills));
       } else if (kind === 'compare') {
-        head.textContent = 'どちらが大きいかな。□にあてはまる不等号（＞、＜）は？';
+        head.textContent = 'どちらが大きいかな。□にあてはまる記号は？';
         var sign = p.a && /^[<>=]$/.test(String(p.a)) ? String(p.a) : compareSign(up.a, up.b);
         var line = h('div', 'pr-compare');
         line.appendChild(h('span', 'pr-cnum', String(up.a)));

@@ -458,6 +458,13 @@
     var main = h('main', 'teacher');
     var s = settings();
 
+    var sec0 = h('section', 'tcard');
+    sec0.appendChild(h('h2', null, 'もんだいボックス'));
+    var bn = (store() && store().boxList) ? (store().boxList() || []).length : 0;
+    sec0.appendChild(h('p', 'tnote', '子どもから集まった問題のリンクを、チャットの文章ごとはりつけて一覧にし、順番に大きく提示できます。' + (bn ? '（いま ' + bn + 'こ）' : '')));
+    sec0.appendChild(link('もんだいボックスを開く ▶', 'btn primary', '#/box'));
+    main.appendChild(sec0);
+
     var sec1 = h('section', 'tcard');
     sec1.appendChild(h('h2', null, '丸つけの方法'));
     var row1 = h('div', 'seg');
@@ -519,7 +526,6 @@
 
     var sec4 = h('section', 'tcard');
     sec4.appendChild(h('h2', null, 'そのほか'));
-    sec4.appendChild(link('もんだいボックス（集まった問題を提示する）', 'btn primary', '#/box'));
     sec4.appendChild(link('数字を書く練習のページ', 'btn', '#/practice-write'));
     if (S.Pad && S.Pad.resetPen) sec4.appendChild(button('ペンの検出をリセット（指で書けるようにする）', '', function () { S.Pad.resetPen(); toast('指でも書けるようにしました'); }));
     main.appendChild(sec4);

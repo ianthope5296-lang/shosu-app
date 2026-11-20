@@ -41,7 +41,7 @@
 .mk-k-fill .mk-top { grid-template-columns: minmax(0, 1fr) 360px; }
 .mk-top.mk-top-wide { grid-template-columns: 1fr; }
 .mk-left, .mk-right { display: flex; flex-direction: column; }
-.mk-bottom { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 0.8rem; margin-top: 0.8rem; align-items: start; }
+.mk-bottom { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 0.8rem; margin-top: 0.8rem; align-items: start; }
 
 /* 数の入力欄 */
 .mk-num {

@@ -741,8 +741,12 @@
         ansEl.hidden = false;
         if (warn) { ansEl.appendChild(h('span', 'mk-answer-warn', warn)); return; }
         ansEl.appendChild(h('span', 'mk-answer-label', '答え：'));
-        ansEl.appendChild(h('span', 'mk-answer-val', text || '　'));
-        if (text) ansEl.appendChild(h('span', 'mk-answer-note', '（アプリが計算したよ）'));
+        if (text) {
+          ansEl.appendChild(h('span', 'mk-answer-val', text));
+          ansEl.appendChild(h('span', 'mk-answer-note', '（アプリが計算したよ）'));
+        } else {
+          ansEl.appendChild(h('span', 'mk-answer-note', kind === 'numberline' ? '↑をおくと、アプリが答えを出すよ' : kind === 'masu' ? '水を入れると、アプリが答えを出すよ' : '数を入れると、アプリが答えを出すよ'));
+        }
       }
 
       function tryIt() {
@@ -1013,7 +1017,7 @@
       card.appendChild(who);
 
       var acts = h('div', 'mk-done-acts');
-      var bShow = button('', 'mk-big-act act-show', function () { showToAll(up); });
+      var bShow = button('', 'mk-big-act act-show', function () { draft.shown = true; showToAll(up); });
       bShow.innerHTML = '<span class="mk-act-t">みんなに見せる</span><small>大きな画面に問題を出す</small>';
       var linkBox = h('div', 'mk-linkbox'); linkBox.hidden = true;
       var bCopy = button('', 'mk-big-act act-copy', function () { copyLink(up, linkBox); });
@@ -1118,7 +1122,8 @@
         if (up.kind === 'numberline') up.arrows = (up.arrows || []).map(String);
         draft = { up: up, editId: found.id };
       }
-      viewEdit(found.up.kind, found.id);
+      if (draft.shown) { draft.shown = false; viewDone(found.up.kind, found.id); }
+      else viewEdit(found.up.kind, found.id);
     }
 
     /* ルート */
@@ -1126,10 +1131,16 @@
       if (parts[0] === 'my') viewMy();
       else if (parts[0] === 'edit' && parts[1]) viewEditSaved(decodeURIComponent(parts[1]));
       else if (parts[0] === 'make' && parts[1] && kindInfo(parts[1])) {
-        if (draft && draft.editId && draft.up && draft.up.kind === parts[1]) draft = null; // 新しく作るときは編集中のものと分ける
-        viewEdit(parts[1], null);
+        // 「みんなに見せる」からもどってきたときは、作りかけ（ほぞん後も）をそのまま開く
+        if (draft && draft.up && draft.up.kind === parts[1]) {
+          if (draft.shown) { draft.shown = false; viewDone(parts[1], draft.editId); }
+          else viewEdit(parts[1], draft.editId);
+        } else viewEdit(parts[1], null);
       }
-      else viewChoose();
+      else {
+        if (draft && draft.editId) draft = null; // ほぞんずみなら、えらぶ画面では作りかけにしない
+        viewChoose();
+      }
     } catch (e) {
       console.error('Maker', e);
       el.appendChild(h('div', 'empty-note', '画面を表示できませんでした。'));
