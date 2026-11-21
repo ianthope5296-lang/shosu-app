@@ -96,7 +96,7 @@
       v: 1, date: r.date,
       name: cleanInk(r.name),
       meate: { choices: strList(m.choices, 120, 8), ink: cleanInk(m.ink) },
-      y: { auto: strList(y.auto, 120, 20), extra: strList(y.extra, 60, 12) },
+      y: { auto: strList(y.auto, 120, 20), extra: strList(y.extra, 60, 12), off: strList(y.off, 120, 20) },
       w: { eval: EVALS[w.eval] ? w.eval : null, choices: strList(w.choices, 120, 10), ink: cleanInk(w.ink) },
       t: { choices: strList(t.choices, 120, 10), ink: cleanInk(t.ink), items: strList(t.items, 40, 10) },
       aid: str(r.aid, 32)
@@ -753,7 +753,7 @@
     var prev = get(date);
     var meate = hist.plan ? hist.plan.meate : (prev ? prev.meate : { choices: [], ink: null });
     var hasMeate = !!(meate.choices.length || inkHas(meate.ink));
-    var wrap = h('main', 'rf');
+    var wrap = h('div', 'rf rf-ywt');
     el.appendChild(wrap);
 
     // いちばん上：めあて と 名前
@@ -776,9 +776,9 @@
       } else {
         if (!namePad) { namePad = InkPad({ w: 500, h: 110, placeholder: 'なまえを書こう', lineWidth: 6, cls: 'rf-pad-name' }); pads.push(namePad); }
         nameBox.classList.add('rf-name-first');
-        nameBox.appendChild(h('div', 'rf-name-label', nameInk ? 'なまえを書きなおしてね' : 'はじめに1回だけ、なまえを書いてね'));
+        nameBox.appendChild(h('div', 'rf-name-label', nameInk ? 'なまえを書きなおそう' : 'なまえ（1回だけ）'));
         nameBox.appendChild(namePad.el);
-        namePad.onChange(function () { namePad.flag(false); });
+        namePad.onChange(function () { namePad.flag(false); clearWarn(); });
       }
     }
     drawName();
@@ -790,13 +790,13 @@
     var colY = h('section', 'rf-col rf-y');
     colY.appendChild(colHead('Y', 'やったこと', hasMeate ? 'めあてに向けて やったことに チェック' : 'やったことに チェック'));
     var autos = yAuto(hist, meate);
-    var prevAuto = prev ? prev.y.auto : null;
+    var prevOff = prev ? prev.y.off : null; // 前にチェックをはずしたもの（新しく出たものはチェック済み）
     var autoChips = [];
     var yList = h('div', 'rf-list');
     if (autos.length) {
       yList.appendChild(h('div', 'rf-sub', 'アプリの記録から'));
       autos.forEach(function (a) {
-        var c = chip(a.text, prevAuto ? prevAuto.indexOf(a.text) >= 0 || !prev : true, null, a.rel ? 'rf-rel' : '');
+        var c = chip(a.text, !(prevOff && prevOff.indexOf(a.text) >= 0), null, a.rel ? 'rf-rel' : '');
         if (a.why) c.el.appendChild(h('span', 'rf-tag rf-tag-' + a.why, a.why === 'meate' ? 'めあて' : '計画'));
         autoChips.push(c); yList.appendChild(c.el);
       });
@@ -837,6 +837,7 @@
       evalv = k;
       for (var kk in evBtns) { evBtns[kk].classList.toggle('on', kk === k); evBtns[kk].setAttribute('aria-checked', kk === k ? 'true' : 'false'); }
       evRow.classList.remove('rf-need');
+      clearWarn();
       drawT();
     }
     colW.appendChild(evRow);
@@ -891,6 +892,7 @@
     wrap.appendChild(codeBox);
     var saved = prev;
 
+    function clearWarn() { if (msg && /warn/.test(msg.className)) { msg.textContent = ''; msg.className = 'rf-msg'; } }
     function build() {
       var tChoices = Object.keys(tSel);
       var items = [];
@@ -899,7 +901,8 @@
         v: 1, date: date, name: nameInk,
         meate: { choices: meate.choices.slice(), ink: meate.ink || null },
         y: { auto: autoChips.filter(function (c) { return c.on(); }).map(function (c) { return c.text; }),
-          extra: exChips.filter(function (c) { return c.on(); }).map(function (c) { return c.text; }) },
+          extra: exChips.filter(function (c) { return c.on(); }).map(function (c) { return c.text; }),
+          off: autoChips.filter(function (c) { return !c.on(); }).map(function (c) { return c.text; }) },
         w: { eval: evalv, choices: wChips.filter(function (c) { return c.on(); }).map(function (c) { return c.text; }), ink: wPad.ink() },
         t: { choices: tChoices, ink: tPad.ink(), items: items },
         aid: deviceId(), saved: new Date().toISOString()
@@ -909,7 +912,7 @@
       if (namePad && !namePad.isEmpty()) { nameInk = namePad.ink(); setProfileName(nameInk); namePad.destroy(); namePad = null; drawName(); }
       var need = [];
       if (!nameInk) { need.push('なまえ'); if (namePad) namePad.flag(true); }
-      if (!evalv) { need.push('◎○△'); evRow.classList.add('rf-need'); }
+      if (!evalv) { need.push('ひょうか'); evRow.classList.add('rf-need'); }
       if (need.length) { msg.textContent = need.join('と') + 'を わすれずに！'; msg.className = 'rf-msg warn'; return; }
       var r = build();
       var ok = save(r);
@@ -1002,7 +1005,7 @@
 
   function mountBox(el) {
     var alive = true;
-    var wrap = h('main', 'rf rf-boxview');
+    var wrap = h('div', 'rf rf-boxview');
     el.appendChild(wrap);
     var sec1 = h('section', 'rf-panel');
     sec1.appendChild(h('h2', null, 'ふりかえりのコードをとりこむ'));
@@ -1040,10 +1043,10 @@
         var ok = rs.filter(Boolean), bad = rs.length - ok.length;
         var res = boxAdd(ok);
         var parts = [];
-        if (res.added) parts.push(res.added + '人分 追加');
-        if (res.updated) parts.push(res.updated + '人分 新しくした');
-        if (res.same) parts.push(res.same + 'こは同じでした');
-        if (bad) parts.push(bad + 'こは開けませんでした');
+        if (res.added) parts.push(res.added + '件 追加');
+        if (res.updated) parts.push(res.updated + '件 新しくした');
+        if (res.same) parts.push(res.same + '件は同じでした');
+        if (bad) parts.push(bad + '件は開けませんでした');
         if (res.ok === false) parts.push('端末がいっぱいで保存できませんでした');
         setMsg(parts.join('、') || 'とりこめませんでした。', !(res.added || res.updated) || res.ok === false);
         if (res.added || res.updated) { ta.value = ''; filter = ok.map(function (r) { return r.date; }).sort().pop(); }
@@ -1065,7 +1068,7 @@
       var shown = all.filter(function (x) { return !filter || x.r.date === filter; })
         .sort(function (a, b) { return a.r.date < b.r.date ? 1 : a.r.date > b.r.date ? -1 : (a.added - b.added); });
       var head = h('div', 'rf-box-head');
-      head.appendChild(h('h2', null, '集まったふりかえり（' + shown.length + '人分' + (filter ? '・' + fmtDate(filter) : '') + '）'));
+      head.appendChild(h('h2', null, '集まったふりかえり（' + shown.length + '件' + (filter ? '・' + fmtDate(filter) : '') + '）'));
       if (all.length) head.appendChild(button('ぜんぶけす', 'danger small', function () {
         confirmDialog('ふりかえりボックスを、ぜんぶ消します。よろしいですか？', 'ぜんぶけす', function () { boxClear(); setMsg('ぜんぶ消しました。'); drawList(); });
       }));

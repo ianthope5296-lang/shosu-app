@@ -1,5 +1,6 @@
 /* ふりかえり（YWT）・ふりかえりボックス（担当M）。クラス名は rf- */
-.rf { --rf-y: #4a7fc1; --rf-w: #2f8a4c; --rf-t: #d27a2c; color: var(--ink); max-width: 1320px; padding-top: 0.8rem; }
+/* 中身は app.js が作る <main> の中に入る */
+.rf { --rf-y: #4a7fc1; --rf-w: #2f8a4c; --rf-t: #d27a2c; color: var(--ink); max-width: 1320px; margin: 0 auto; }
 
 /* いちばん上：めあて と なまえ */
 .rf-top { display: flex; gap: 0.8rem; align-items: center; margin-bottom: 0.8rem; }
@@ -143,7 +144,11 @@
 .rf-c-date { white-space: nowrap; }
 .rf-c-meate { max-width: 200px; }
 .rf-c-meate .rf-meate-chip { font-size: 0.85rem; }
-.rf-c-eval { text-align: center; }
+.rf-c-eval { text-align: center; white-space: nowrap; }
+.rf-c-act .btn { white-space: nowrap; }
+.rf-c-y { min-width: 190px; }
+.rf-c-w, .rf-c-t { min-width: 210px; }
+.rf-c-name { width: 1%; }
 .rf-eval-mini .rf-eval-svg { width: 36px; height: 36px; }
 .rf-eval-cap { font-size: 0.75rem; color: var(--ink-soft); }
 .rf-cell-list { margin: 0 0 0.3rem; padding-left: 1.1em; }
