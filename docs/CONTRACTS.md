@@ -224,3 +224,64 @@ problem は既存の問題形式（fill/choice/order/hissan）。各 problem に
 Session.save(key, state)  Session.load(key) -> state|null  Session.clear(key)
 // key 例 'lesson-3', 'more-3', 'review-daisho', 'matome'
 ```
+
+---
+
+# 追加4：じぶんで計画（PLAN.md「追加機能4」）
+
+## ファイル担当
+| 担当 | ファイル |
+|---|---|
+| L 計画 | js/planner.js, css/planner.css, tools/planner-test.js |
+| M ふりかえり | js/reflect.js, css/reflect.css, tools/reflect-test.js |
+| N つなぎ | js/share.js, js/stars.js, tools/stars-test.js, tools/share-test.js, js/app.js, js/icons.js, js/preset.js（新規）, index.html, sw.js, tools/build-single.js |
+
+## ゴール（Goal）
+```js
+Goal = { v:1, id:'g-<作成時刻36進>', name:'小数のテスト', date:'2026-11-28',
+  classes:[{date:'2026-11-24', minutes:20, lesson:7 /*任意: 第○時*/ , note:'' /*任意*/}, ...],
+  created:'ISO' }
+```
+保存：localStorage 'shosu.goal'。読み込み時の優先：window.SHOSU_PRESET.goal（ゴール入りのアプリ）が保存中のものより新しい（created が後）なら上書き。
+
+## Shosu.Share 追加（N）
+```js
+Share.encodeGoal(goal) -> Promise<token>      Share.decodeGoal(token) -> Promise<Goal>
+Share.encodeReflection(r) -> Promise<token>   Share.decodeReflection(token) -> Promise<Reflection>
+Share.kindOf(token) -> 'problem'|'goal'|'reflection'|null
+Share.extractTokens(text) は3種類とも取り出す（先頭の版文字で種類を見分ける。'1'=問題のまま、goal・reflection は別の文字）
+Share.codeText(token) -> コピー用の文（http(s) なら URL '#/q/'|'#/g/'|'#/r/'、file:// なら「しょうすうもんだい／しょうすうゴール／しょうすうふりかえり #/x/…」）
+```
+
+## Shosu.Planner（L）
+```js
+Planner.goal() -> Goal|null      Planner.setGoal(goal)        // 保存・上書き
+Planner.settings() / setSettings({extraMinutes:0|10|15|20|30, extraDays:'everyday'|'weekdays'|[曜日0-6]})
+Planner.ITEMS()  -> [{id, kind:'lesson'|'review'|'matome'|'make', ref, label, minutes, href, done():bool, stars:{got,max}}]
+   // id 例 'lesson-3', 'review-daisho', 'matome-normal-10', 'make'
+Planner.draft() -> Roadmap        // ゴールから逆算した下書き
+Planner.roadmap() -> Roadmap      Planner.saveRoadmap(rm)
+   // Roadmap = { goalId, days:[{date, type:'class'|'self', minutes, items:[itemId...], lesson?}] }
+Planner.today() -> {date, type, minutes, items:[itemId], plan:TodayPlan|null}
+Planner.savePlan(TodayPlan)  Planner.plan(date) -> TodayPlan|null
+   // TodayPlan = { date, items:[itemId], meate:{choices:[text], ink:Ink|null}, started:'ISO' }
+Planner.meateCandidates(itemIds) -> [text]
+Planner.mountRoadmap(el) / mountToday(el) -> {destroy()}   // 画面の中身（ルートは N が作る）
+Planner.todayPanel() -> HTMLElement|null   // ホーム上部「きょうの計画」（計画があるときだけ）
+```
+
+## Shosu.Reflect（M）
+```js
+Reflect.history(date) -> { items:[{itemId,label,done,correct,total,hints}], problems:{total,correct,hints}, stars:[...], made:n, friend:n }
+   // Store・Stars の記録から、その日の分を集める
+Reflect.save(Reflection)  Reflect.list() -> [Reflection]  Reflect.get(date)
+   // Reflection = { v:1, date, name:Ink|null, meate:{choices,ink}, y:{auto:[text], extra:[text]}, w:{eval:'double'|'single'|'triangle', choices:[text], ink:Ink|null},
+   //               t:{choices:[text], ink:Ink|null}, aid }
+Reflect.nextSuggestions() -> [text]     // 直近の T（次の今日の計画・めあて候補に使う）
+Reflect.mountYWT(el, date) -> {destroy()}   Reflect.mountBox(el) -> {destroy()}
+Reflect.profileName() / setProfileName(ink)   // 最初に1回書く名前
+```
+
+## 星（N が stars.js に追加）
+Stars.log('plan', {date})、Stars.log('reflect', {date, eval, planDone:bool, usedPrevT:bool})、Stars.log('roadmapDone', {goalId})。
+称号：小数サン ★56＋✦全しゅるい、小数ギャラクシー ★ぜんぶ（63）＋✦全しゅるい＋✦合計30。
