@@ -426,7 +426,9 @@
         onResult: function (r) {
           if (stopped) return;
           results[it.pid] = r;
-          record(key, it.pid, r);
+          // 問題の tag（ふくしゅうの分類）も記録する（ふりかえりの候補・おすすめ用。追加4）
+          var tg = (it.p && it.p.tag) || it.tag || '';
+          record(key, it.pid, tg ? { correct: r && r.correct, method: r && r.method, hints: r && r.hints, tag: tg } : r);
           drawProgress();
           var first = !seen;
           seen = true;
