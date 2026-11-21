@@ -244,6 +244,7 @@
     app.appendChild(bar);
 
     var main = h('main', 'home');
+    main.appendChild(homePlanSection());
     var sec = h('section', 'home-lessons');
     var head = h('div', 'sec-head');
     var lh = h('h2', null, 'じゅぎょう');
@@ -344,8 +345,8 @@
     mg.appendChild(c2);
     var c3 = link('', 'make-card', '#/open');
     c3.appendChild(iconEl('letter', 'make-icon') || h('span', 'make-icon'));
-    var c3t = h('span', null, 'もらった問題をひらく');
-    c3t.appendChild(h('span', 'make-sub', 'ともだちから来たリンクやコードをはりつけよう'));
+    var c3t = h('span', null, 'もらったコードをひらく');
+    c3t.appendChild(h('span', 'make-sub', 'ともだちの問題や、先生からのゴールのコードをはりつけよう'));
     c3.appendChild(c3t);
     mg.appendChild(c3);
     mk.appendChild(mg);
@@ -354,6 +355,7 @@
     var ex = h('section', 'home-extra');
     ex.appendChild(withIcon(link('', 'extra-link', '#/practice-write'), 'pen', '数字を書く練習（読み取りをためそう）'));
     ex.appendChild(withIcon(link('', 'extra-link small', '#/box'), 'dish', 'もんだいボックス（先生用）'));
+    ex.appendChild(withIcon(link('', 'extra-link small', '#/rbox'), 'reflect', 'ふりかえりボックス（先生用）'));
     main.appendChild(ex);
     app.appendChild(main);
   }
@@ -1087,6 +1089,9 @@
     var main = h('main', 'teacher');
     var s = settings();
 
+    main.appendChild(teacherGoalCard());
+    main.appendChild(teacherRboxCard());
+
     var sec0 = h('section', 'tcard');
     sec0.appendChild(h('h2', null, 'もんだいボックス'));
     var bn = (store() && store().boxList) ? (store().boxList() || []).length : 0;
@@ -1145,13 +1150,32 @@
       table.appendChild(tr);
     });
     sec3.appendChild(table);
+    var pc = planCounts();
+    sec3.appendChild(h('p', 'tnote rec-plan', '計画・ふりかえり：今日の計画を立てた日 ' + pc.plans + '日　／　ふりかえりを書いた日 ' + pc.refl + '日'));
     sec3.appendChild(button('記録をすべて消す', 'danger', function () {
-      confirmDialog('この端末の記録をすべて消します。もとにもどせません。よろしいですか？', '消す', function () {
+      var back = h('div', 'modal-back');
+      var box = h('div', 'modal');
+      box.setAttribute('role', 'dialog');
+      box.appendChild(h('div', 'modal-msg', 'この端末の記録をすべて消します。もとにもどせません。よろしいですか？'));
+      var lab = h('label', 'modal-check');
+      var cb = h('input');
+      cb.type = 'checkbox';
+      lab.appendChild(cb);
+      lab.appendChild(document.createTextNode(' 計画・ふりかえりのとちゅうの記録（地図・今日の計画・書いたふりかえり）も消す（ゴールは残します）'));
+      box.appendChild(lab);
+      var row = h('div', 'modal-row');
+      row.appendChild(button('やめる', '', function () { back.remove(); }));
+      row.appendChild(button('消す', 'danger', function () {
+        back.remove();
         if (store()) store().resetAll();
         if (sess() && sess().clearAll) { try { sess().clearAll(); } catch (e) { console.error(e); } }
-        toast('記録を消しました');
+        if (cb.checked) resetPlanProgress();
+        toast(cb.checked ? '記録と、計画・ふりかえりの記録を消しました' : '記録を消しました');
         route();
-      });
+      }));
+      box.appendChild(row);
+      back.appendChild(box);
+      document.body.appendChild(back);
     }));
     main.appendChild(sec3);
 
@@ -1395,29 +1419,36 @@
     return '';
   }
 
-  /* #/open：もらった問題（リンク・問題コード）をはりつけて開く */
+  /* #/open：もらったコード（問題・ゴール・ふりかえり）をはりつけて開く。種類は自動で見分ける */
+  var KIND_ROUTE = { problem: '#/q/', goal: '#/g/', reflection: '#/r/' };
   function viewOpen() {
-    app.appendChild(topbar('もらった問題をひらく'));
+    app.appendChild(topbar('もらったコードをひらく'));
     var main = h('main', 'box');
     app.appendChild(main);
     var sec = h('section', 'tcard');
-    sec.appendChild(h('h2', null, 'リンクや問題コードをはりつけよう'));
-    sec.appendChild(h('p', 'tnote', 'Teams や Classroom で送られてきたリンク（または「しょうすうもんだい #/q/…」というコード）をコピーして、下にはりつけてね。'));
+    sec.appendChild(h('h2', null, 'リンクやコードをはりつけよう'));
+    sec.appendChild(h('p', 'tnote', 'Teams や Classroom で送られてきたリンクやコード（「しょうすうもんだい #/q/…」「しょうすうゴール #/g/…」など）をコピーして、下にはりつけてね。ともだちの問題か、先生からのゴールかは、アプリが見分けるよ。'));
     var ta = h('textarea', 'box-paste');
-    ta.setAttribute('aria-label', 'リンクや問題コードをはりつける');
+    ta.setAttribute('aria-label', 'リンクやコードをはりつける');
     ta.placeholder = 'ここにはりつけ（Ctrl + V）';
     sec.appendChild(ta);
     var row = h('div', 'box-row');
     var msg = h('span', 'box-msg');
     msg.setAttribute('role', 'status');
     row.appendChild(button('ひらく', 'primary', function () {
-      var toks = (S.Share && S.Share.extractTokens) ? S.Share.extractTokens(ta.value || '') : [];
-      if (!toks.length) {
-        msg.textContent = /(?:#|%23)\/q\//i.test(ta.value || '') ? 'とちゅうで切れているみたい。もう一度コピーしてね。' : '問題のリンクやコードが見つからなかったよ。';
+      var sh = shareApi();
+      var toks = (sh && sh.extractTokens) ? sh.extractTokens(ta.value || '') : [];
+      var kind = null, tok = null;
+      for (var i = 0; i < toks.length && !kind; i++) {
+        var k = sh.kindOf ? sh.kindOf(toks[i]) : 'problem';
+        if (k && KIND_ROUTE[k]) { kind = k; tok = toks[i]; }
+      }
+      if (!kind) {
+        msg.textContent = /(?:#|%23)\/[qgr]\//i.test(ta.value || '') ? 'とちゅうで切れているみたい。もう一度コピーしてね。' : 'リンクやコードが見つからなかったよ。';
         msg.className = 'box-msg warn';
         return;
       }
-      location.hash = '#/q/' + toks[0];
+      location.hash = KIND_ROUTE[kind] + tok;
     }));
     row.appendChild(msg);
     sec.appendChild(row);
@@ -1553,6 +1584,610 @@
     }, function () { if (gen === routeGen) openError(); });
   }
 
+  /* ==========================================================
+   * 追加4：じぶんで計画・ふりかえり・ゴール（担当N：つなぎ）
+   *   Shosu.Planner（担当L）・Shosu.Reflect（担当M）が無いときは、その画面だけ「じゅんび中」にする。
+   * ========================================================== */
+  var GOAL_KEY = 'shosu.goal';
+  var WDAY = ['日', '月', '火', '水', '木', '金', '土'];
+  var CLASS_MINUTES = [15, 20, 30, 45];
+  function planner() { return S.Planner || null; }
+  function reflectApi() { return S.Reflect || null; }
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function ymd(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+  function todayStr() { return ymd(new Date()); }
+  function parseYmd(s) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || ''));
+    return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null;
+  }
+  function addDaysStr(s, n) { var d = parseYmd(s); d.setDate(d.getDate() + n); return ymd(d); }
+  function diffDaysStr(a, b) { return Math.round((parseYmd(b) - parseYmd(a)) / 86400000); }
+  function dateJa(s, withWday) {
+    var d = parseYmd(s);
+    if (!d) return String(s || '');
+    return (d.getMonth() + 1) + '月' + d.getDate() + '日' + (withWday ? '（' + WDAY[d.getDay()] + '）' : '');
+  }
+  function lsGet(k) { try { return window.localStorage ? window.localStorage.getItem(k) : null; } catch (e) { return null; } }
+  function lsSet(k, v) { try { if (window.localStorage) { window.localStorage.setItem(k, v); return true; } } catch (e) {} return false; }
+  function lsDel(k) { try { if (window.localStorage) window.localStorage.removeItem(k); } catch (e) {} }
+
+  // ゴール：ふだんは Planner。無いときは 'shosu.goal' を直接読み書きする（あとで Planner が読む）
+  function currentGoal() {
+    var p = planner();
+    if (p && p.goal) { try { return p.goal() || null; } catch (e) { console.error('Planner.goal', e); return null; } }
+    try { var g = JSON.parse(lsGet(GOAL_KEY) || 'null'); return g && typeof g === 'object' ? g : null; } catch (e) { return null; }
+  }
+  function saveGoal(goal) {
+    var p = planner();
+    if (p && p.setGoal) { try { p.setGoal(goal); return true; } catch (e) { console.error('Planner.setGoal', e); } }
+    return lsSet(GOAL_KEY, JSON.stringify(goal));
+  }
+  function goalValid(g) {
+    if (!g || typeof g !== 'object') return false;
+    var sh = shareApi();
+    if (sh && sh.validateGoal) { try { return sh.validateGoal(g).ok; } catch (e) { return false; } }
+    return !!(g.name && g.date);
+  }
+  // ゴール入りのアプリ（window.SHOSU_PRESET.goal）。Planner があれば Planner が自分で入れる。無いときだけここで入れる
+  function applyPresetGoal() {
+    if (planner()) return;
+    var pg = window.SHOSU_PRESET && window.SHOSU_PRESET.goal;
+    if (!goalValid(pg)) return;
+    var cur = currentGoal();
+    if (!cur || String(pg.created || '') > String(cur.created || '')) saveGoal(pg);
+  }
+  function goalLine(g) {
+    if (!g) return '';
+    var left = diffDaysStr(todayStr(), g.date);
+    var s = g.name + '（' + dateJa(g.date, true) + '）';
+    if (left > 0) s += '　あと ' + left + '日';
+    else if (left === 0) s += '　きょう！';
+    return s;
+  }
+  function classesLine(g) {
+    var cls = (g && g.classes) || [];
+    if (!cls.length) return '授業の予定：なし';
+    var mins = {};
+    cls.forEach(function (c) { mins[c.minutes] = 1; });
+    return '授業の予定：' + cls.length + '回（' + Object.keys(mins).map(function (m) { return m + '分'; }).join('・') + '）';
+  }
+
+  /* コピー（クリップボード。だめなら選んだ状態の文を出す） */
+  function copyText(text, box, okMsg) {
+    function fallback() {
+      if (!box) { toast('コピーできませんでした'); return; }
+      box.innerHTML = '';
+      box.hidden = false;
+      box.appendChild(h('p', 'tnote', 'うまくコピーできませんでした。下の文がえらばれているので、Ctrl＋C でコピーしてください。'));
+      var ta = h('textarea', 'code-out');
+      ta.value = text; ta.readOnly = true; ta.rows = 3;
+      ta.addEventListener('focus', function () { ta.select(); });
+      box.appendChild(ta);
+      setTimeout(function () { try { ta.focus(); ta.select(); } catch (e) {} }, 30);
+    }
+    var cb = navigator.clipboard;
+    if (cb && cb.writeText) {
+      cb.writeText(text).then(function () {
+        toast('コピーしました');
+        if (box) {
+          box.innerHTML = '';
+          box.hidden = false;
+          box.appendChild(h('p', 'tnote', okMsg || 'コピーしました'));
+          var ta = h('textarea', 'code-out');
+          ta.value = text; ta.readOnly = true; ta.rows = 2;
+          box.appendChild(ta);
+        }
+      }, fallback);
+    } else fallback();
+  }
+
+  /* 計画・ふりかえりの画面（中身は Planner / Reflect が作る） */
+  function mountInto(title, sub, api, fn, args, cls) {
+    app.appendChild(topbar(title, sub ? { sub: sub } : null));
+    var main = h('main', 'plan-host ' + (cls || ''));
+    app.appendChild(main);
+    if (!(api && typeof api[fn] === 'function')) {
+      main.appendChild(h('div', 'empty-note', 'この画面は、じゅんび中です。'));
+      main.appendChild(link('ホームへ', 'btn primary', '#/'));
+      return;
+    }
+    var hd = null;
+    try { hd = api[fn].apply(api, [main].concat(args || [])); }
+    catch (e) { console.error(fn, e); main.appendChild(h('div', 'empty-note', '画面を表示できませんでした。')); }
+    cleanups.push(function () { if (hd && hd.destroy) { try { hd.destroy(); } catch (e) { console.error(e); } } });
+  }
+  function viewPlan(sub) {
+    if (sub === 'today') mountInto('今日の計画', null, planner(), 'mountToday', [], 'plan-today');
+    else mountInto('じぶんで計画', '星の航路の地図', planner(), 'mountRoadmap', [], 'plan-map');
+  }
+  function viewReflect(date) {
+    var d = /^\d{4}-\d{2}-\d{2}$/.test(date || '') ? date : todayStr();
+    mountInto('ふりかえり', dateJa(d, true), reflectApi(), 'mountYWT', [d], 'reflect-ywt');
+  }
+  function viewRbox() { mountInto('ふりかえりボックス', '先生用', reflectApi(), 'mountBox', [], 'reflect-box'); }
+
+  /* #/g/<token>：ゴールのコード */
+  function viewGoalCode(token) {
+    var gen = routeGen;
+    app.appendChild(h('div', 'q-loading', 'ゴールのコードをひらいています…'));
+    var sh = shareApi();
+    var p = sh && sh.decodeGoal ? Promise.resolve().then(function () { return sh.decodeGoal(token); }) : Promise.reject(new Error('Share がありません'));
+    p.then(function (goal) {
+      if (gen !== routeGen) return;
+      app.innerHTML = '';
+      var before = currentGoal();
+      var same = before && before.id === goal.id && String(before.created || '') === String(goal.created || '');
+      var saved = saveGoal(goal);
+      app.appendChild(topbar('ゴールのコード'));
+      var main = h('main', 'goal-in');
+      var card = h('section', 'goal-card');
+      card.appendChild(iconEl('goal', 'goal-card-icon') || h('span'));
+      var tx = h('div', 'goal-card-text');
+      tx.appendChild(h('div', 'goal-card-head', saved ? (same ? 'このゴールは、もう入っています' : 'ゴールが入りました') : 'ゴールを保存できませんでした'));
+      tx.appendChild(h('div', 'goal-card-name', goal.name + '　' + dateJa(goal.date, true)));
+      tx.appendChild(h('div', 'goal-card-sub', classesLine(goal)));
+      if (before && !same) tx.appendChild(h('div', 'goal-card-sub', '前のゴール（' + (before.name || '') + '）と入れかえました。星や記録はそのままです。'));
+      card.appendChild(tx);
+      main.appendChild(card);
+      var row = h('div', 'goal-row');
+      row.appendChild(link('じぶんで計画を立てる ▶', 'btn primary big', '#/plan'));
+      row.appendChild(link('ホームへ', 'btn', '#/'));
+      main.appendChild(row);
+      app.appendChild(main);
+    }, function (e) {
+      if (gen !== routeGen) return;
+      console.warn('ゴールのコードを開けませんでした', e && e.message);
+      app.innerHTML = '';
+      codeError('ゴールのコード', 'このゴールのコードは開けませんでした');
+    });
+  }
+  function codeError(title, msg) {
+    app.appendChild(topbar(title));
+    var m = h('main', 'q-error');
+    m.appendChild(h('div', 'qe-msg', msg));
+    m.appendChild(h('p', 'tnote', 'コードがとちゅうで切れているかもしれません。もう一度コピーして、ホームの「もらったコードをひらく」にはりつけてください。'));
+    m.appendChild(link('ホームへ', 'btn primary', '#/'));
+    app.appendChild(m);
+  }
+
+  /* #/r/<token>：ふりかえりのコード（先生用に表示して、ふりかえりボックスに入れる） */
+  var EVAL_LABEL = { double: 'よくできた', single: 'できた', triangle: 'もう少し' };
+  function evalMark(ev) {
+    var w = h('span', 'eval-mark eval-' + ev);
+    if (S.Icons && S.Icons.has && S.Icons.has('ev-' + ev)) w.innerHTML = S.Icons.get('ev-' + ev);
+    w.appendChild(h('span', 'eval-label', EVAL_LABEL[ev] || ''));
+    return w;
+  }
+  function reflBlock(title, texts, ink) {
+    var b = h('div', 'rcode-block');
+    b.appendChild(h('h3', null, title));
+    if (texts && texts.length) {
+      var ul = h('ul', 'rcode-list');
+      texts.forEach(function (t) { ul.appendChild(h('li', null, t)); });
+      b.appendChild(ul);
+    }
+    if (ink && ink.strokes && ink.strokes.length) b.appendChild(inkNode(ink, { width: 560, trim: true, lineWidth: 4, label: title + '（手書き）' }));
+    if ((!texts || !texts.length) && !(ink && ink.strokes && ink.strokes.length)) b.appendChild(h('p', 'tnote', '（なし）'));
+    return b;
+  }
+  function viewReflCode(token) {
+    var gen = routeGen;
+    app.appendChild(h('div', 'q-loading', 'ふりかえりのコードをひらいています…'));
+    var sh = shareApi();
+    var p = sh && sh.decodeReflection ? Promise.resolve().then(function () { return sh.decodeReflection(token); }) : Promise.reject(new Error('Share がありません'));
+    p.then(function (r) {
+      if (gen !== routeGen) return;
+      app.innerHTML = '';
+      app.appendChild(topbar('ふりかえりのコード', { sub: '先生用' }));
+      var main = h('main', 'rcode');
+      var card = h('section', 'tcard rcode-card');
+      var hd = h('div', 'rcode-head');
+      if (r.name && r.name.strokes && r.name.strokes.length) hd.appendChild(inkNode(r.name, { height: 56, trim: true, lineWidth: 4, label: '名前（手書き）' }));
+      else hd.appendChild(h('span', 'rcode-noname', '（名前なし）'));
+      hd.appendChild(h('span', 'rcode-date', dateJa(r.date, true)));
+      if (r.w && r.w.eval) hd.appendChild(evalMark(r.w.eval));
+      card.appendChild(hd);
+      card.appendChild(reflBlock('めあて', r.meate && r.meate.choices, r.meate && r.meate.ink));
+      card.appendChild(reflBlock('Y　やったこと', [].concat((r.y && r.y.auto) || [], (r.y && r.y.extra) || []), null));
+      card.appendChild(reflBlock('W　わかったこと・できたこと', r.w && r.w.choices, r.w && r.w.ink));
+      card.appendChild(reflBlock('T　次にやりたいこと', r.t && r.t.choices, r.t && r.t.ink));
+      main.appendChild(card);
+      var row = h('div', 'goal-row');
+      var msg = h('span', 'box-msg');
+      msg.setAttribute('role', 'status');
+      var rf = reflectApi();
+      var addB = button('ふりかえりボックスに入れる', 'primary', function () {
+        if (!(rf && rf.boxAdd)) { msg.textContent = 'ふりかえりボックスは、じゅんび中です。'; msg.className = 'box-msg warn'; return; }
+        var res = null;
+        try { res = rf.boxAdd([r]); } catch (e) { console.error('Reflect.boxAdd', e); }
+        if (!res || res.ok === false) { msg.textContent = '保存できませんでした。'; msg.className = 'box-msg warn'; return; }
+        msg.textContent = res.added ? 'ふりかえりボックスに入れました。' : res.updated ? '同じ子の同じ日のふりかえりを、新しいものにしました。' : 'もう入っています。';
+        msg.className = 'box-msg';
+        addB.disabled = true;
+      });
+      row.appendChild(addB);
+      row.appendChild(link('ふりかえりボックスを開く ▶', 'btn', '#/rbox'));
+      row.appendChild(msg);
+      main.appendChild(row);
+      app.appendChild(main);
+    }, function (e) {
+      if (gen !== routeGen) return;
+      console.warn('ふりかえりのコードを開けませんでした', e && e.message);
+      app.innerHTML = '';
+      codeError('ふりかえりのコード', 'このふりかえりのコードは開けませんでした');
+    });
+  }
+
+  /* ---------- 先生：ゴールを決める（#/teacher/goal） ---------- */
+  function newGoalId() { return 'g-' + Date.now().toString(36); }
+  function viewGoalEdit() {
+    app.appendChild(topbar('ゴールを決める', { sub: '先生用' }));
+    var main = h('main', 'teacher goal-edit');
+    app.appendChild(main);
+    main.appendChild(link('◀ 先生メニュー', 'btn small', '#/teacher'));
+    var cur = currentGoal();
+    var today = todayStr();
+    var picked = {};      // date -> {lesson, note}
+    var minutes = 20;
+    if (cur) {
+      (cur.classes || []).forEach(function (c) { picked[c.date] = { lesson: c.lesson || null, note: c.note || '' }; });
+      if (cur.classes && cur.classes[0] && CLASS_MINUTES.indexOf(cur.classes[0].minutes) >= 0) minutes = cur.classes[0].minutes;
+    }
+
+    var sec = h('section', 'tcard');
+    sec.appendChild(h('h2', null, 'ゴール'));
+    var f1 = h('label', 'ge-field');
+    f1.appendChild(h('span', 'ge-label', 'ゴールの名前'));
+    var name = h('input', 'ge-input');
+    name.type = 'text'; name.maxLength = 30; name.placeholder = '例：小数のテスト';
+    name.value = cur ? cur.name : '小数のテスト';
+    f1.appendChild(name);
+    sec.appendChild(f1);
+    var f2 = h('label', 'ge-field');
+    f2.appendChild(h('span', 'ge-label', '日にち'));
+    var date = h('input', 'ge-input ge-date');
+    date.type = 'date'; date.min = today; date.max = addDaysStr(today, 119);
+    date.value = cur && cur.date >= today ? cur.date : addDaysStr(today, 7);
+    f2.appendChild(date);
+    sec.appendChild(f2);
+    main.appendChild(sec);
+
+    var sec2 = h('section', 'tcard');
+    sec2.appendChild(h('h2', null, '授業の予定'));
+    sec2.appendChild(h('p', 'tnote', 'ゴールまでの算数の授業の日をタップしてえらびます。子どもの「じぶんで計画」の地図で、授業の日として使われます。'));
+    var mrow = h('div', 'ge-minutes');
+    mrow.appendChild(h('span', 'ge-label', '1回の授業でアプリを使える時間'));
+    var mBtns = CLASS_MINUTES.map(function (m) {
+      var b = button(m + '分', 'seg-btn', function () { minutes = m; markMin(); });
+      b.dataset.m = m;
+      mrow.appendChild(b);
+      return b;
+    });
+    function markMin() { mBtns.forEach(function (b) { var on = +b.dataset.m === minutes; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); }); }
+    markMin();
+    sec2.appendChild(mrow);
+    var tools = h('div', 'ge-tools');
+    tools.appendChild(button('平日をぜんぶえらぶ', 'small', function () {
+      eachDay(function (d) { var w = parseYmd(d).getDay(); if (w >= 1 && w <= 5 && !picked[d]) picked[d] = { lesson: null, note: '' }; });
+      draw();
+    }));
+    tools.appendChild(button('ぜんぶはずす', 'small', function () { picked = {}; draw(); }));
+    sec2.appendChild(tools);
+    var cal = h('div', 'ge-cal');
+    cal.setAttribute('role', 'group');
+    cal.setAttribute('aria-label', '授業の日のカレンダー');
+    sec2.appendChild(cal);
+    var listH = h('h3', 'ge-h3', '授業の日ごとの内容（入れなくてもよい）');
+    sec2.appendChild(listH);
+    var list = h('div', 'ge-list');
+    sec2.appendChild(list);
+    main.appendChild(sec2);
+
+    var sec3 = h('section', 'tcard');
+    var save = button('保存する', 'primary big', doSave);
+    var msg = h('span', 'box-msg');
+    msg.setAttribute('role', 'status');
+    sec3.appendChild(save);
+    sec3.appendChild(msg);
+    sec3.appendChild(h('p', 'tnote', '保存すると、この端末にもゴールが入ります。子どもには、先生メニューの「ゴールのコードをコピー」か「ゴール入りのアプリをダウンロード」で配ります。'));
+    main.appendChild(sec3);
+
+    function startDay() {
+      var s = today;
+      Object.keys(picked).forEach(function (d) { if (d < s) s = d; });
+      return s;
+    }
+    function goalDate() { return parseYmd(date.value) ? date.value : null; }
+    function eachDay(fn) {
+      var g = goalDate();
+      if (!g) return;
+      for (var d = startDay(), n = 0; d <= g && n < 200; d = addDaysStr(d, 1), n++) fn(d);
+    }
+    function draw() {
+      var g = goalDate();
+      cal.innerHTML = '';
+      Object.keys(picked).forEach(function (d) { if (!g || d > g) delete picked[d]; });
+      if (!g) { cal.appendChild(h('p', 'tnote warn', '先に日にちを入れてください。')); drawList(); return; }
+      WDAY.forEach(function (w, i) { cal.appendChild(h('div', 'ge-wd' + (i === 0 ? ' sun' : i === 6 ? ' sat' : ''), w)); });
+      var s = startDay();
+      var first = parseYmd(s);
+      for (var k = 0; k < first.getDay(); k++) cal.appendChild(h('div', 'ge-day empty'));
+      eachDay(function (d) {
+        var dt = parseYmd(d), w = dt.getDay();
+        var on = !!picked[d], isGoal = d === g;
+        var b = h('button', 'ge-day' + (on ? ' on' : '') + (isGoal ? ' goal' : '') + (w === 0 ? ' sun' : w === 6 ? ' sat' : '') + (d === today ? ' today' : ''));
+        b.type = 'button';
+        b.setAttribute('aria-pressed', on);
+        b.setAttribute('aria-label', dateJa(d, true) + (isGoal ? '（ゴール）' : '') + (on ? '　授業あり' : ''));
+        b.dataset.date = d;
+        b.appendChild(h('span', 'ge-day-n', dt.getDate() === 1 || d === s ? (dt.getMonth() + 1) + '/' + dt.getDate() : String(dt.getDate())));
+        if (isGoal) {
+          var gi = iconEl('goal', 'ge-day-goal');
+          if (gi) b.appendChild(gi);
+          b.appendChild(h('span', 'ge-day-tag', 'ゴール'));
+        } else if (on) b.appendChild(h('span', 'ge-day-tag', '授業'));
+        b.addEventListener('click', function () {
+          if (picked[d]) delete picked[d]; else picked[d] = { lesson: null, note: '' };
+          draw();
+        });
+        cal.appendChild(b);
+      });
+      drawList();
+    }
+    function drawList() {
+      list.innerHTML = '';
+      var ds = Object.keys(picked).sort();
+      listH.hidden = !ds.length;
+      if (!ds.length) { list.appendChild(h('p', 'tnote', 'まだ授業の日がえらばれていません（えらばなくても保存できます）。')); return; }
+      ds.forEach(function (d) {
+        var row = h('div', 'ge-row');
+        row.appendChild(h('span', 'ge-row-date', dateJa(d, true)));
+        var sel = h('select', 'ge-sel');
+        sel.setAttribute('aria-label', dateJa(d) + 'の第○時');
+        var o0 = h('option', null, '第○時：入れない'); o0.value = ''; sel.appendChild(o0);
+        var ls = lessons();
+        var nMax = ls.length || 10;
+        for (var n = 1; n <= nMax; n++) {
+          var lt = ls[n - 1] && ls[n - 1].title ? '第' + n + '時　' + ls[n - 1].title : '第' + n + '時';
+          var o = h('option', null, lt); o.value = String(n); sel.appendChild(o);
+        }
+        sel.value = picked[d].lesson ? String(picked[d].lesson) : '';
+        sel.addEventListener('change', function () { picked[d].lesson = sel.value ? +sel.value : null; });
+        row.appendChild(sel);
+        var note = h('input', 'ge-note');
+        note.type = 'text'; note.maxLength = 40; note.placeholder = '内容のメモ（任意）';
+        note.setAttribute('aria-label', dateJa(d) + 'の内容のメモ');
+        note.value = picked[d].note || '';
+        note.addEventListener('input', function () { picked[d].note = note.value; });
+        row.appendChild(note);
+        row.appendChild(button('はずす', 'small', function () { delete picked[d]; draw(); }));
+        list.appendChild(row);
+      });
+    }
+    date.addEventListener('change', draw);
+    draw();
+
+    function doSave() {
+      var g = goalDate();
+      var nm = (name.value || '').trim();
+      var keepId = cur && cur.id && cur.name === nm && cur.date === g;
+      var goal = { v: 1, id: keepId ? cur.id : newGoalId(), name: nm, date: g || '',
+        classes: Object.keys(picked).sort().map(function (d) {
+          var c = { date: d, minutes: minutes };
+          if (picked[d].lesson) c.lesson = picked[d].lesson;
+          var nt = (picked[d].note || '').trim();
+          if (nt) c.note = nt;
+          return c;
+        }),
+        created: new Date().toISOString() };
+      var sh = shareApi();
+      var v = sh && sh.validateGoal ? sh.validateGoal(goal) : { ok: !!(nm && g), error: '名前と日にちを入れてください' };
+      if (!v.ok) { msg.textContent = v.error; msg.className = 'box-msg warn'; return; }
+      if (!saveGoal(goal)) { msg.textContent = '保存できませんでした。'; msg.className = 'box-msg warn'; return; }
+      cur = goal;
+      toast('ゴールを保存しました');
+      location.hash = '#/teacher';
+    }
+  }
+
+  /* ---------- ゴール入りのアプリ（shosu-app.html）を作る ---------- */
+  // preset.js の目印。app.js 自身の文字が1ファイル版の中で一致しないよう、つないで作る
+  var PRESET_MARK = '/* js/' + 'preset.js */';
+  var PRESET_RE = new RegExp('<script>\\/\\* js\\/' + 'preset\\.js \\*\\/[\\s\\S]*?<\\/script>');
+  var PRESET_SRC_RE = new RegExp('<scr' + 'ipt src="js\\/' + 'preset\\.js"><\\/script>');
+  // 外部ファイルを読む書き方（この文字がそのまま app.js に入らないよう、つないで作る）
+  var EXT_CSS_RE = new RegExp('<li' + 'nk rel="stylesheet" href="([^"]+)">\\s*', 'g');
+  var EXT_JS_RE = new RegExp('<scr' + 'ipt src="([^"]+)"><\\/script>\\s*', 'g');
+  var MANIFEST_RE = new RegExp('<li' + 'nk rel="manifest"[^>]*>\\s*', 'i');
+  function presetScript(goal) {
+    var json = JSON.stringify({ goal: goal }).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+    return '<script>' + PRESET_MARK + '\nwindow.SHOSU_PRESET = ' + json + ';\n</' + 'script>';
+  }
+  function putPreset(html, goal) {
+    if (PRESET_RE.test(html)) return html.replace(PRESET_RE, function () { return presetScript(goal); });
+    if (PRESET_SRC_RE.test(html)) return html.replace(PRESET_SRC_RE, function () { return presetScript(goal); });
+    // 目印がない古い版：最初の <script の前に入れる
+    var i = html.search(/<script[\s>]/i);
+    if (i < 0) throw new Error('NO_SCRIPT');
+    return html.slice(0, i) + presetScript(goal) + '\n' + html.slice(i);
+  }
+  // いま開いている1ファイル版の HTML（#app などの表示は空にする）
+  function htmlFromDocument() {
+    var root = document.documentElement.cloneNode(true);
+    root.classList.remove('big-text');
+    if (!root.getAttribute('class')) root.removeAttribute('class');
+    var body = root.querySelector('body');
+    if (body) {
+      Array.prototype.slice.call(body.children).forEach(function (c) {
+        var t = c.tagName.toLowerCase();
+        if (t !== 'script' && t !== 'noscript' && c.id !== 'app') body.removeChild(c);
+      });
+      var ap = body.querySelector('#app');
+      if (ap) ap.innerHTML = '';
+    }
+    return '<!DOCTYPE html>\n' + root.outerHTML;
+  }
+  // 配信版（http）：index.html と CSS・JS を取ってきて1ファイルにまとめる（tools/build-single.js と同じ）
+  function htmlFromServer() {
+    var base = location.href.split('#')[0];
+    function get(u) {
+      return fetch(new URL(u, base).href, { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error(u + ' ' + r.status); return r.text(); });
+    }
+    return get(base).then(function (html) {
+      var jobs = [], parts = {};
+      html.replace(EXT_CSS_RE, function (m, href) { jobs.push(href); return m; });
+      html.replace(EXT_JS_RE, function (m, src) { jobs.push(src); return m; });
+      return Promise.all(jobs.map(function (u) {
+        return get(u).then(function (t) { parts[u] = t; }, function () { parts[u] = null; });
+      })).then(function () {
+        html = html.replace(MANIFEST_RE, '');
+        html = html.replace(EXT_CSS_RE, function (m, href) {
+          if (parts[href] == null) return '';
+          return '<style>/* ' + href + ' */\n' + parts[href].replace(/<\/style/gi, '<\\/style') + '\n</style>\n';
+        });
+        html = html.replace(EXT_JS_RE, function (m, src) {
+          if (parts[src] == null) return '';
+          return '<script>/* ' + src + ' */\n' + parts[src].replace(/<\/script/gi, '<\\/script') + '\n</' + 'script>\n';
+        });
+        html = html.replace('<head>', '<head>\n<!-- 小数アプリ（1ファイル版） 作成日 ' + todayStr() + ' -->');
+        return html;
+      });
+    });
+  }
+  function buildGoalApp(goal) {
+    var external = !!document.querySelector('script[src], link[rel="stylesheet"][href]');
+    var p;
+    if (!external) p = Promise.resolve(htmlFromDocument());
+    else if (/^https?:$/.test(location.protocol) && window.fetch) p = htmlFromServer();
+    else return Promise.reject(Object.assign(new Error('NEED_SINGLE'), { code: 'NEED_SINGLE' }));
+    return p.then(function (html) { return putPreset(html, goal); });
+  }
+  function downloadText(text, filename) {
+    var blob = new Blob([text], { type: 'text/html;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = filename; a.rel = 'noopener';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 4000);
+  }
+
+  /* 先生メニューの「ゴールと授業の予定」 */
+  function teacherGoalCard() {
+    var sec = h('section', 'tcard tcard-goal');
+    var hh = h('h2');
+    withIcon(hh, 'goal', 'ゴールと授業の予定（じぶんで計画）');
+    sec.appendChild(hh);
+    var g = currentGoal();
+    if (g) {
+      sec.appendChild(h('p', 'tgoal-name', goalLine(g)));
+      sec.appendChild(h('p', 'tnote', classesLine(g)));
+    } else {
+      sec.appendChild(h('p', 'tnote', 'まだゴールがありません。「ゴールを決める」で、テストなどの日にちと、それまでの授業の予定を入れてください。'));
+    }
+    var row = h('div', 'tgoal-row');
+    row.appendChild(withIcon(link('', 'btn primary', '#/teacher/goal'), 'calendar', g ? 'ゴールを決める・直す' : 'ゴールを決める'));
+    var out = h('div', 'tgoal-out');
+    out.hidden = true;
+    var msg = h('span', 'box-msg');
+    msg.setAttribute('role', 'status');
+    function warn(t) { msg.textContent = t; msg.className = 'box-msg warn'; }
+    var copyB = withIcon(button('', '', function () {
+      var gg = currentGoal(), sh = shareApi();
+      if (!gg) { warn('先にゴールを決めてください。'); return; }
+      if (!(sh && sh.encodeGoal)) { warn('コードを作れませんでした。'); return; }
+      msg.textContent = '';
+      Promise.resolve().then(function () { return sh.encodeGoal(gg); }).then(function (tok) {
+        copyText(sh.codeText ? sh.codeText(tok) : tok, out, 'ゴールのコードをコピーしました。Teams に貼ってください。子どもはホームの「もらったコードをひらく」に貼ります。');
+      }).catch(function (e) { console.error(e); warn('コードを作れませんでした（' + (e && e.message || '') + '）'); });
+    }), 'copy', 'ゴールのコードをコピー');
+    var dlB = withIcon(button('', '', function () {
+      var gg = currentGoal();
+      if (!gg) { warn('先にゴールを決めてください。'); return; }
+      msg.textContent = 'アプリを作っています…'; msg.className = 'box-msg';
+      buildGoalApp(gg).then(function (html) {
+        downloadText(html, 'shosu-app.html');
+        msg.textContent = 'ゴール入りの shosu-app.html をダウンロードしました（' + Math.round(html.length / 1024) + 'KB）。このファイルを配れば、開くだけでゴールが入ります。';
+        msg.className = 'box-msg';
+      }, function (e) {
+        console.warn('buildGoalApp', e);
+        if (e && e.code === 'NEED_SINGLE') warn('このボタンは、1ファイル版（shosu-app.html）か、Webで開いているときに使えます。');
+        else warn('アプリを作れませんでした。1ファイル版（shosu-app.html）で開いて、もう一度ためしてください。');
+      });
+    }), 'download', 'ゴール入りのアプリをダウンロード');
+    if (!g) { copyB.disabled = true; dlB.disabled = true; }
+    row.appendChild(copyB);
+    row.appendChild(dlB);
+    sec.appendChild(row);
+    sec.appendChild(msg);
+    sec.appendChild(out);
+    sec.appendChild(h('p', 'tnote', '配りかたは2通り：①ゴールのコードを Teams に貼る　②ゴール入りのアプリ（shosu-app.html）を配る。新しいゴールが来ると上書きされます（子どもの記録や星は消えません）。'));
+    return sec;
+  }
+  function teacherRboxCard() {
+    var sec = h('section', 'tcard');
+    var hh = h('h2');
+    withIcon(hh, 'reflect', 'ふりかえりボックス');
+    sec.appendChild(hh);
+    var n = 0, rf = reflectApi();
+    try { n = rf && rf.boxList ? (rf.boxList() || []).length : 0; } catch (e) { n = 0; }
+    sec.appendChild(h('p', 'tnote', '子どもから届いた「ふりかえり」のコードを、チャットの文章ごとはりつけて、クラスの一覧で見られます。' + (n ? '（いま ' + n + 'こ）' : '')));
+    sec.appendChild(link('ふりかえりボックスを開く ▶', 'btn primary', '#/rbox'));
+    return sec;
+  }
+  // 記録一覧の「計画・ふりかえり」の回数
+  function planCounts() {
+    var plans = 0, refl = 0;
+    try { var st = S.Stars && S.Stars._state ? S.Stars._state() : null; if (st) { plans = Object.keys(st.plan || {}).length; refl = Object.keys(st.refl || {}).length; } } catch (e) {}
+    try { var rf = reflectApi(); if (rf && rf.list) refl = Math.max(refl, (rf.list() || []).length); } catch (e) {}
+    return { plans: plans, refl: refl };
+  }
+  // 計画・ふりかえりの「とちゅうの記録」を消す（ゴール・名前・先生のふりかえりボックスは残す）
+  function resetPlanProgress() {
+    var p = planner(), r = reflectApi();
+    if (p && typeof p.resetProgress === 'function') { try { p.resetProgress(); } catch (e) { console.error(e); } }
+    else {
+      var d = null;
+      try { d = JSON.parse(lsGet('shosu.plan') || 'null'); } catch (e) { d = null; }
+      if (d && typeof d === 'object' && d.settings) lsSet('shosu.plan', JSON.stringify({ v: 1, settings: d.settings }));
+      else lsDel('shosu.plan');
+    }
+    if (r && typeof r.resetProgress === 'function') { try { r.resetProgress(); } catch (e) { console.error(e); } }
+    else lsDel('shosu.reflect');
+  }
+
+  /* ホーム：きょうの計画・じぶんで計画・ふりかえり */
+  function homePlanSection() {
+    var wrap = h('section', 'home-plan');
+    var p = planner();
+    if (p && p.todayPanel) {
+      try { var tp = p.todayPanel(); if (tp) wrap.appendChild(tp); } catch (e) { console.error('Planner.todayPanel', e); }
+    }
+    var grid = h('div', 'plan-entries');
+    var g = currentGoal();
+    var a = link('', 'plan-entry plan-entry-map', '#/plan');
+    a.appendChild(iconEl('plan', 'plan-entry-icon') || h('span', 'plan-entry-icon'));
+    var at = h('span', 'plan-entry-text');
+    at.appendChild(h('span', 'plan-entry-title', 'じぶんで計画'));
+    at.appendChild(h('span', 'plan-entry-sub', g ? 'ゴール：' + goalLine(g) : 'ゴールまでの旅の地図をつくろう'));
+    a.appendChild(at);
+    a.appendChild(arrows(h('span', 'plan-entry-go', 'ひらく ▶')));
+    grid.appendChild(a);
+    var b = link('', 'plan-entry plan-entry-reflect', '#/reflect');
+    b.appendChild(iconEl('reflect', 'plan-entry-icon') || h('span', 'plan-entry-icon'));
+    var bt = h('span', 'plan-entry-text');
+    bt.appendChild(h('span', 'plan-entry-title', 'ふりかえり'));
+    var done = false;
+    try { var rf = reflectApi(); done = !!(rf && rf.get && rf.get(todayStr())); } catch (e) { done = false; }
+    bt.appendChild(h('span', 'plan-entry-sub', done ? 'きょうのふりかえりは書いたよ。なおすこともできるよ' : 'きょうのやったこと・わかったことを書こう'));
+    b.appendChild(bt);
+    b.appendChild(arrows(h('span', 'plan-entry-go', 'かく ▶')));
+    grid.appendChild(b);
+    wrap.appendChild(grid);
+    return wrap;
+  }
+
   /* ---------- ルーティング ---------- */
   function route() {
     routeGen++;
@@ -1564,7 +2199,13 @@
     try {
       if (parts[0] === 'lesson' && parts[1]) viewLesson(parts[1]);
       else if (parts[0] === 'review' && parts[1]) viewReview(decodeURIComponent(parts[1]));
+      else if (parts[0] === 'teacher' && parts[1] === 'goal') viewGoalEdit();
       else if (parts[0] === 'teacher') viewTeacher();
+      else if (parts[0] === 'plan') viewPlan(parts[1]);
+      else if (parts[0] === 'reflect') viewReflect(parts[1]);
+      else if (parts[0] === 'rbox') viewRbox();
+      else if (parts[0] === 'g' && parts[1]) viewGoalCode(hash.slice(2));
+      else if (parts[0] === 'r' && parts[1]) viewReflCode(hash.slice(2));
       else if (parts[0] === 'matome') viewMatome();
       else if (parts[0] === 'stars') viewStars();
       else if (parts[0] === 'practice-write') viewPracticeWrite();
@@ -1581,6 +2222,8 @@
     window.scrollTo(0, 0);
   }
   window.addEventListener('hashchange', route);
+  // ゴール入りのアプリ（SHOSU_PRESET）のゴールを入れる（Planner が無いときだけ。あれば Planner が入れる）
+  try { applyPresetGoal(); } catch (e) { console.error('preset', e); }
   // 前からの記録も星に変える（起動時に1回）
   if (S.Stars && S.Stars.evaluate) { try { S.Stars.evaluate(); } catch (e) { console.error('Stars.evaluate', e); } }
   route();

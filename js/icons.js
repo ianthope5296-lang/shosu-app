@@ -104,7 +104,48 @@
       '<path d="M15.6 3.4a8.8 8.8 0 1 0 5 13.8 7.2 7.2 0 0 1-5-13.8z"/>' +
       spark(19.4, 5.6, 2.6, GOLD_SPARK),
     // ふつうの星（線）
-    star: '<polygon points="' + star5(12, 12.8, 9.4, 4.2) + '" ' + 'fill="' + GOLD + '"/>'
+    star: '<polygon points="' + star5(12, 12.8, 9.4, 4.2) + '" ' + 'fill="' + GOLD + '"/>',
+    // じぶんで計画：星図（星をむすぶ線）とコンパス
+    plan:
+      '<path d="M2.6 6.2 7 3.4l4.4 3.2" stroke-width="1.5" opacity=".7"/>' +
+      '<circle cx="2.6" cy="6.2" r="1.3" ' + GOLD_SPARK + '/>' +
+      '<circle cx="7" cy="3.4" r="1.3" ' + GOLD_SPARK + '/>' +
+      '<circle cx="11.4" cy="6.6" r="1.3" ' + GOLD_SPARK + '/>' +
+      '<circle cx="14.6" cy="14.6" r="7"/>' +
+      '<path d="M17.8 11.4 15.9 15.9 11.4 17.8 13.3 13.3z" fill="currentColor"/>' +
+      '<circle cx="14.6" cy="14.6" r=".9" fill="' + GOLD + '" stroke="none"/>',
+    // ふりかえり：三日月と鉛筆
+    reflect:
+      '<path d="M10.2 2.8a7.6 7.6 0 1 0 6.2 11.6 6 6 0 0 1-6.2-11.6z"/>' +
+      '<path d="M12.6 21.4l.7-3.2 6.6-6.6a1.6 1.6 0 0 1 2.3 2.3l-6.6 6.6z"/>' +
+      '<path d="M18.6 12.9l2.3 2.3" stroke-width="1.5"/>' +
+      spark(18.4, 4.4, 2.6, GOLD_SPARK),
+    // ゴール：旗の立つ惑星
+    goal:
+      '<path d="M3.4 19.4a8.6 8.6 0 0 1 17.2 0z"/>' +
+      '<path d="M6.4 16.6c2.6-.9 5.4-.9 8.2.2" stroke-width="1.4" opacity=".6"/>' +
+      '<path d="M12 11.2V2.6"/>' +
+      '<path d="M12 2.8h7.2l-1.8 2.3 1.8 2.3H12z" fill="' + GOLD + '" stroke-width="1.4"/>' +
+      '<circle cx="4" cy="5.4" r=".9" fill="currentColor" stroke="none"/>',
+    // カレンダー（まん中に星）
+    calendar:
+      '<rect x="3.2" y="4.6" width="17.6" height="16" rx="2.2"/>' +
+      '<path d="M3.2 9.4h17.6M8 2.8v3.6M16 2.8v3.6"/>' +
+      spark(12, 15, 3.4, GOLD_SPARK),
+    // ダウンロード（星が下にとどく）
+    download:
+      '<path d="M12 3.2v11M7.6 10l4.4 4.4 4.4-4.4"/>' +
+      '<path d="M3.6 15.6v3a2 2 0 0 0 2 2h12.8a2 2 0 0 0 2-2v-3"/>' +
+      spark(19.6, 4.6, 2.4, GOLD_SPARK),
+    // 自己評価の記号（◎・○・△を自作の絵で）
+    'ev-double': '<circle cx="12" cy="12" r="9.2" stroke="#d23c3c" stroke-width="2.4"/><circle cx="12" cy="12" r="4.6" stroke="#d23c3c" stroke-width="2.4"/>',
+    'ev-single': '<circle cx="12" cy="12" r="8.6" stroke="#e0702a" stroke-width="2.6"/>',
+    'ev-triangle': '<path d="M12 3.4 21 19.6H3z" stroke="#3a6fb0" stroke-width="2.6"/>',
+    // コピー（2枚の紙と星）
+    copy:
+      '<rect x="8.4" y="8.4" width="12.2" height="12.2" rx="2"/>' +
+      '<path d="M15.6 5.2V5a1.8 1.8 0 0 0-1.8-1.8H5A1.8 1.8 0 0 0 3.2 5v8.8A1.8 1.8 0 0 0 5 15.6h.2"/>' +
+      spark(14.5, 14.5, 2.6, GOLD_SPARK)
   };
 
   /* 色つきの絵（viewBox 0 0 64 64、夜空のバーやカードの上で使う） */

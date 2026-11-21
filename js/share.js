@@ -7,6 +7,11 @@
  *   チェック = FNV-1a(版の文字+本体) の下位30ビットを base64url 5文字で。
  *     → 貼りつけた文章からトークンの終わりを見つける・こわれを見つけるのに使う。
  * 数は浮動小数を使わず、文字列と「1000倍した整数」で扱う。
+ *
+ * 追加4：トークン先頭の版の文字で種類を見分ける。
+ *   '1' = 問題（UserProblem、今までどおり）  'g' = ゴール（Goal）  'r' = ふりかえり（Reflection）
+ *   ゴール・ふりかえりの本体も同じ形（[インクの有無ビット][JSONの長さ][JSON][インク…] を deflate-raw）。
+ *   リンクは '#/q/' '#/g/' '#/r/'。
  */
 (function (root) {
   'use strict';
@@ -14,6 +19,9 @@
 
   var VERSION = 1;
   var VCHAR = '1';
+  var GOAL_CHAR = 'g';
+  var REFL_CHAR = 'r';
+  var KIND_OF_CHAR = { '1': 'problem', g: 'goal', r: 'reflection' };
   var MAX_LEN = 6000;
   var GRID = 1023;            // 量子化の目の数（長い辺）
   var EPS_RATIO = 0.002;      // 間引きの許容誤差（長い辺に対して。800px なら 1.6px）
@@ -152,8 +160,8 @@
     var r = this.b.subarray(this.p, this.p + n); this.p += n; return r;
   };
 
-  function writeInk(w, ink) {
-    var s = simplify(ink);
+  function writeInk(w, ink, epsRatio) {
+    var s = simplify(ink, epsRatio);
     var W = Math.max(1, Math.round(ink.w)), H = Math.max(1, Math.round(ink.h));
     var M = Math.max(W, H);
     var gw = Math.round(W / M * GRID), gh = Math.round(H / M * GRID);
@@ -363,8 +371,8 @@
 
   function cleanToken(t) {
     if (typeof t !== 'string') throw err('BAD_TOKEN', 'トークンがありません');
-    var i = t.indexOf('#/q/');
-    if (i >= 0) t = t.slice(i + 4);
+    var m = /(?:#|%23)\/[qgr]\//i.exec(t);
+    if (m) t = t.slice(m.index + m[0].length);
     t = t.replace(/[\s​-‍﻿]/g, '');
     return t;
   }
@@ -374,6 +382,7 @@
     if (t.length < 1 + CHECK_LEN + 2) throw err('BAD_TOKEN', 'リンクが短すぎます');
     if (t.length > MAX_LEN + 64) throw err('TOO_LONG', 'リンクが長すぎます');
     if (t.charAt(0) !== VCHAR) {
+      if (t.charAt(0) === GOAL_CHAR || t.charAt(0) === REFL_CHAR) throw err('WRONG_KIND', '問題のコードではありません');
       if (/^[0-9]$/.test(t.charAt(0))) throw err('BAD_VERSION', '新しい版のアプリで作られた問題です');
       throw err('BAD_TOKEN', 'リンクの形が正しくありません');
     }
@@ -428,7 +437,7 @@
   function extractTokens(text) {
     if (typeof text !== 'string' || !text) return [];
     var out = [], seen = {};
-    var re = /(?:#|%23)\/q\//gi, m;
+    var re = /(?:#|%23)\/[qgr]\//gi, m;
     while ((m = re.exec(text))) {
       var i = m.index + m[0].length;
       var chars = [], gapAfter = [];
@@ -443,7 +452,7 @@
       }
       if (chars.length) gapAfter[chars.length - 1] = true;   // 末尾は区切り
       var s = chars.join(''), found = -1, fallback = -1;
-      if (s.charAt(0) === VCHAR) {
+      if (KIND_OF_CHAR[s.charAt(0)]) {
         var h = 0x811c9dc5;
         for (var n = 0; n < s.length; n++) {
           // s[0..n) が本体のときチェックは s[n..n+5)
@@ -527,6 +536,235 @@
     return '';
   }
 
+  /* ==========================================================
+   * 追加4：ゴールのコード（'g'）・ふりかえりのコード（'r'）
+   * ========================================================== */
+  var DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+  var EVALS = ['double', 'single', 'triangle'];
+  var GLIMIT = { name: 30, classes: 120, note: 40, minMin: 5, minMax: 90, lessonMax: 20 };
+  var RLIMIT = { choices: 10, choiceLen: 120, auto: 24, autoLen: 120, extra: 12, extraLen: 60, items: 10, itemLen: 40 };
+  var REFL_EPS = [EPS_RATIO, 0.004, 0.007, 0.012, 0.02];   // 長すぎたら、だんだん強く間引く
+
+  function isDate(s) {
+    if (typeof s !== 'string') return false;
+    var m = DATE_RE.exec(s);
+    if (!m) return false;
+    var y = +m[1], mo = +m[2], d = +m[3];
+    if (y < 2000 || y > 2100 || mo < 1 || mo > 12 || d < 1) return false;
+    var dim = new Date(Date.UTC(y, mo, 0)).getUTCDate();
+    return d <= dim;
+  }
+  function badChars(s) { return /[\u0000-\u001f\u007f\u2028\u2029]/.test(s); }
+  function isText(s, max, allowEmpty) {
+    return typeof s === 'string' && (allowEmpty || s.trim().length > 0) && s.length <= max && !badChars(s);
+  }
+  function isIso(s) { return typeof s === 'string' && s.length <= 40 && !badChars(s) && !isNaN(Date.parse(s)); }
+
+  /* ---------- 共通：JSON＋インク → トークン ---------- */
+  async function packToken(vchar, fields, inks, epsRatio) {
+    var mask = 0;
+    inks.forEach(function (ink, i) { if (ink) mask |= 1 << i; });
+    var json = new TextEncoder().encode(JSON.stringify(fields));
+    var w = new Writer();
+    w.b.push(mask);
+    w.u(json.length);
+    w.bytes(json);
+    inks.forEach(function (ink) { if (ink) writeInk(w, ink, epsRatio); });
+    var comp = await deflate(new Uint8Array(w.b));
+    var body = vchar + b64enc(comp);
+    return body + checksum(body);
+  }
+  function tooLong(len) {
+    var e = err('TOO_LONG', 'コードが長すぎます（' + len + '文字）');
+    e.length = len; e.max = MAX_LEN;
+    return e;
+  }
+  async function unpackToken(token, vchar, nInks, label) {
+    var t = cleanToken(token);
+    if (t.length < 1 + CHECK_LEN + 2) throw err('BAD_TOKEN', 'コードが短すぎます');
+    if (t.length > MAX_LEN + 64) throw err('TOO_LONG', 'コードが長すぎます');
+    var c = t.charAt(0);
+    if (c !== vchar) {
+      if (KIND_OF_CHAR[c]) throw err('WRONG_KIND', label + 'のコードではありません');
+      throw err('BAD_TOKEN', 'コードの形が正しくありません');
+    }
+    var body = t.slice(0, t.length - CHECK_LEN);
+    if (checksum(body) !== t.slice(t.length - CHECK_LEN)) throw err('BAD_CHECKSUM', 'コードがこわれています');
+    var raw = await inflate(b64dec(body.slice(1)));
+    var rd = new Reader(raw);
+    var mask = rd.u();
+    if (mask >= (1 << nInks)) throw err('BAD_DATA', 'データがこわれています');
+    var jlen = rd.u();
+    var f;
+    try { f = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(rd.take(jlen))); }
+    catch (e) { throw e.code ? e : err('BAD_DATA', 'データがこわれています'); }
+    if (!f || typeof f !== 'object' || Array.isArray(f)) throw err('BAD_DATA', 'データがこわれています');
+    var inks = [], total = 0;
+    for (var i = 0; i < nInks; i++) {
+      var ink = mask & (1 << i) ? readInk(rd) : null;
+      total += countPoints(ink);
+      inks.push(ink);
+    }
+    if (rd.p !== raw.length) throw err('BAD_DATA', 'データのあとに余分なものがあります');
+    if (total > LIMIT.points) throw err('BAD_DATA', '点が多すぎます');
+    return { t: t, f: f, inks: inks };
+  }
+
+  /* ---------- ゴール ---------- */
+  // Goal = { v:1, id, name, date, classes:[{date, minutes, lesson?, note?}], created }
+  function validateGoal(g) {
+    function no(msg) { return { ok: false, error: msg }; }
+    if (!g || typeof g !== 'object' || Array.isArray(g)) return no('ゴールがありません');
+    if (g.v !== 1) return no('形式の版が正しくありません');
+    if (typeof g.id !== 'string' || !/^[A-Za-z0-9_-]{1,40}$/.test(g.id)) return no('ゴールのIDが正しくありません');
+    if (!isText(g.name, GLIMIT.name)) return no('ゴールの名前は1〜' + GLIMIT.name + '文字です');
+    if (!isDate(g.date)) return no('ゴールの日にちが正しくありません');
+    if (g.created != null && !isIso(g.created)) return no('作った日時が正しくありません');
+    var cls = g.classes == null ? [] : g.classes;
+    if (!Array.isArray(cls)) return no('授業の予定が正しくありません');
+    if (cls.length > GLIMIT.classes) return no('授業の予定が多すぎます');
+    var seen = {};
+    for (var i = 0; i < cls.length; i++) {
+      var c = cls[i];
+      if (!c || typeof c !== 'object') return no('授業の予定が正しくありません');
+      if (!isDate(c.date)) return no('授業の日にちが正しくありません');
+      if (c.date > g.date) return no('授業の日がゴールの日より後です');
+      if (seen[c.date]) return no('同じ日の授業が2つあります');
+      seen[c.date] = 1;
+      if (!intIn(c.minutes, GLIMIT.minMin, GLIMIT.minMax)) return no('1回の授業の時間は' + GLIMIT.minMin + '〜' + GLIMIT.minMax + '分です');
+      if (c.lesson != null && !intIn(c.lesson, 1, GLIMIT.lessonMax)) return no('第○時の数が正しくありません');
+      if (c.note != null && !isText(c.note, GLIMIT.note, true)) return no('授業のメモは' + GLIMIT.note + '文字までです');
+    }
+    return { ok: true, error: null };
+  }
+  function normGoal(g) {
+    var o = { v: 1, id: g.id, name: g.name.trim(), date: g.date, classes: [] };
+    (g.classes || []).forEach(function (c) {
+      var x = { date: c.date, minutes: c.minutes };
+      if (c.lesson != null) x.lesson = c.lesson;
+      if (c.note) x.note = c.note;
+      o.classes.push(x);
+    });
+    o.classes.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+    if (g.created != null) o.created = g.created;
+    return o;
+  }
+  async function encodeGoal(g) {
+    var r = validateGoal(g);
+    if (!r.ok) throw err('INVALID', r.error);
+    var token = await packToken(GOAL_CHAR, normGoal(g), [], EPS_RATIO);
+    if (token.length > MAX_LEN) throw tooLong(token.length);
+    return token;
+  }
+  async function decodeGoal(token) {
+    var u = await unpackToken(token, GOAL_CHAR, 0, 'ゴール');
+    var r = validateGoal(u.f);
+    if (!r.ok) throw err('INVALID', r.error);
+    var g = normGoal(u.f);
+    Object.defineProperty(g, '_token', { value: u.t, enumerable: false });
+    return g;
+  }
+
+  /* ---------- ふりかえり ---------- */
+  // Reflection = { v:1, date, name:Ink|null, meate:{choices,ink}, y:{auto:[text], extra:[text]},
+  //               w:{eval:'double'|'single'|'triangle', choices:[text], ink}, t:{choices:[text], ink, items:[itemId]}, aid, saved:'ISO' }
+  //   aid が正しい形でないときは、こばまずに入れないだけ（端末のIDは任意）。
+  function textList(a, maxN, maxLen, what) {
+    if (a == null) return null;
+    if (!Array.isArray(a)) return what + 'が正しくありません';
+    if (a.length > maxN) return what + 'が多すぎます';
+    for (var i = 0; i < a.length; i++) if (!isText(a[i], maxLen)) return what + 'の文が正しくありません（' + maxLen + '文字まで）';
+    return null;
+  }
+  function part(o) { return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; }
+  function validateReflection(r) {
+    function no(msg) { return { ok: false, error: msg }; }
+    if (!r || typeof r !== 'object' || Array.isArray(r)) return no('ふりかえりがありません');
+    if (r.v !== 1) return no('形式の版が正しくありません');
+    if (!isDate(r.date)) return no('ふりかえりの日にちが正しくありません');
+    var keys = ['meate', 'y', 'w', 't'];
+    for (var i = 0; i < keys.length; i++) {
+      var x = r[keys[i]];
+      if (x != null && (typeof x !== 'object' || Array.isArray(x))) return no('ふりかえりの形が正しくありません');
+    }
+    var m = part(r.meate), y = part(r.y), w = part(r.w), t = part(r.t);
+    var e = checkInk(r.name, '名前', false) || checkInk(m.ink, 'めあて', false) ||
+      checkInk(w.ink, 'わかったこと', false) || checkInk(t.ink, '次にやりたいこと', false) ||
+      textList(m.choices, RLIMIT.choices, RLIMIT.choiceLen, 'めあて') ||
+      textList(y.auto, RLIMIT.auto, RLIMIT.autoLen, 'やったこと') ||
+      textList(y.extra, RLIMIT.extra, RLIMIT.extraLen, 'やったこと') ||
+      textList(w.choices, RLIMIT.choices, RLIMIT.choiceLen, 'わかったこと') ||
+      textList(t.choices, RLIMIT.choices, RLIMIT.choiceLen, '次にやりたいこと') ||
+      textList(t.items, RLIMIT.items, RLIMIT.itemLen, '次にやりたいこと');
+    if (e) return no(e);
+    if (w.eval != null && EVALS.indexOf(w.eval) < 0) return no('自己評価が正しくありません');
+    if (r.saved != null && !isIso(r.saved)) return no('書いた日時が正しくありません');
+    return { ok: true, error: null };
+  }
+  function inkOrNull(ink) { return hasStrokes(ink) ? ink : null; }
+  function reflFields(r) {
+    var m = part(r.meate), y = part(r.y), w = part(r.w), t = part(r.t);
+    var o = { v: 1, date: r.date,
+      meate: { choices: (m.choices || []).slice() },
+      y: { auto: (y.auto || []).slice(), extra: (y.extra || []).slice() },
+      w: { eval: w.eval || null, choices: (w.choices || []).slice() },
+      t: { choices: (t.choices || []).slice() } };
+    if (Array.isArray(t.items) && t.items.length) o.t.items = t.items.slice();
+    if (isAid(r.aid)) o.aid = r.aid;
+    if (typeof r.saved === 'string' && isIso(r.saved)) o.saved = r.saved;
+    return o;
+  }
+  async function encodeReflection(r) {
+    var v = validateReflection(r);
+    if (!v.ok) throw err('INVALID', v.error);
+    var inks = [inkOrNull(r.name), inkOrNull(part(r.meate).ink), inkOrNull(part(r.w).ink), inkOrNull(part(r.t).ink)];
+    var fields = reflFields(r), token = '';
+    for (var i = 0; i < REFL_EPS.length; i++) {
+      token = await packToken(REFL_CHAR, fields, inks, REFL_EPS[i]);
+      if (token.length <= MAX_LEN) return token;
+    }
+    throw tooLong(token.length);
+  }
+  async function decodeReflection(token) {
+    var u = await unpackToken(token, REFL_CHAR, 4, 'ふりかえり');
+    var f = u.f;
+    if (f.v !== 1) throw err('BAD_VERSION', '形式の版が正しくありません');
+    var v = validateReflection(f);
+    if (!v.ok) throw err('INVALID', v.error);
+    var r = reflFields(f);
+    r.name = u.inks[0];
+    r.meate.ink = u.inks[1];
+    r.w.ink = u.inks[2];
+    r.t.ink = u.inks[3];
+    Object.defineProperty(r, '_token', { value: u.t, enumerable: false });
+    return r;
+  }
+
+  /* ---------- 種類の見分け・コピー用の文 ---------- */
+  function kindOf(token) {
+    var t;
+    try { t = cleanToken(token); } catch (e) { return null; }
+    var k = KIND_OF_CHAR[t.charAt(0)];
+    if (!k || t.length < 1 + CHECK_LEN + 2 || t.length > MAX_LEN + 64) return null;
+    for (var i = 1; i < t.length; i++) if (B64REV[t.charAt(i)] === undefined) return null;
+    var body = t.slice(0, t.length - CHECK_LEN);
+    return checksum(body) === t.slice(t.length - CHECK_LEN) ? k : null;
+  }
+  var CODE_INFO = {
+    problem: { path: '#/q/', word: 'しょうすうもんだい' },
+    goal: { path: '#/g/', word: 'しょうすうゴール' },
+    reflection: { path: '#/r/', word: 'しょうすうふりかえり' }
+  };
+  // コピーしてチャットに貼る文。http(s) なら URL、file:// なら「しょうすう○○ #/x/…」
+  function codeText(token) {
+    var t = typeof token === 'string' ? token : '';
+    try { t = cleanToken(t); } catch (e) { t = ''; }
+    var info = CODE_INFO[KIND_OF_CHAR[t.charAt(0)] || 'problem'];
+    var href = (typeof location !== 'undefined' && location && location.href) ? String(location.href) : '';
+    if (/^https?:/i.test(href)) return href.split('#')[0] + info.path + t;
+    return info.word + ' ' + info.path + t;
+  }
+
   var Share = {
     VERSION: VERSION,
     MAX_LEN: MAX_LEN,
@@ -540,6 +778,15 @@
     answerText: answerText,
     simplify: simplify,
     countPoints: countPoints,
+    // 追加4
+    encodeGoal: encodeGoal,
+    decodeGoal: decodeGoal,
+    validateGoal: validateGoal,
+    encodeReflection: encodeReflection,
+    decodeReflection: decodeReflection,
+    validateReflection: validateReflection,
+    kindOf: kindOf,
+    codeText: codeText,
     // テスト・内部用
     _: { toMilli: toMilli, fromMilli: fromMilli, checksum: checksum, b64enc: b64enc, b64dec: b64dec, deflate: deflate, inflate: inflate }
   };

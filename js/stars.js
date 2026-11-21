@@ -5,7 +5,9 @@
  * 星の決まり（CATALOG）・称号の表（TITLES）・記録からの計算・ゲット表示・称号アップのおいわい・星のずかん。
  * 保存：localStorage 'shosu.stars'
  *   { v:1, got:{星id: もらった時刻ms}, made:{tokenハッシュ: kind}, friend:{tokenハッシュ: {c:0|1, a:authorKeyハッシュ}},
- *     present:{tokenハッシュ:1}, more:もっとれんしゅう○の数(記録したぶん), title:いまの称号id, ev:[出来事の記録(新しい100こ)] }
+ *     present:{tokenハッシュ:1}, more:もっとれんしゅう○の数(記録したぶん), title:いまの称号id, ev:[出来事の記録(新しい100こ)],
+ *     plan:{日付:1}（今日の計画を立てた日）, refl:{日付: 1=めあて◎ | 2=計画どおり | 4=前回のTをやった}（ふりかえりを書いた日）,
+ *     road:{goalIdハッシュ:1}（地図をやりきったゴール） }
  * token は長い（最大6000字）ので、ハッシュにしてから保存する。
  * classic script。Node でも require できる（DOM を使う部分は呼ばなければ動かない）。
  */
@@ -28,6 +30,9 @@
   var MAKE_KINDS = ['hissan', 'fill', 'compare', 'masu', 'numberline'];
   var KIND_ALIAS = { word: 'fill', bunsho: 'fill', story: 'fill', daisho: 'compare', line: 'numberline', suchokusen: 'numberline' };
   var MORE_STEPS = [10, 30, 50];
+  var REFLECT_STEPS = [1, 5, 10];
+  var DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+  var RF = { double: 1, planDone: 2, prevT: 4 };
 
   var CATALOG = [];
   function add(o) { CATALOG.push(o); return o; }
@@ -61,6 +66,22 @@
       add({ id: 'more-' + MORE_STEPS[i], kind: 'normal', group: 'more', sub: MORE_STEPS[i], label: 'もっとれんしゅう ○' + MORE_STEPS[i] + 'こ', short: '○' + MORE_STEPS[i] + 'こ',
         how: '「もっとれんしゅう」で、○をあわせて' + MORE_STEPS[i] + 'こ とろう' });
     }
+    // 計画・ふりかえり（追加4）8こ
+    add({ id: 'plan-first', kind: 'normal', group: 'plan', sub: 'plan', label: 'はじめて今日の計画を立てた', short: 'はじめての計画',
+      how: '「じぶんで計画」で、今日の計画を立てよう' });
+    add({ id: 'plan-done3', kind: 'normal', group: 'plan', sub: 'plan', label: '計画どおりにできた日が3日', short: '計画どおり3日',
+      how: '今日の計画をぜんぶやりきった日を、3日つくろう' });
+    add({ id: 'plan-prevt', kind: 'normal', group: 'plan', sub: 'plan', label: '前回の「次にやりたいこと」をやった', short: '次につなげた',
+      how: 'ふりかえりの「次にやりたいこと」を、次の今日の計画に入れてやってみよう' });
+    add({ id: 'plan-roadmap', kind: 'normal', group: 'plan', sub: 'plan', label: 'ゴールまでの地図をぜんぶやりきった', short: '地図をやりきった',
+      how: 'ゴールの日までに、地図の予定をぜんぶやりきろう' });
+    for (i = 0; i < REFLECT_STEPS.length; i++) {
+      add({ id: 'reflect-' + REFLECT_STEPS[i], kind: 'normal', group: 'plan', sub: 'reflect', step: REFLECT_STEPS[i],
+        label: 'ふりかえりを' + REFLECT_STEPS[i] + '回書いた', short: 'ふりかえり' + REFLECT_STEPS[i] + '回',
+        how: REFLECT_STEPS[i] === 1 ? '学習のあとに、ふりかえり（やったこと・わかったこと・次にやりたいこと）を書こう' : 'ふりかえりを、ちがう日にあわせて' + REFLECT_STEPS[i] + '回書こう' });
+    }
+    add({ id: 'reflect-double3', kind: 'normal', group: 'plan', sub: 'reflect', label: 'めあてが◎の日が3日', short: 'めあて◎ 3日',
+      how: 'ふりかえりで、めあてを◎（よくできた）と言える日を3日つくろう' });
     // とくべつな星 8しゅるい
     add({ id: 'sp-make1', kind: 'special', group: 'make', label: 'はじめて問題を作った', short: 'はじめての問題',
       how: '「もんだいをつくる」で問題を作って、ほぞんするか、ともだちに送ろう' });
@@ -81,7 +102,7 @@
   })();
   var BY_ID = {};
   CATALOG.forEach(function (s) { BY_ID[s.id] = s; });
-  var NORMAL_MAX = CATALOG.filter(function (s) { return s.kind === 'normal'; }).length;   // 55
+  var NORMAL_MAX = CATALOG.filter(function (s) { return s.kind === 'normal'; }).length;   // 63
   var SPECIAL_MAX = CATALOG.filter(function (s) { return s.kind === 'special'; }).length; // 8
 
   /* ---------- 自前のSVG（絵文字は使わない） ---------- */
@@ -164,8 +185,8 @@
     { id: 'planet', icon: ICONS.planet, name: '小数プラネット', need: { normal: 22, specialKinds: 0, specialTotal: 0 } },
     { id: 'star', icon: ICONS.star, name: '小数スター', need: { normal: 32, specialKinds: 0, specialTotal: 0 } },
     { id: 'comet', icon: ICONS.comet, name: '小数コメット', need: { normal: 42, specialKinds: 0, specialTotal: 0 } },
-    { id: 'sun', icon: ICONS.sun, name: '小数サン', need: { normal: 50, specialKinds: 8, specialTotal: 0 } },
-    { id: 'galaxy', icon: ICONS.galaxy, name: '小数ギャラクシー', need: { normal: 55, specialKinds: 8, specialTotal: 30 } }
+    { id: 'sun', icon: ICONS.sun, name: '小数サン', need: { normal: 56, specialKinds: SPECIAL_MAX, specialTotal: 0 } },
+    { id: 'galaxy', icon: ICONS.galaxy, name: '小数ギャラクシー', need: { normal: NORMAL_MAX, specialKinds: SPECIAL_MAX, specialTotal: 30 } }
   ];
 
   /* ---------- 保存 ---------- */
@@ -177,7 +198,7 @@
       return ls;
     } catch (e) { return null; }
   }
-  function blank() { return { v: 1, got: {}, made: {}, friend: {}, present: {}, more: 0, title: 'earth', ev: [], fresh: true }; }
+  function blank() { return { v: 1, got: {}, made: {}, friend: {}, present: {}, more: 0, title: 'earth', ev: [], plan: {}, refl: {}, road: {}, fresh: true }; }
   function isObj(o) { return !!o && typeof o === 'object' && !Array.isArray(o); }
   function sanitize(d) {
     var s = blank();
@@ -188,6 +209,9 @@
     if (isObj(d.made)) for (k in d.made) s.made[k] = typeof d.made[k] === 'string' ? d.made[k] : '';
     if (isObj(d.friend)) for (k in d.friend) { var f = d.friend[k]; if (isObj(f)) s.friend[k] = { c: f.c ? 1 : 0, a: typeof f.a === 'string' ? f.a : '' }; }
     if (isObj(d.present)) for (k in d.present) s.present[k] = 1;
+    if (isObj(d.plan)) for (k in d.plan) if (DATE_RE.test(k)) s.plan[k] = 1;
+    if (isObj(d.refl)) for (k in d.refl) if (DATE_RE.test(k)) { var fl = Number(d.refl[k]); s.refl[k] = isFinite(fl) ? (fl & 7) : 0; }
+    if (isObj(d.road)) for (k in d.road) s.road[k] = 1;
     var m = Number(d.more); s.more = isFinite(m) && m > 0 ? Math.floor(m) : 0;
     s.title = typeof d.title === 'string' && titleIndex(d.title) >= 0 ? d.title : 'earth';
     if (Array.isArray(d.ev)) s.ev = d.ev.filter(function (e) { return Array.isArray(e); }).slice(-100);
@@ -200,7 +224,8 @@
     try { return sanitize(JSON.parse(raw)); } catch (e) { var b = blank(); b.fresh = false; return b; }
   }
   function save() {
-    var o = { v: 1, got: state.got, made: state.made, friend: state.friend, present: state.present, more: state.more, title: state.title, ev: state.ev };
+    var o = { v: 1, got: state.got, made: state.made, friend: state.friend, present: state.present, more: state.more, title: state.title, ev: state.ev,
+      plan: state.plan, refl: state.refl, road: state.road };
     var str;
     for (var tries = 0; tries < 3; tries++) {
       try { str = JSON.stringify(o); } catch (e) { return false; }
@@ -309,6 +334,20 @@
     return { made: made, allKinds: allKinds, kinds: countKeys(kinds), answered: answered, ok: ok, people: countKeys(people), present: countKeys(state.present) };
   }
   function specialTotal() { var c = specialCounts(); return c.made + c.ok + c.present; }
+  function planCounts() {
+    var refl = 0, dbl = 0, done = 0, prevT = 0;
+    for (var d in state.refl) {
+      refl++;
+      var f = state.refl[d];
+      if (f & RF.double) dbl++;
+      if (f & RF.planDone) done++;
+      if (f & RF.prevT) prevT++;
+    }
+    return { plans: countKeys(state.plan), refl: refl, double: dbl, planDone: done, prevT: prevT, road: countKeys(state.road) };
+  }
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function today() { var d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+  function dateOf(data) { var d = data && data.date; return typeof d === 'string' && DATE_RE.test(d) ? d : today(); }
 
   // 記録から分かる星をすべて調べる（もらった星は消えない）
   function derived(extra) {
@@ -333,6 +372,13 @@
     if (c.ok >= 10) ids.push('sp-friend-ok10');
     if (c.people >= 5) ids.push('sp-friend-people5');
     if (c.present >= 1) ids.push('sp-present');
+    var pc = planCounts();
+    if (pc.plans >= 1) ids.push('plan-first');
+    if (pc.planDone >= 3) ids.push('plan-done3');
+    if (pc.prevT >= 1) ids.push('plan-prevt');
+    if (pc.road >= 1) ids.push('plan-roadmap');
+    REFLECT_STEPS.forEach(function (n) { if (pc.refl >= n) ids.push('reflect-' + n); });
+    if (pc.double >= 3) ids.push('reflect-double3');
     return ids;
   }
   // ids のうち、まだもらっていない星をもらう。カタログの順で返す
@@ -455,6 +501,19 @@
         case 'present':
           if (data.token) state.present[hash(data.token)] = 1;
           break;
+        case 'plan':          // 今日の計画を立てた {date}
+          info = dateOf(data);
+          state.plan[info] = 1;
+          break;
+        case 'reflect':       // ふりかえりを書いた {date, eval, planDone, usedPrevT}（同じ日は1回。印は足していく）
+          info = dateOf(data);
+          state.refl[info] = (state.refl[info] || 0) | (data.eval === 'double' ? RF.double : 0) |
+            (data.planDone ? RF.planDone : 0) | (data.usedPrevT ? RF.prevT : 0);
+          break;
+        case 'roadmapDone':   // ゴールまでの地図をやりきった {goalId}
+          state.road[hash(data.goalId != null && data.goalId !== '' ? data.goalId : 'goal')] = 1;
+          info = 1;
+          break;
         default:
           return [];
       }
@@ -482,6 +541,13 @@
         if (me && it.up && it.up.aid && it.up.aid !== me) return;
         var h = hash(it.id), kd = it.up && it.up.kind ? String(it.up.kind) : '';
         if (!(h in state.made) || (!state.made[h] && kd)) state.made[h] = KIND_ALIAS[kd] || kd;
+      });
+      // 前からのふりかえり（Shosu.Reflect）も数える（◎も）
+      var rl = [];
+      try { rl = S.Reflect && S.Reflect.list ? S.Reflect.list() || [] : []; } catch (e) { rl = []; }
+      if (Array.isArray(rl)) rl.forEach(function (r) {
+        if (!r || typeof r.date !== 'string' || !DATE_RE.test(r.date)) return;
+        state.refl[r.date] = (state.refl[r.date] || 0) | (r.w && r.w.eval === 'double' ? RF.double : 0);
       });
       var fresh = state.fresh;
       state.fresh = false;
@@ -761,6 +827,12 @@
       // もっとれんしゅう
       sec = section('もっとれんしゅう', group('more'), 'もっとれんしゅうでとった○の数で星がもらえるよ。いま ○' + Math.max(state.more, storeMoreCorrect()) + 'こ。');
       sec.appendChild(rowOf('○の数', group('more')));
+      wrap.appendChild(sec);
+      // 計画・ふりかえり
+      var pc = planCounts();
+      sec = section('計画・ふりかえり', group('plan'), '「じぶんで計画」で今日の計画を立てて、学習のあとにふりかえりを書くと星がもらえるよ。いま ふりかえり ' + pc.refl + '回。');
+      sec.appendChild(rowOf('今日の計画', group('plan').filter(function (s) { return s.sub === 'plan'; })));
+      sec.appendChild(rowOf('ふりかえり', group('plan').filter(function (s) { return s.sub === 'reflect'; })));
       wrap.appendChild(sec);
       // とくべつな星
       var spAll = CATALOG.filter(function (s) { return s.kind === 'special'; });

@@ -660,3 +660,85 @@ main.practice .pw-tips { background: var(--bg); }
 }
 .mm-score-big { text-shadow: 0 2px 0 #ffe6e6; }
 .mm-got-list li { background: linear-gradient(180deg, #fff8dc, #ffeaa0); border-color: var(--gold-deep); color: #3a2a00; }
+
+/* ---------- 追加4：じぶんで計画・ふりかえり・ゴール（担当N） ---------- */
+.home-plan { margin-bottom: 1.1rem; display: flex; flex-direction: column; gap: 0.8rem; }
+.plan-entries { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+@media (max-width: 800px) { .plan-entries { grid-template-columns: 1fr; } }
+.plan-entry {
+  display: flex; align-items: center; gap: 1rem; min-height: 92px; padding: 0.7rem 1.2rem;
+  border-radius: 18px; text-decoration: none; color: #fff; touch-action: manipulation; transition: transform .1s;
+  border: 1.5px solid rgba(255, 211, 77, .5); box-shadow: 0 6px 18px rgba(4, 6, 30, .45);
+}
+.plan-entry:hover { border-color: var(--gold); }
+.plan-entry:active { transform: scale(0.99); }
+.plan-entry-map { background: radial-gradient(1.5px 1.5px at 70% 25%, #fff 60%, transparent), linear-gradient(120deg, #1d4a7a 0%, #2c5fa8 55%, #3f7fc4 100%); }
+.plan-entry-reflect { background: radial-gradient(1.5px 1.5px at 75% 30%, #fff 60%, transparent), linear-gradient(120deg, #3a2a7a 0%, #6a3f9e 55%, #9a5cb8 100%); }
+.plan-entry-icon { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 3.4rem; height: 3.4rem; border-radius: 50%; background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .25); }
+.plan-entry-icon .ic { width: 2.2rem; height: 2.2rem; }
+.plan-entry-text { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.plan-entry-title { font-size: 1.45rem; font-weight: bold; letter-spacing: 0.05em; }
+.plan-entry-sub { font-size: 0.9rem; opacity: 0.92; }
+.plan-entry-go { flex: none; display: inline-flex; align-items: center; gap: 0.35em; font-weight: bold; background: linear-gradient(180deg, #ffe27a, #f5b81c); color: #2a1a00; border-radius: 999px; padding: 0.45em 1.1em; }
+
+/* ゴールのコードを開いた */
+.goal-in { max-width: 860px; margin: 1.4rem auto; }
+.goal-card { display: flex; align-items: center; gap: 1.2rem; padding: 1.4rem 1.6rem; border-radius: 18px; background: #fffdf3; color: var(--ink); border: 3px solid #f0b400; box-shadow: 0 6px 18px rgba(4, 6, 30, .35); }
+.goal-card-icon .ic { width: 72px; height: 72px; color: #3a3796; }
+.goal-card-head { font-size: 1.5rem; font-weight: bold; }
+.goal-card-name { font-size: 1.35rem; font-weight: bold; color: #3a3796; margin-top: 0.2rem; }
+.goal-card-sub { color: var(--ink-soft); margin-top: 0.2rem; }
+.goal-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.8rem; margin-top: 1rem; }
+.goal-row .box-msg { color: var(--night-ink); }
+.btn.big { min-height: 64px; font-size: 1.2rem; padding: 0 1.6rem; }
+
+/* ふりかえりのコードを開いた（先生用） */
+.rcode { max-width: 980px; margin: 1rem auto; }
+.rcode-head { display: flex; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.6rem; }
+.rcode-date { font-size: 1.3rem; font-weight: bold; }
+.rcode-noname { color: var(--ink-soft); }
+.rcode-block { border-top: 1px solid var(--line); padding: 0.5rem 0; }
+.rcode-block h3 { margin: 0.2rem 0 0.3rem; font-size: 1.05rem; color: #3a3796; }
+.rcode-list { margin: 0 0 0.3rem; padding-left: 1.2rem; }
+.rcode-block .ink-canvas { display: block; max-width: 100%; height: auto; background: #fff; border: 1px solid var(--line); border-radius: 8px; }
+.eval-mark { display: inline-flex; align-items: center; gap: 0.3em; font-weight: bold; }
+.eval-mark .ic { width: 1.8em; height: 1.8em; }
+
+/* 先生メニュー：ゴールと授業の予定 */
+.tgoal-name { font-size: 1.2rem; font-weight: bold; margin: 0.2rem 0; }
+.tgoal-row { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 0.6rem 0; }
+.tcard .tgoal-row .btn + .btn { margin-left: 0; }
+.tgoal-out textarea.code-out, .code-out { width: 100%; font-family: monospace; font-size: 0.8rem; }
+.rec-plan { margin-top: 0.6rem; font-weight: bold; }
+.modal-check { display: flex; align-items: flex-start; gap: 0.4rem; margin: 0.8rem 0 0.2rem; font-size: 1rem; line-height: 1.4; }
+.modal-check input { width: 1.3rem; height: 1.3rem; flex: none; margin-top: 0.1rem; }
+
+/* 先生：ゴールを決める */
+.goal-edit > .btn.small { margin: 0.6rem 0; }
+.ge-field { display: flex; align-items: center; gap: 0.8rem; margin: 0.5rem 0; flex-wrap: wrap; }
+.ge-label { font-weight: bold; min-width: 8em; }
+.ge-input { font-size: 1.15rem; padding: 0.4rem 0.6rem; border: 2px solid var(--line); border-radius: 10px; min-height: 48px; }
+.ge-input[type="text"] { width: min(24em, 100%); }
+.ge-minutes { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin: 0.4rem 0 0.6rem; }
+.ge-tools { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
+.ge-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; max-width: 760px; }
+.ge-wd { text-align: center; font-weight: bold; font-size: 0.9rem; color: var(--ink-soft); }
+.ge-wd.sun, .ge-day.sun .ge-day-n { color: #c0392b; }
+.ge-wd.sat, .ge-day.sat .ge-day-n { color: #2c5fa8; }
+.ge-day { min-height: 58px; border: 2px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; font: inherit; touch-action: manipulation; }
+.ge-day.empty { border: none; background: transparent; cursor: default; }
+.ge-day.today { box-shadow: inset 0 0 0 2px #f0b400; }
+.ge-day.on { background: linear-gradient(135deg, #3a3796, #5a3fae); border-color: #3a3796; color: #fff; }
+.ge-day.on .ge-day-n { color: #fff; }
+.ge-day.goal { border-color: #f0b400; background: #fff6d6; }
+.ge-day.goal.on { background: linear-gradient(135deg, #8a5a00, #c08a10); }
+.ge-day-n { font-weight: bold; font-size: 1.05rem; }
+.ge-day-tag { font-size: 0.72rem; }
+.ge-day-goal .ic { width: 1.1em; height: 1.1em; }
+.ge-h3 { font-size: 1.05rem; margin: 1rem 0 0.4rem; }
+.ge-list { display: flex; flex-direction: column; gap: 0.4rem; }
+.ge-row { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; padding: 0.3rem 0; border-bottom: 1px dashed var(--line); }
+.ge-row-date { min-width: 7.5em; font-weight: bold; }
+.ge-sel, .ge-note { font-size: 1rem; min-height: 44px; border: 2px solid var(--line); border-radius: 8px; padding: 0 0.4rem; }
+.ge-note { flex: 1; min-width: 12em; }
+.plan-host { min-height: 50vh; }

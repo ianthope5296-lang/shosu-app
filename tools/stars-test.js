@@ -69,6 +69,19 @@ function giveNormal(n) {
     for (var j = cur; j < goal; j++) Stars.log('more', { correct: true });
     c++;
   }
+  // 計画・ふりかえり（1ステップで★1こずつ）
+  var R = function (d, o) { var x = { date: '2026-11-' + d }; for (var k2 in o) x[k2] = o[k2]; Stars.log('reflect', x); };
+  var planSteps = [
+    function () { Stars.log('plan', { date: '2026-11-01' }); },                       // plan-first
+    function () { R('01'); },                                                          // reflect-1
+    function () { R('02', { usedPrevT: true }); },                                     // plan-prevt
+    function () { Stars.log('roadmapDone', { goalId: 'g-test' }); },                   // plan-roadmap
+    function () { R('03'); R('04'); R('05'); },                                        // reflect-5
+    function () { R('06', { eval: 'double' }); R('07', { eval: 'double' }); R('08', { eval: 'double' }); },  // reflect-double3
+    function () { R('01', { planDone: true }); R('02', { planDone: true }); R('03', { planDone: true }); },  // plan-done3
+    function () { R('09'); R('10'); }                                                  // reflect-10
+  ];
+  for (k = 0; k < planSteps.length && c < n; k++) { planSteps[k](); c++; }
   eq(Stars.summary().normal, n, '★を' + n + 'こそろえる');
 }
 function giveAllKinds() {
@@ -78,7 +91,9 @@ function giveAllKinds() {
 }
 
 /* ---------- カタログと称号 ---------- */
-eq(Stars.CATALOG.filter(function (s) { return s.kind === 'normal'; }).length, 55, 'ふつうの星は55こ');
+eq(Stars.CATALOG.filter(function (s) { return s.kind === 'normal'; }).length, 63, 'ふつうの星は63こ');
+eq(Stars.CATALOG.filter(function (s) { return s.group === 'plan'; }).length, 8, '計画・ふりかえり8');
+ok(Stars.CATALOG.filter(function (s) { return s.group === 'plan'; }).every(function (s) { return s.kind === 'normal'; }), '計画・ふりかえりはふつうの星');
 eq(Stars.CATALOG.filter(function (s) { return s.kind === 'special'; }).length, 8, 'とくべつな星は8しゅるい');
 eq(Stars.CATALOG.filter(function (s) { return s.group === 'lesson'; }).length, 30, '各時30');
 eq(Stars.CATALOG.filter(function (s) { return s.group === 'matome'; }).length, 10, 'まとめ10');
@@ -143,6 +158,47 @@ eq(ids(Stars.log('matome', { level: 'hard', minutes: 20, total: 26, correct: 26,
 eq(Stars.log('matome', { level: 'normal', minutes: 10, total: 12, correct: 12, finished: false }).map(function (s) { return s.id; }).join(), 'matome-normal-all', 'とちゅうでも10問以上全問○');
 eq(Stars.log('matome', { level: 'normal', minutes: 20, total: 4, correct: 4, finished: false }).length, 0, '20分でもとちゅうなら0');
 
+/* ---------- 計画・ふりかえり（追加4） ---------- */
+fresh();
+eq(Stars.summary().normalMax, 63, 'normalMax 63');
+eq(ids(Stars.log('plan', { date: '2026-11-20' })).join(), 'plan-first', 'はじめて今日の計画');
+eq(Stars.log('plan', { date: '2026-11-21' }).length, 0, '2日目の計画では増えない');
+eq(ids(Stars.log('reflect', { date: '2026-11-20', eval: 'double', planDone: true })).join(), 'reflect-1', 'ふりかえり1回');
+eq(Stars.log('reflect', { date: '2026-11-20', eval: 'double', planDone: true }).length, 0, '同じ日のふりかえりは1回');
+Stars.log('reflect', { date: '2026-11-20', eval: 'double', planDone: true });
+Stars.log('reflect', { date: '2026-11-20', eval: 'double', planDone: true });
+eq(!!Stars._state().got['reflect-double3'], false, '同じ日を何回書いても◎は1日');
+eq(!!Stars._state().got['plan-done3'], false, '同じ日を何回書いても計画どおりは1日');
+Stars.log('reflect', { date: '2026-11-21', eval: 'double', planDone: false });
+eq(ids(Stars.log('reflect', { date: '2026-11-22', eval: 'double', planDone: true })).join(), 'reflect-double3', '◎の日が3日');
+eq(!!Stars._state().got['plan-done3'], false, '計画どおりは2日');
+eq(ids(Stars.log('reflect', { date: '2026-11-21', eval: 'single', planDone: true })).join(), 'plan-done3', 'あとから計画どおりになった日も数える');
+Stars.log('reflect', { date: '2026-11-23', eval: 'triangle' });
+eq(ids(Stars.log('reflect', { date: '2026-11-24', usedPrevT: true })).join(), 'plan-prevt,reflect-5', '5回目＋前回のTをやった');
+eq(Stars.log('roadmapDone', {}).map(function (s) { return s.id; }).join(), 'plan-roadmap', '地図をやりきった');
+eq(Stars.log('roadmapDone', { goalId: 'g-x' }).length, 0, '地図の星は1こ');
+for (i = 25; i <= 29; i++) Stars.log('reflect', { date: '2026-11-' + i });
+ok(Stars._state().got['reflect-10'], 'ふりかえり10回');
+eq(Stars.CATALOG.filter(function (s) { return s.group === 'plan' && Stars._state().got[s.id]; }).length, 8, '計画・ふりかえりの星8こぜんぶ');
+eq(Stars.summary().specialTotal, 0, '計画・ふりかえりでは✦はふえない');
+// 日付がないとき・形がちがうときは今日
+fresh();
+Stars.log('reflect', { date: 'きのう' }); Stars.log('reflect', {});
+eq(Object.keys(Stars._state().refl).length, 1, '日付が不正なら今日として1回');
+ok(/^\d{4}-\d{2}-\d{2}$/.test(Object.keys(Stars._state().refl)[0]), '今日の日付');
+// 保存して読み直しても残る
+Stars._reload();
+eq(Object.keys(Stars._state().refl).length, 1, '読み直しても残る');
+// 前からのふりかえり（Shosu.Reflect.list）も数える
+fresh();
+S.Reflect = { list: function () { return [{ date: '2026-11-01', w: { eval: 'double' } }, { date: '2026-11-02', w: { eval: 'double' } }, { date: '2026-11-03', w: { eval: 'double' } }, { date: 'x' }, null]; } };
+var cv = ids(Stars.evaluate());
+ok(cv.indexOf('reflect-1') >= 0 && cv.indexOf('reflect-double3') >= 0 && cv.indexOf('reflect-5') < 0, '前からのふりかえりを星に変える（' + cv.join() + '）');
+S.Reflect = { list: function () { throw new Error('x'); } };
+var threwR = false; try { Stars.evaluate(); } catch (e) { threwR = true; }
+ok(!threwR, 'Reflect.list がこわれていても落ちない');
+delete S.Reflect;
+
 /* ---------- とくべつな星 ---------- */
 fresh();
 eq(ids(Stars.log('made', { kind: 'hissan', token: 'A' })).join(), 'sp-make1', 'はじめて作った');
@@ -193,21 +249,26 @@ fresh(); giveNormal(12); eq(Stars.summary().title.id, 'moon', '★12はムーン
 fresh(); giveNormal(22); eq(Stars.summary().title.id, 'planet', '★22はプラネット');
 fresh(); giveNormal(32); eq(Stars.summary().title.id, 'star', '★32はスター');
 fresh(); giveNormal(42); eq(Stars.summary().title.id, 'comet', '★42はコメット');
-fresh(); giveNormal(50); eq(Stars.summary().title.id, 'comet', '★50でも✦しゅるいがないとコメット');
+fresh(); giveNormal(56); eq(Stars.summary().title.id, 'comet', '★56でも✦しゅるいがないとコメット');
 sm = Stars.summary(); eq(sm.next.id, 'sun', '次はサン'); eq(sm.needForNext.normal, 0, 'サンまで★0'); eq(sm.needForNext.specialKinds, 8, 'サンまで✦しゅるい8');
-fresh(); giveNormal(49); giveAllKinds(); eq(Stars.summary().specialKinds, 8, '✦8しゅるい'); eq(Stars.summary().title.id, 'comet', '★49＋全しゅるいはコメット');
-fresh(); giveNormal(50); giveAllKinds(); eq(Stars.summary().title.id, 'sun', '★50＋全しゅるいはサン');
-sm = Stars.summary(); eq(sm.needForNext.normal, 5, 'ギャラクシーまで★5'); eq(sm.needForNext.specialTotal, 30 - sm.specialTotal, 'ギャラクシーまで✦合計');
+fresh(); giveNormal(55); giveAllKinds(); eq(Stars.summary().specialKinds, 8, '✦8しゅるい'); eq(Stars.summary().title.id, 'comet', '★55＋全しゅるいはコメット');
+sm = Stars.summary(); eq(sm.needForNext.normal, 1, 'サンまで★1');
+fresh(); giveNormal(56); giveAllKinds(); eq(Stars.summary().title.id, 'sun', '★56＋全しゅるいはサン');
+sm = Stars.summary(); eq(sm.needForNext.normal, 7, 'ギャラクシーまで★7'); eq(sm.needForNext.specialTotal, 30 - sm.specialTotal, 'ギャラクシーまで✦合計');
+fresh(); giveNormal(50); giveAllKinds(); eq(Stars.summary().title.id, 'comet', '★50＋全しゅるいは（前とちがい）まだコメット');
 // 問題作りだけで✦合計が多くても、しゅるいがそろわないとサンにならない
-fresh(); giveNormal(50);
+fresh(); giveNormal(56);
 for (i = 0; i < 12; i++) Stars.log('made', { kind: ['hissan', 'fill', 'compare', 'masu', 'numberline'][i % 5], token: 'only-make-' + i });
 sm = Stars.summary();
 ok(sm.specialTotal >= 8, '問題作りだけで✦合計8以上（' + sm.specialTotal + '）');
 eq(sm.specialKinds, 3, '問題作りだけでは✦しゅるいは3');
 eq(sm.title.id, 'comet', '問題作りだけではサンにならない');
 // ギャラクシー
-fresh(); giveNormal(55); giveAllKinds();
-eq(Stars.summary().title.id, 'sun', '★55＋全しゅるい＋✦合計16はサン');
+fresh(); giveNormal(62); giveAllKinds();
+for (i = 0; i < 20; i++) Stars.log('made', { kind: 'fill', token: 'gy-' + i });
+ok(Stars.summary().specialTotal >= 30, '✦30以上'); eq(Stars.summary().title.id, 'sun', '★62＋全しゅるい＋✦30以上はサン（★ぜんぶではない）');
+fresh(); giveNormal(63); giveAllKinds();
+eq(Stars.summary().title.id, 'sun', '★63＋全しゅるい＋✦合計16はサン');
 for (i = 0; i < 13; i++) Stars.log('made', { kind: 'fill', token: 'gx-' + i });
 eq(Stars.summary().specialTotal, 29, '✦29'); eq(Stars.summary().title.id, 'sun', '✦29はサン');
 Stars.log('present', { token: 'gx-0' });

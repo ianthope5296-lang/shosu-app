@@ -469,6 +469,277 @@ function noInk(up) {
     assert.strictEqual(p.qInk, null);
   });
 
+  console.log('■ ゴールのコード（追加4）');
+  function goalOf(extra) {
+    var g = { v: 1, id: 'g-mi4k2x', name: '小数のテスト', date: '2026-11-28',
+      classes: [{ date: '2026-11-26', minutes: 20, lesson: 9 }, { date: '2026-11-24', minutes: 45, note: '筆算' }, { date: '2026-11-25', minutes: 15 }],
+      created: '2026-11-21T03:00:00.000Z' };
+    for (var k in extra) g[k] = extra[k];
+    return g;
+  }
+  var tGoal = null;
+  await test('ゴール：往復（授業の予定は日にち順になる）', async function () {
+    tGoal = await Share.encodeGoal(goalOf());
+    assert.strictEqual(tGoal.charAt(0), 'g');
+    assert.ok(/^[A-Za-z0-9_-]+$/.test(tGoal));
+    var g = await Share.decodeGoal(tGoal);
+    assert.strictEqual(g.name, '小数のテスト');
+    assert.strictEqual(g.date, '2026-11-28');
+    assert.strictEqual(g.id, 'g-mi4k2x');
+    assert.strictEqual(g.created, '2026-11-21T03:00:00.000Z');
+    assert.deepStrictEqual(g.classes, [{ date: '2026-11-24', minutes: 45, note: '筆算' }, { date: '2026-11-25', minutes: 15 }, { date: '2026-11-26', minutes: 20, lesson: 9 }]);
+    console.log('      ゴール（授業3回）: ' + tGoal.length + ' 文字');
+  });
+  await test('ゴール：授業の予定なし・URL つきでも開ける', async function () {
+    var t = await Share.encodeGoal(goalOf({ classes: [] }));
+    var g = await Share.decodeGoal('https://x.jp/app/#/g/' + t);
+    assert.deepStrictEqual(g.classes, []);
+  });
+  await test('ゴール：授業が多くても上限内（60回・メモつき）', async function () {
+    var cls = [];
+    for (var i = 0; i < 60; i++) {
+      var d = new Date(Date.UTC(2026, 8, 1) + i * 86400000).toISOString().slice(0, 10);
+      cls.push({ date: d, minutes: 45, lesson: (i % 10) + 1, note: '第' + ((i % 10) + 1) + '時の授業 まとめと練習' });
+    }
+    var t = await Share.encodeGoal(goalOf({ date: '2026-12-25', classes: cls }));
+    assert.ok(t.length <= Share.MAX_LEN);
+    assert.strictEqual((await Share.decodeGoal(t)).classes.length, 60);
+  });
+  var badGoals = [
+    ['v ちがい', { v: 2 }],
+    ['id なし', { id: undefined }],
+    ['名前が空', { name: '  ' }],
+    ['名前が長すぎ', { name: 'あ'.repeat(31) }],
+    ['名前に改行', { name: '小数\nテスト' }],
+    ['名前が数', { name: 123 }],
+    ['日にちの形', { date: '2026/11/28' }],
+    ['ない日にち', { date: '2026-02-30' }],
+    ['13月', { date: '2026-13-01' }],
+    ['created が日時でない', { created: 'きのう' }],
+    ['classes が配列でない', { classes: 'x' }],
+    ['授業の日の形', { classes: [{ date: '11-24', minutes: 20 }] }],
+    ['授業の日がゴールの後', { classes: [{ date: '2026-11-29', minutes: 20 }] }],
+    ['同じ日の授業', { classes: [{ date: '2026-11-24', minutes: 20 }, { date: '2026-11-24', minutes: 15 }] }],
+    ['分が0', { classes: [{ date: '2026-11-24', minutes: 0 }] }],
+    ['分が多すぎ', { classes: [{ date: '2026-11-24', minutes: 120 }] }],
+    ['分が小数', { classes: [{ date: '2026-11-24', minutes: 17.5 }] }],
+    ['分が文字', { classes: [{ date: '2026-11-24', minutes: '20' }] }],
+    ['第○時が0', { classes: [{ date: '2026-11-24', minutes: 20, lesson: 0 }] }],
+    ['メモが長すぎ', { classes: [{ date: '2026-11-24', minutes: 20, note: 'あ'.repeat(41) }] }],
+    ['授業が多すぎ', { classes: new Array(121).fill(0).map(function (_, i) { return { date: '2026-11-24', minutes: 20 + i }; }) }]
+  ];
+  for (const b of badGoals) {
+    await (async function (b) {
+      await test('ゴール拒否: ' + b[0], async function () {
+        var g = goalOf(b[1]);
+        assert.strictEqual(Share.validateGoal(g).ok, false);
+        assert.ok(typeof Share.validateGoal(g).error === 'string');
+        await rejects(Share.encodeGoal(g), 'INVALID', b[0]);
+      });
+    })(b);
+  }
+  async function forgeK(ch, obj, inkBytes, mask) {
+    var j = jsonBytes(obj);
+    var bytes = [mask || 0].concat(vu(j.length), j, inkBytes || []);
+    var comp = await Share._.deflate(new Uint8Array(bytes));
+    var body = ch + Share._.b64enc(comp);
+    return body + Share._.checksum(body);
+  }
+  await test('ゴール：自作の正しいトークンは通る', async function () {
+    var g = await Share.decodeGoal(await forgeK('g', { v: 1, id: 'g-a', name: 'テスト', date: '2026-11-28', classes: [] }));
+    assert.strictEqual(g.name, 'テスト');
+  });
+  var brokenGoals = [
+    ['途中で切れた', function () { return tGoal.slice(0, Math.floor(tGoal.length / 2)); }],
+    ['1文字かわった', function () { return tGoal.slice(0, 12) + (tGoal[12] === 'A' ? 'B' : 'A') + tGoal.slice(13); }],
+    ['末尾が欠けた', function () { return tGoal.slice(0, -1); }],
+    ['中身の日にちが不正', function () { return forgeK('g', { v: 1, id: 'g-a', name: 'テスト', date: '2026-11-31', classes: [] }); }],
+    ['中身の分が不正', function () { return forgeK('g', { v: 1, id: 'g-a', name: 'テスト', date: '2026-11-28', classes: [{ date: '2026-11-20', minutes: 999 }] }); }],
+    ['中身が配列', function () { return forgeK('g', [1, 2]); }],
+    ['インクがついている', function () { return forgeK('g', { v: 1, id: 'g-a', name: 'テスト', date: '2026-11-28' }, okInk, 1); }],
+    ['空', function () { return ''; }]
+  ];
+  for (const b of brokenGoals) {
+    await (async function (b) {
+      await test('ゴール decode 拒否: ' + b[0], async function () { await rejects(Promise.resolve(b[1]()).then(Share.decodeGoal), null, b[0]); });
+    })(b);
+  }
+
+  console.log('■ ふりかえりのコード（追加4）');
+  function reflOf(extra) {
+    var r = { v: 1, date: '2026-11-24', name: nameInk(),
+      meate: { choices: ['筆算の小数点をそろえる'], ink: textInk(800, 200, 1, 18) },
+      y: { auto: ['第7時 れんしゅう 8問中7問○', 'ヒント 1回', 'もらった星 2こ'], extra: ['友だちに教えた'] },
+      w: { eval: 'double', choices: ['6−0.52 を 6.00 と考えてできた'], ink: textInk(800, 300, 2, 30) },
+      t: { choices: ['ふくしゅう「ひき算」'], ink: textInk(800, 200, 1, 20) },
+      aid: 'abcDEF12' };
+    for (var k in extra) r[k] = extra[k];
+    return r;
+  }
+  var tRefl = null, reflSrc = null;
+  await test('ふりかえり：往復（インク4つ・文）', async function () {
+    reflSrc = reflOf();
+    tRefl = await Share.encodeReflection(reflSrc);
+    assert.strictEqual(tRefl.charAt(0), 'r');
+    assert.ok(tRefl.length <= Share.MAX_LEN, 'len ' + tRefl.length);
+    var r = await Share.decodeReflection(tRefl);
+    assert.strictEqual(r.date, '2026-11-24');
+    assert.deepStrictEqual(r.meate.choices, reflSrc.meate.choices);
+    assert.deepStrictEqual(r.y, reflSrc.y);
+    assert.strictEqual(r.w.eval, 'double');
+    assert.deepStrictEqual(r.w.choices, reflSrc.w.choices);
+    assert.deepStrictEqual(r.t.choices, reflSrc.t.choices);
+    assert.strictEqual(r.aid, 'abcDEF12');
+    inkClose(reflSrc.name, r.name, 1.5);
+    inkClose(reflSrc.meate.ink, r.meate.ink, 1.5);
+    inkClose(reflSrc.w.ink, r.w.ink, 1.5);
+    inkClose(reflSrc.t.ink, r.t.ink, 1.5);
+    console.log('      ふりかえり（インク4つ）: ' + tRefl.length + ' 文字');
+  });
+  await test('ふりかえり：インクなし・項目なしでもよい', async function () {
+    var t = await Share.encodeReflection({ v: 1, date: '2026-11-25', name: null, meate: { choices: [], ink: null }, y: {}, w: { eval: null }, t: {} });
+    var r = await Share.decodeReflection(t);
+    assert.strictEqual(r.name, null);
+    assert.strictEqual(r.meate.ink, null);
+    assert.strictEqual(r.w.eval, null);
+    assert.deepStrictEqual(r.y, { auto: [], extra: [] });
+    assert.ok(!('aid' in r));
+  });
+  await test('ふりかえり：空のインク（線なし）は null になる', async function () {
+    var r = await Share.decodeReflection(await Share.encodeReflection(reflOf({ name: { w: 300, h: 100, strokes: [] }, t: { choices: [], ink: { w: 800, h: 200, strokes: [[]] } } })));
+    assert.strictEqual(r.name, null);
+    assert.strictEqual(r.t.ink, null);
+  });
+  await test('ふりかえり：手書きが多くても強く間引いて上限内にする', async function () {
+    var big = reflOf({ w: { eval: 'single', choices: [], ink: textInk(800, 300, 3, 60) }, t: { choices: [], ink: textInk(800, 300, 3, 60) },
+      meate: { choices: [], ink: textInk(800, 200, 2, 40) } });
+    var t = await Share.encodeReflection(big);
+    assert.ok(t.length <= Share.MAX_LEN, 'len ' + t.length);
+    var r = await Share.decodeReflection(t);
+    assert.strictEqual(r.w.ink.strokes.length, big.w.ink.strokes.length, '画数は変わらない');
+    console.log('      ふりかえり（手書きたくさん）: ' + t.length + ' 文字');
+  });
+  await test('ふりかえり：どうしても長すぎるときは TOO_LONG', async function () {
+    function dots(n) {        // 2点だけの短い線をばらばらに（間引けない）
+      var st = [];
+      for (var i = 0; i < n; i++) { var x = rr(0, 790), y = rr(0, 290); st.push([{ x: x, y: y }, { x: x + rr(3, 9), y: y + rr(3, 9) }]); }
+      return { w: 800, h: 300, strokes: st };
+    }
+    var huge = reflOf({ w: { eval: 'single', choices: [], ink: dots(500) }, t: { choices: [], ink: dots(500) },
+      meate: { choices: [], ink: dots(500) } });
+    var e = await rejects(Share.encodeReflection(huge), 'TOO_LONG', 'huge');
+    assert.ok(e.length > Share.MAX_LEN);
+  });
+  var badRefls = [
+    ['v ちがい', { v: 2 }],
+    ['日にちなし', { date: undefined }],
+    ['日にちの形', { date: '2026-11-24T00:00' }],
+    ['自己評価ちがい', { w: { eval: 'great', choices: [] } }],
+    ['めあてが文字列', { meate: 'がんばる' }],
+    ['めあての候補が多すぎ', { meate: { choices: new Array(11).fill('a') } }],
+    ['めあての文が長すぎ', { meate: { choices: ['あ'.repeat(121)] } }],
+    ['T の items が多すぎ', { t: { choices: [], items: new Array(11).fill('lesson-1') } }],
+    ['saved が日時でない', { saved: 'あした' }],
+    ['めあての文が数', { meate: { choices: [3] } }],
+    ['やったことに改行', { y: { auto: ['a\nb'] } }],
+    ['やったことが多すぎ', { y: { auto: new Array(25).fill('a') } }],
+    ['T が配列', { t: ['a'] }],
+    ['名前インクが不正', { name: { w: 0, h: 10, strokes: [] } }],
+    ['W インクの点が不正', { w: { eval: 'single', ink: { w: 800, h: 300, strokes: [[{ x: NaN, y: 1 }]] } } }],
+  ];
+  await test('ふりかえり：aid が正しい形でなければ入れないだけ・t.items と saved は運ぶ', async function () {
+    var r = await Share.decodeReflection(await Share.encodeReflection(reflOf({ aid: '!!', saved: '2026-11-24T06:00:00.000Z',
+      t: { choices: ['まとめモード'], ink: null, items: ['matome-normal-10', 'review-hikizan'] } })));
+    assert.ok(!('aid' in r));
+    assert.strictEqual(r.saved, '2026-11-24T06:00:00.000Z');
+    assert.deepStrictEqual(r.t.items, ['matome-normal-10', 'review-hikizan']);
+    var r2 = await Share.decodeReflection(await Share.encodeReflection(reflOf({ aid: '' })));
+    assert.ok(!('aid' in r2) && !('items' in r2.t));
+  });
+  await test('ふりかえり：担当Mの上限（120文字・候補10こ）まで入る', async function () {
+    var long = 'あ'.repeat(120), ten = new Array(10).fill(long);
+    var r = await Share.decodeReflection(await Share.encodeReflection(reflOf({ meate: { choices: ten }, w: { eval: 'single', choices: ten }, t: { choices: ten },
+      y: { auto: new Array(20).fill(long), extra: new Array(12).fill('い'.repeat(60)) } })));
+    assert.strictEqual(r.w.choices.length, 10);
+  });
+  for (const b of badRefls) {
+    await (async function (b) {
+      await test('ふりかえり拒否: ' + b[0], async function () {
+        var r = reflOf(b[1]);
+        assert.strictEqual(Share.validateReflection(r).ok, false);
+        await rejects(Share.encodeReflection(r), 'INVALID', b[0]);
+      });
+    })(b);
+  }
+  var brokenRefls = [
+    ['途中で切れた', function () { return tRefl.slice(0, 200); }],
+    ['1文字かわった', function () { return tRefl.slice(0, 30) + (tRefl[30] === 'A' ? 'B' : 'A') + tRefl.slice(31); }],
+    ['中身の自己評価が不正', function () { return forgeK('r', { v: 1, date: '2026-11-24', w: { eval: 'x' } }); }],
+    ['中身の日にちが不正', function () { return forgeK('r', { v: 1, date: 'x' }); }],
+    ['インクの有無ビットが不正', function () { return forgeK('r', { v: 1, date: '2026-11-24' }, okInk, 16); }],
+    ['インクが途中で切れた', function () { return forgeK('r', { v: 1, date: '2026-11-24' }, [].concat(vu(300), vu(100), vu(1), vu(3), zz(1)), 1); }],
+    ['後ろに余分なデータ', function () { return forgeK('r', { v: 1, date: '2026-11-24' }, okInk.concat([0]), 1); }]
+  ];
+  for (const b of brokenRefls) {
+    await (async function (b) {
+      await test('ふりかえり decode 拒否: ' + b[0], async function () { await rejects(Promise.resolve(b[1]()).then(Share.decodeReflection), null, b[0]); });
+    })(b);
+  }
+  await test('ふりかえり：自作の正しいトークン（インク1つ）は通る', async function () {
+    var r = await Share.decodeReflection(await forgeK('r', { v: 1, date: '2026-11-24' }, okInk, 4));
+    assert.ok(r.w.ink && r.w.ink.strokes.length === 1);
+    assert.strictEqual(r.name, null);
+  });
+
+  console.log('■ 種類の見分け（kindOf・extractTokens・codeText）');
+  await test('kindOf：3しゅるいを見分ける', async function () {
+    assert.strictEqual(Share.kindOf(tA), 'problem');
+    assert.strictEqual(Share.kindOf(tGoal), 'goal');
+    assert.strictEqual(Share.kindOf(tRefl), 'reflection');
+    assert.strictEqual(Share.kindOf(U + '#/g/' + tGoal), 'goal');
+    assert.strictEqual(Share.kindOf('しょうすうふりかえり #/r/' + tRefl), 'reflection');
+  });
+  await test('kindOf：こわれたもの・関係ないものは null', async function () {
+    assert.strictEqual(Share.kindOf(tGoal.slice(0, -1)), null);
+    assert.strictEqual(Share.kindOf('2' + tA.slice(1)), null);
+    assert.strictEqual(Share.kindOf('x' + tA.slice(1)), null);
+    assert.strictEqual(Share.kindOf(''), null);
+    assert.strictEqual(Share.kindOf(null), null);
+    assert.strictEqual(Share.kindOf(12), null);
+    assert.strictEqual(Share.kindOf(tA.slice(0, 10) + '!' + tA.slice(11)), null);
+  });
+  await test('ちがう種類の decode は WRONG_KIND', async function () {
+    await rejects(Share.decode(tGoal), 'WRONG_KIND', 'decode(goal)');
+    await rejects(Share.decode(tRefl), 'WRONG_KIND', 'decode(refl)');
+    await rejects(Share.decodeGoal(tA), 'WRONG_KIND', 'decodeGoal(problem)');
+    await rejects(Share.decodeGoal(tRefl), 'WRONG_KIND', 'decodeGoal(refl)');
+    await rejects(Share.decodeReflection(tGoal), 'WRONG_KIND', 'decodeReflection(goal)');
+    await rejects(Share.decodeReflection(tA), 'WRONG_KIND', 'decodeReflection(problem)');
+  });
+  await test('extractTokens：3しゅるいをまとめて取り出す（順番どおり・重複なし）', async function () {
+    var text = ['先生へ', U + '#/r/' + tRefl.slice(0, 60) + '\n' + tRefl.slice(60), 'ゴール ' + U + '#/g/' + tGoal + '。',
+      '<' + U + '#/q/' + tA + '>', 'しょうすうゴール #/g/' + tGoal, U + '#/rbox', U + '#/g/' + tGoal.slice(0, -3)].join('\n');
+    assert.deepStrictEqual(Share.extractTokens(text), [tRefl, tGoal, tA]);
+  });
+  await test('extractTokens：%23 と大文字のパスも', async function () {
+    assert.deepStrictEqual(Share.extractTokens(U + '%23/g/' + tGoal + ' ' + U + '#/R/' + tRefl), [tGoal, tRefl]);
+  });
+  await test('codeText：http なら URL、file なら言葉つきのコード', async function () {
+    assert.strictEqual(Share.codeText(tA), 'しょうすうもんだい #/q/' + tA);
+    assert.strictEqual(Share.codeText(tGoal), 'しょうすうゴール #/g/' + tGoal);
+    assert.strictEqual(Share.codeText(tRefl), 'しょうすうふりかえり #/r/' + tRefl);
+    globalThis.location = { href: 'https://x.jp/shosu-app/index.html#/teacher' };
+    assert.strictEqual(Share.codeText(tGoal), 'https://x.jp/shosu-app/index.html#/g/' + tGoal);
+    assert.strictEqual(Share.codeText(tRefl), 'https://x.jp/shosu-app/index.html#/r/' + tRefl);
+    assert.strictEqual(Share.codeText(tA), 'https://x.jp/shosu-app/index.html#/q/' + tA);
+    globalThis.location = { href: 'file:///C:/Users/a/shosu-app.html#/' };
+    assert.strictEqual(Share.codeText(tGoal), 'しょうすうゴール #/g/' + tGoal);
+    delete globalThis.location;
+  });
+  await test('codeText の文を extractTokens にもどすと、もとのトークン', async function () {
+    [tA, tGoal, tRefl].forEach(function (t) { assert.deepStrictEqual(Share.extractTokens('どうぞ ' + Share.codeText(t) + ' よろしく'), [t]); });
+  });
+
   console.log('■ Store（つくった問題・もんだいボックス）');
   await test('my: 保存・更新・一覧・削除', async function () {
     assert.deepStrictEqual(Store.myList(), []);

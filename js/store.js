@@ -43,7 +43,8 @@
   }
 
   // 記録は問題IDごとに「最新の結果」を持つ。読みまちがいの自己採点などで上書きできる。
-  // rec.<key> = { entries: { pid: {correct, method, hints, n, t} } }
+  // rec.<key> = { entries: { pid: {correct, method, hints, n, t, at} } }
+  //   t = 記録した時刻（ms）、at = 同じ時刻の ISO 文字列（日ごとの履歴用。追加4）
   function record(key, pid, r) {
     if (!key) return;
     pid = String(pid == null ? 'p' + Date.now() : pid);
@@ -55,7 +56,8 @@
       method: (r && r.method) === 'self' ? 'self' : 'auto',
       hints: Math.max(prev ? prev.hints || 0 : 0, (r && r.hints) || 0),
       n: (prev ? prev.n || 1 : 0) + 1, // 結果を受け取った回数
-      t: Date.now()
+      t: Date.now(),
+      at: new Date().toISOString()
     };
     setJSON('rec.' + key, data);
     var keys = getJSON('keys', []);

@@ -13,14 +13,26 @@ const safeScript = (s) => s.replace(/<\/script/gi, '<\\/script');
 const safeStyle = (s) => s.replace(/<\/style/gi, '<\\/style');
 
 html = html.replace(/<link rel="manifest"[^>]*>\s*/i, '');
-html = html.replace(/<link rel="stylesheet" href="([^"]+)">/g, (m, href) => {
-  const css = fs.readFileSync(path.join(root, href), 'utf8');
-  return '<style>/* ' + href + ' */\n' + safeStyle(css) + '\n</style>';
+// まだないファイル（ほかの担当が作業中など）は、とばして警告だけ出す。
+// js/preset.js は「<script>/* js/preset.js */ … </script>」の目印つきで入る
+// （先生メニューの「ゴール入りのアプリをダウンロード」が、ここをゴール入りに置きかえる）。
+const missing = [];
+const readOr = (rel) => {
+  const f = path.join(root, rel);
+  if (!fs.existsSync(f)) { missing.push(rel); return null; }
+  return fs.readFileSync(f, 'utf8');
+};
+html = html.replace(/<link rel="stylesheet" href="([^"]+)">\s*/g, (m, href) => {
+  const css = readOr(href);
+  if (css == null) return '';
+  return '<style>/* ' + href + ' */\n' + safeStyle(css) + '\n</style>\n';
 });
-html = html.replace(/<script src="([^"]+)"><\/script>/g, (m, src) => {
-  const js = fs.readFileSync(path.join(root, src), 'utf8');
-  return '<script>/* ' + src + ' */\n' + safeScript(js) + '\n</script>';
+html = html.replace(/<script src="([^"]+)"><\/script>\s*/g, (m, src) => {
+  const js = readOr(src);
+  if (js == null) return '';
+  return '<script>/* ' + src + ' */\n' + safeScript(js) + '\n</script>\n';
 });
+if (!/<script>\/\* js\/preset\.js \*\//.test(html)) console.warn('WARNING: js/preset.js の目印がありません');
 
 const stamp = new Date().toISOString().slice(0, 10);
 html = html.replace('<head>', '<head>\n<!-- 小数アプリ（1ファイル版） 作成日 ' + stamp + ' -->');
@@ -30,4 +42,5 @@ fs.mkdirSync(outDir, { recursive: true });
 const out = path.join(outDir, 'shosu-app.html');
 fs.writeFileSync(out, html);
 const left = (html.match(/<script src=|<link rel="stylesheet" href=/g) || []).length;
+if (missing.length) console.warn('skipped (not found):', missing.join(', '));
 console.log('wrote', path.relative(root, out), Math.round(fs.statSync(out).size / 1024) + 'KB', left ? 'WARNING: external refs left ' + left : '');
