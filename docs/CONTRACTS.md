@@ -285,3 +285,32 @@ Reflect.profileName() / setProfileName(ink)   // 最初に1回書く名前
 ## 星（N が stars.js に追加）
 Stars.log('plan', {date})、Stars.log('reflect', {date, eval, planDone:bool, usedPrevT:bool})、Stars.log('roadmapDone', {goalId})。
 称号：小数サン ★56＋✦全しゅるい、小数ギャラクシー ★ぜんぶ（63）＋✦全しゅるい＋✦合計30。
+
+---
+
+# 追加5：おすすめモード（PLAN.md「追加機能5」）
+
+## ファイル担当
+| 担当 | ファイル |
+|---|---|
+| O 分析と組み立て | js/recommend.js（新規）, js/generators.js（技能の指定を追加。既存の呼び方はそのまま）, tools/recommend-test.js（新規）, tools/check-lessons.js（検査の追加） |
+| P 画面と記録 | js/app.js, js/problems.js, js/store.js（記録の項目を足すだけ）, js/stars.js, tools/stars-test.js, css/style.css（または css/recommend.css 新規）, index.html, sw.js |
+
+## 記録（P が足す。Store.record の entry に）
+`{ correct, method, hints, at, tag, ms /*開いてから最初のこたえあわせまで*/, first /*最初の答えで○か*/, retried /*やり直して○*/, skill /*あれば*/ }`
+「みる」を開いたら `Store.record('miru', 'lesson-'+no, {at})`。
+
+## Shosu.Recommend（O）
+```js
+Recommend.SKILLS   // [{id:'sub-borrow', tag:'hikizan', label:'ひき算（くり下がりあり）', lesson:8, page:'p.45〜46', gens:[{name, opts}], review:'hikizan'}]
+Recommend.profile() -> { skills:{[id]:{status:'weak'|'soso'|'strong'|'unknown', acc, speed, hintRate, n, lastAt}}, frontier: 進めている最後の時(1..10), avgSec:{type:秒} }
+Recommend.build({minutes:5|10|15, weak:'few'|'normal'|'many', challenge:'few'|'normal'|'many', rng?}) ->
+   { problems:[problem /* tag, skill, role:'weak'|'check'|'challenge', id:'R-n' */], seconds:[...], total, summary:'今日のおすすめの一言', focus:[skillId] }
+Recommend.advice({problems, results /*[{correct, first, ms, hints}]*/, prev /*前回の結果 or null*/}) ->
+   { praise:[text], improve:[{skill, text, actions:[{kind:'textbook'|'miru'|'lesson'|'review', label, href?}]}], compare:[text], next:text }
+Recommend.shouldSuggestMiru(skillId, mistakesInSession) -> {lesson, href:'#/lesson/N'}|null   // 同じ技能で2回まちがえたら
+Recommend.saveResult(result) / lastResult()     // localStorage 'shosu.recommend'（最近出した問題の記録も、くり返しを避けるため）
+```
+
+## 星（P）
+Stars.log('recommend', {finished, minutes, total, correct, allCorrectWeakSkill:bool, improved:bool})。ふつうの星67こ。小数ギャラクシーは★ぜんぶ（67）。
