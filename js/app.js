@@ -285,6 +285,17 @@
 
     // まとめモードと星のずかん（第1〜10時と、ふくしゅうの間）
     var mm = h('section', 'home-matome');
+    // おすすめモード（追加5）：まとめモードのすぐ上に、目立つ入口
+    var osA = link('', 'osusume-entry', '#/osusume');
+    osA.appendChild(osusumeIcon('osusume-entry-icon'));
+    var osT = h('span', 'matome-entry-text');
+    osT.appendChild(h('span', 'matome-entry-title', 'おすすめモード'));
+    var osSub = 'きみの記録から、きみに合った問題を 毎回 組み立てるよ（5・10・15分）';
+    if (validOsusume(sessLoad('osusume'))) osSub = 'とちゅうのところがあるよ。つづきから できるよ';
+    osT.appendChild(h('span', 'matome-entry-sub', osSub));
+    osA.appendChild(osT);
+    osA.appendChild(arrows(h('span', 'matome-entry-go', 'スタート ▶')));
+    mm.appendChild(osA);
     var mmA = link('', 'matome-entry', '#/matome');
     mmA.appendChild(cosmosIcon('matome-entry-icon'));
     var mmT = h('span', 'matome-entry-text');
@@ -423,12 +434,21 @@
       if (!S.Problems) { area.appendChild(h('div', 'empty-note', '問題を表示できません。')); drawProgress(); return; }
       var seen = false; // この表示で、もう結果を受け取ったか
       handle = S.Problems.render(area, it.p, {
+        reportRetry: true,
         onResult: function (r) {
           if (stopped) return;
-          results[it.pid] = r;
-          // 問題の tag（ふくしゅうの分類）も記録する（ふりかえりの候補・おすすめ用。追加4）
+          // 問題の tag（ふくしゅうの分類）・skill（細かい技能）も記録する（ふりかえりの候補・おすすめ用。追加4・5）
           var tg = (it.p && it.p.tag) || it.tag || '';
-          record(key, it.pid, tg ? { correct: r && r.correct, method: r && r.method, hints: r && r.hints, tag: tg } : r);
+          var sk = (it.p && it.p.skill) || it.skill || '';
+          var rec = { correct: r && r.correct, method: r && r.method, hints: r && r.hints };
+          if (tg) rec.tag = tg;
+          if (sk) rec.skill = sk;
+          if (r && 'ms' in r) rec.ms = r.ms;
+          if (r && typeof r.first === 'boolean') rec.first = r.first;
+          if (r && r.retried) rec.retried = true;
+          if (r && r.retry) { rec.retry = true; record(key, it.pid, rec); return; } // やり直して○：記録に印をつけるだけ
+          results[it.pid] = r;
+          record(key, it.pid, rec);
           drawProgress();
           var first = !seen;
           seen = true;
@@ -456,7 +476,9 @@
     else show();
     cleanups.push(function () { if (handle) handle.destroy(); });
     return {
-      stop: function () { stopped = true; if (handle) handle.destroy(); handle = null; wrap.remove(); }
+      stop: function () { stopped = true; if (handle) handle.destroy(); handle = null; wrap.remove(); },
+      pause: function () { if (handle && handle.pause) handle.pause(); },
+      resume: function () { if (handle && handle.resume) handle.resume(); }
     };
   }
 
@@ -466,8 +488,53 @@
     return h('div', 'summary-score', items.length + '問中 ○ が ' + ok + '問' + (n < items.length ? '（とばした問題 ' + (items.length - n) + '問）' : ''));
   }
 
+  /* 「みる」を開いた記録（追加5：その子がどこまで進めているかの判断に使う）。同じ画面では1回だけ */
+  var miruLogged = {};
+  function miruOpened(no) {
+    var k = routeGen + ':' + no;
+    if (miruLogged[k]) return;
+    miruLogged[k] = 1;
+    record('miru', 'lesson-' + no, { at: new Date().toISOString() });
+  }
+  /* その時の「みる」の教材（lesson.demos / lesson.demo）を holder に出す。教材が2つ以上なら切りかえボタン */
+  function mountLessonDemos(holder, lesson) {
+    var demos = lesson.demos && lesson.demos.length ? lesson.demos : (lesson.demo ? [lesson.demo] : []);
+    var cur = null;
+    if (demos.length && S.Demos && S.Demos.mount) {
+      var titles = {};
+      (S.Demos.list ? S.Demos.list() : []).forEach(function (x) { titles[x.id] = x.title; });
+      var head = h('div', 'demo-head');
+      var stage = h('div', 'demo-stage');
+      holder.appendChild(head); holder.appendChild(stage);
+      var show = function (i) {
+        if (cur) { try { cur.destroy && cur.destroy(); } catch (e) {} cur = null; }
+        stage.innerHTML = '';
+        head.innerHTML = '';
+        if (demos.length > 1) {
+          demos.forEach(function (dm, j) {
+            var b = button(titles[dm.id] || dm.id, j === i ? 'primary' : '', function () { show(j); });
+            head.appendChild(b);
+          });
+        } else if (titles[demos[i].id]) {
+          head.appendChild(h('h3', 'demo-title', titles[demos[i].id]));
+        }
+        try {
+          cur = S.Demos.mount(stage, demos[i].id, demos[i].opts || {});
+        } catch (e) {
+          console.error('Demos.mount', e);
+          stage.appendChild(h('div', 'empty-note', '「みる」の教材を表示できませんでした。'));
+        }
+      };
+      show(0);
+    } else {
+      holder.appendChild(h('div', 'empty-note', 'この時の「みる」は、じゅんび中です。'));
+    }
+    return { destroy: function () { try { if (cur && cur.destroy) cur.destroy(); } catch (e) {} cur = null; } };
+  }
+
   /* ---------- 各時 ---------- */
-  function viewLesson(no) {
+  // tab: 'miru' | 'renshu'（#/lesson/N/renshu のように開く。おすすめモードのアドバイスのボタンから）
+  function viewLesson(no, tab) {
     var lesson = null;
     lessons().forEach(function (l) { if (String(l.no) === String(no)) lesson = l; });
     if (!lesson) { app.appendChild(topbar('第' + no + '時')); app.appendChild(h('div', 'empty-note', 'この時の内容が見つかりません。')); return; }
@@ -500,44 +567,15 @@
       tRen.setAttribute('aria-selected', which === 'renshu');
       pMiru.hidden = which !== 'miru';
       pRen.hidden = which !== 'renshu';
+      if (which === 'miru') miruOpened(lesson.no);
       if (which === 'miru' && !demoMounted) { demoMounted = true; mountDemo(); }
       if (which === 'renshu' && !practiceStarted) { practiceStarted = true; startPractice(); }
     }
     function mountDemo() {
       var holder = h('div', 'demo-holder');
       pMiru.appendChild(holder);
-      var demos = lesson.demos && lesson.demos.length ? lesson.demos : (lesson.demo ? [lesson.demo] : []);
-      if (demos.length && S.Demos && S.Demos.mount) {
-        var titles = {};
-        (S.Demos.list ? S.Demos.list() : []).forEach(function (x) { titles[x.id] = x.title; });
-        var cur = null;
-        var head = h('div', 'demo-head');
-        var stage = h('div', 'demo-stage');
-        holder.appendChild(head); holder.appendChild(stage);
-        var show = function (i) {
-          if (cur) { try { cur.destroy && cur.destroy(); } catch (e) {} cur = null; }
-          stage.innerHTML = '';
-          head.innerHTML = '';
-          if (demos.length > 1) {
-            demos.forEach(function (dm, j) {
-              var b = button(titles[dm.id] || dm.id, j === i ? 'primary' : '', function () { show(j); });
-              head.appendChild(b);
-            });
-          } else if (titles[demos[i].id]) {
-            head.appendChild(h('h3', 'demo-title', titles[demos[i].id]));
-          }
-          try {
-            cur = S.Demos.mount(stage, demos[i].id, demos[i].opts || {});
-          } catch (e) {
-            console.error('Demos.mount', e);
-            stage.appendChild(h('div', 'empty-note', '「みる」の教材を表示できませんでした。'));
-          }
-        };
-        show(0);
-        cleanups.push(function () { try { cur && cur.destroy && cur.destroy(); } catch (e) {} });
-      } else {
-        holder.appendChild(h('div', 'empty-note', 'この時の「みる」は、じゅんび中です。'));
-      }
+      var md = mountLessonDemos(holder, lesson);
+      cleanups.push(function () { md.destroy(); });
       var go = h('div', 'panel-foot');
       go.appendChild(button('れんしゅうへ ▶', 'primary', function () { select('renshu'); window.scrollTo(0, 0); }));
       pMiru.appendChild(go);
@@ -681,7 +719,8 @@
       });
     }
     var hasSession = !!(loadLessonSession() || loadMoreSession());
-    select(lesson.demo && !hasSession ? 'miru' : 'renshu');
+    if (tab === 'miru' || tab === 'renshu') select(tab);
+    else select(lesson.demo && !hasSession ? 'miru' : 'renshu');
   }
 
   /* ---------- ふくしゅう ---------- */
@@ -902,19 +941,22 @@
     runMatome(main, st);
   }
 
-  /* 問題を出す。時間は「始めた時刻」と「それまでにかかった時間」で計算するので、
-     タブをはなれてもずれない。アプリを閉じていた時間は数えない（つづきからで残り時間を引きつぐ） */
-  function runMatome(main, st) {
+  /* 時間を決めて問題を出す（まとめモード・おすすめモードで共通）。
+     時間は「始めた時刻」と「それまでにかかった時間」で計算するので、タブをはなれてもずれない。
+     アプリを閉じていた時間は数えない（つづきからで残り時間を引きつぐ）。
+     cfg: { sessKey, recKey, label, cls, before(area前に置く要素), onAnswer(it, r, results, first), onFinish(took) }
+     戻り値: { pause(), resume(), finish() } … pause の間は時間を止める（「みる」を重ねて開いている間など） */
+  function runTimed(main, st, cfg) {
     main.innerHTML = '';
     var limit = st.minutes * 60000;
     var since = Date.now() - (st.elapsed || 0);
-    var over = false, timer = null, lastSave = Date.now(), dlg = null;
+    var over = false, timer = null, lastSave = Date.now(), dlg = null, pausedAt = 0;
     var items = st.items;
-    function elapsed() { return Date.now() - since; }
+    function elapsed() { return (pausedAt || Date.now()) - since; }
 
-    var bar = h('div', 'mm-status');
+    var bar = h('div', 'mm-status' + (cfg.cls ? ' ' + cfg.cls : ''));
     bar.setAttribute('role', 'status');
-    var lvEl = h('span', 'mm-st-level', levelLabel(st.level) + '・' + st.minutes + '分');
+    var lvEl = h('span', 'mm-st-level', cfg.label);
     var timeEl = h('span', 'mm-st-time');
     var leftEl = h('span', 'mm-st-left');
     var endB = button('ここでおわる', 'small mm-st-end', function () {
@@ -923,6 +965,7 @@
     endB.classList.remove('danger');
     bar.appendChild(lvEl); bar.appendChild(timeEl); bar.appendChild(leftEl); bar.appendChild(endB);
     main.appendChild(bar);
+    if (cfg.before) main.appendChild(cfg.before);
     var area = h('div', 'mm-area');
     main.appendChild(area);
 
@@ -937,12 +980,12 @@
       if (over) return;
       st.elapsed = elapsed();
       lastSave = Date.now();
-      sessSave('matome', st);
+      sessSave(cfg.sessKey, st);
     }
     function tick() {
       if (over) return;
       draw();
-      if (!st.timeUp && elapsed() >= limit) {
+      if (!pausedAt && !st.timeUp && elapsed() >= limit) {
         st.timeUp = true;
         persist();
         timeUpDialog();
@@ -977,10 +1020,11 @@
     cleanups.push(function () { persist(); stopTimer(); });
 
     var start = firstOpen(items, st.results);
-    var ctl = runSet(area, items, 'matome', function () { finish(); }, {
+    var ctl = runSet(area, items, cfg.recKey, function () { finish(); }, {
       results: st.results, start: start < 0 ? 0 : start,
-      onAnswer: function (it, r, results) {
+      onAnswer: function (it, r, results, first) {
         st.results = cleanResults(items, results);
+        if (cfg.onAnswer) { try { cfg.onAnswer(it, r, results, first); } catch (e) { console.error(e); } }
         persist();
         draw();
       }
@@ -990,32 +1034,61 @@
 
     function finish() {
       if (over) return;
+      if (pausedAt) { since += Date.now() - pausedAt; pausedAt = 0; }
       var took = elapsed();
       st.elapsed = took;
       over = true;
       stopTimer();
       if (ctl) ctl.stop();
-      sessClear('matome');
-      var res = st.results;
-      var n = answered(), ok = 0;
-      var byTag = {}, tagOrder = [];
-      items.forEach(function (it) {
-        var tag = it.tag || (it.p && it.p.tag) || '';
-        if (!byTag[tag]) { byTag[tag] = { n: 0, ok: 0, total: 0 }; tagOrder.push(tag); }
-        byTag[tag].total++;
-        var r = res[it.pid];
-        if (r) { byTag[tag].n++; if (r.correct) { byTag[tag].ok++; ok++; } }
-      });
-      // 内容ごとの×の割合を、次の回のために残す
-      var weak = {};
-      tagOrder.forEach(function (t) { if (t && byTag[t].n) weak[t] = Math.round((1 - byTag[t].ok / byTag[t].n) * 100) / 100; });
-      var l = matomeLast();
-      l.level = st.level; l.minutes = st.minutes; l.weak = weak; l.t = Date.now();
-      sessSave('matome-last', l);
-      var finished = n === items.length;
-      var got = starLog('matome', { level: st.level, minutes: st.minutes, total: items.length, answered: n, correct: ok, finished: finished, seconds: Math.round(took / 1000) });
-      matomeResult(main, st, { n: n, ok: ok, took: took, byTag: byTag, tagOrder: tagOrder, got: got, finished: finished });
+      sessClear(cfg.sessKey);
+      cfg.onFinish(took, answered());
     }
+    return {
+      pause: function () {
+        if (over || pausedAt) return;
+        pausedAt = Date.now();
+        if (ctl && ctl.pause) ctl.pause();
+        persist();
+        draw();
+      },
+      resume: function () {
+        if (over || !pausedAt) return;
+        since += Date.now() - pausedAt;
+        pausedAt = 0;
+        if (ctl && ctl.resume) ctl.resume();
+        persist();
+        tick();
+      },
+      finish: finish
+    };
+  }
+
+  function runMatome(main, st) {
+    var items = st.items;
+    runTimed(main, st, {
+      sessKey: 'matome', recKey: 'matome', label: levelLabel(st.level) + '・' + st.minutes + '分',
+      onFinish: function (took, n) {
+        var res = st.results;
+        var ok = 0;
+        var byTag = {}, tagOrder = [];
+        items.forEach(function (it) {
+          var tag = it.tag || (it.p && it.p.tag) || '';
+          if (!byTag[tag]) { byTag[tag] = { n: 0, ok: 0, total: 0 }; tagOrder.push(tag); }
+          byTag[tag].total++;
+          var r = res[it.pid];
+          if (r) { byTag[tag].n++; if (r.correct) { byTag[tag].ok++; ok++; } }
+        });
+        // 内容ごとの×の割合を、次の回のために残す
+        var weak = {};
+        tagOrder.forEach(function (t) { if (t && byTag[t].n) weak[t] = Math.round((1 - byTag[t].ok / byTag[t].n) * 100) / 100; });
+        var l = matomeLast();
+        l.level = st.level; l.minutes = st.minutes; l.weak = weak; l.t = Date.now();
+        sessSave('matome-last', l);
+        var finished = n === items.length;
+        var got = starLog('matome', { level: st.level, minutes: st.minutes, total: items.length, answered: n, correct: ok, finished: finished, seconds: Math.round(took / 1000) });
+        matomeResult(main, st, { n: n, ok: ok, took: took, byTag: byTag, tagOrder: tagOrder, got: got, finished: finished });
+      }
+    });
   }
 
   function matomeResult(main, st, R) {
@@ -1067,6 +1140,441 @@
     var row = h('div', 'matome-actions');
     row.appendChild(button('もう一回（同じレベル・時間）', 'primary', function () { startMatome(main, st.level, st.minutes); }));
     row.appendChild(button('レベル・時間をえらぶ', '', function () { matomeSetup(main); }));
+    row.appendChild(link('ホームへ', 'btn', '#/'));
+    box.appendChild(row);
+    main.appendChild(box);
+    window.scrollTo(0, 0);
+  }
+
+  /* ---------- おすすめモード（分析と組み立ては Shosu.Recommend：担当O。画面と記録はここ） ---------- */
+  var OSU_TIMES = [5, 10, 15];
+  var OSU_MIX = [{ id: 'few', label: '少なめ' }, { id: 'normal', label: 'ふつう' }, { id: 'many', label: '多め' }];
+  var OSU_ACT_ICON = { textbook: 'reflect', miru: 'telescope', lesson: 'pen', review: 'moon' };
+  function recoApi() { return S.Recommend && typeof S.Recommend.build === 'function' ? S.Recommend : null; }
+  function recoCall(name, args, def) {
+    var r = recoApi();
+    if (!r || typeof r[name] !== 'function') return def;
+    try { var v = r[name].apply(r, args || []); return v == null ? def : v; }
+    catch (e) { console.error('Recommend.' + name, e); return def; }
+  }
+  function skillInfo(id) {
+    var list = recoApi() && Array.isArray(S.Recommend.SKILLS) ? S.Recommend.SKILLS : [];
+    for (var i = 0; i < list.length; i++) if (list[i] && list[i].id === id) return list[i];
+    return null;
+  }
+  function skillLabel(id) { var sk = skillInfo(id); return sk && sk.label ? sk.label : tagLabel(id); }
+  function mixLabel(id) { var l = 'ふつう'; OSU_MIX.forEach(function (x) { if (x.id === id) l = x.label; }); return l; }
+  function osuLast() { var v = sessLoad('osusume-last'); return v && typeof v === 'object' ? v : {}; }
+  function validOsusume(st) { return st && validItems(st.items) && typeof st.minutes === 'number'; }
+  function lessonByNo(no) { var r = null; lessons().forEach(function (l) { if (String(l.no) === String(no)) r = l; }); return r; }
+  function asStr(v) { return typeof v === 'string' ? v : (v == null ? '' : String(v)); }
+  function asList(v) { return Array.isArray(v) ? v : (v ? [v] : []); }
+
+  /* ホームの入口のアイコン（自作のSVG：ロケットが、目じるしの星に向かう航路） */
+  function osusumeIcon(cls) {
+    var NS = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 64 64');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('class', 'ic ' + (cls || ''));
+    svg.innerHTML =
+      '<path d="M8 54C18 50 22 40 30 36S46 30 52 16" fill="none" stroke="#9ff0d8" stroke-width="2.6" stroke-dasharray="3 4" stroke-linecap="round"/>' +
+      '<circle cx="52" cy="14" r="9" fill="none" stroke="#ffd34d" stroke-width="2.4"/>' +
+      '<circle cx="52" cy="14" r="4.2" fill="none" stroke="#ffd34d" stroke-width="2"/>' +
+      '<path d="M52 7.5L53.6 12.4 58.5 14 53.6 15.6 52 20.5 50.4 15.6 45.5 14 50.4 12.4Z" fill="#fff4c2"/>' +
+      '<g transform="translate(22 42) scale(1.5) rotate(40) translate(-22 -42)">' +
+      '<path d="M22 30c4.6 3.6 6 9.6 4.4 17h-8.8C16 39.6 17.4 33.6 22 30z" fill="#eef2fa" stroke="#9aa8c8" stroke-width="1.2"/>' +
+      '<path d="M22 30c2 1.5 3.4 3.5 4.1 6h-8.2c.7-2.5 2.1-4.5 4.1-6z" fill="#3fc6a0"/>' +
+      '<circle cx="22" cy="40" r="2.4" fill="#4fa3f7" stroke="#3d5a80" stroke-width="1"/>' +
+      '<path d="M17.6 43l-4 5v3l4.4-2.4zM26.4 43l4 5v3l-4.4-2.4z" fill="#3fc6a0"/>' +
+      '<path d="M19.6 47.4c-1 3 0 5.6 2.4 7.4 2.4-1.8 3.4-4.4 2.4-7.4z" fill="#ffb42e"/>' +
+      '</g>' +
+      '<circle cx="10" cy="12" r="1.6" fill="#fff"/><circle cx="36" cy="8" r="1.2" fill="#fff"/><circle cx="58" cy="44" r="1.4" fill="#fff"/>';
+    return svg;
+  }
+
+  function viewOsusume() {
+    app.appendChild(topbar('おすすめモード', { sub: 'きみに合わせた れんしゅう' }));
+    var main = h('main', 'mm osu');
+    app.appendChild(main);
+    if (!recoApi()) { main.appendChild(h('div', 'empty-note', 'おすすめモードは、じゅんび中です。')); return; }
+    var st = sessLoad('osusume');
+    if (validOsusume(st)) {
+      var res = cleanResults(st.items, st.results);
+      var at = firstOpen(st.items, res);
+      if (at >= 0) {
+        var left = st.minutes * 60000 - (st.elapsed || 0);
+        resumePrompt(main, {
+          msg: 'とちゅうのところがあるよ（' + (at + 1) + '問目から）',
+          sub: 'おすすめ・' + st.minutes + '分　' + (left >= 0 ? 'のこり ' + mmss(left) : '時間をこえています'),
+          onContinue: function () { st.results = res; runOsusume(main, st); },
+          onRestart: function () { sessClear('osusume'); osuSetup(main); }
+        });
+        return;
+      }
+      sessClear('osusume');
+    }
+    osuSetup(main);
+  }
+
+  /* いまの きみの にがて・とくい（技能名を2〜3こずつ） */
+  function osuProfileBox() {
+    var pf = recoCall('profile', [], null);
+    var weak = [], soso = [], strong = [];
+    var sk = pf && pf.skills && typeof pf.skills === 'object' ? pf.skills : {};
+    Object.keys(sk).forEach(function (id) {
+      var x = sk[id] || {};
+      var o = { id: id, acc: typeof x.acc === 'number' ? x.acc : 0.5 };
+      if (x.status === 'weak') weak.push(o);
+      else if (x.status === 'soso') soso.push(o);
+      else if (x.status === 'strong') strong.push(o);
+    });
+    function byAcc(a, b) { return a.acc - b.acc; }
+    weak.sort(byAcc); soso.sort(byAcc); strong.sort(function (a, b) { return b.acc - a.acc; });
+    var nigate = weak.concat(soso).slice(0, 3);
+    strong = strong.slice(0, 3);
+    var box = h('div', 'osu-profile');
+    box.appendChild(h('h2', 'mm-h', 'いまの きみの にがて・とくい'));
+    function row(label, cls, list, none) {
+      var r = h('div', 'osu-prof-row ' + cls);
+      r.appendChild(h('span', 'osu-prof-label', label));
+      var chips = h('span', 'osu-prof-chips');
+      if (list.length) list.forEach(function (x) { chips.appendChild(h('span', 'osu-chip', skillLabel(x.id))); });
+      else chips.appendChild(h('span', 'osu-prof-none', none));
+      r.appendChild(chips);
+      return r;
+    }
+    box.appendChild(row('にがて', 'weak', nigate, 'まだ 見つかっていないよ'));
+    box.appendChild(row('とくい', 'strong', strong, 'これから 見つけよう'));
+    if (!nigate.length && !strong.length) box.appendChild(h('p', 'mm-note', 'まだ 記録が少ないよ。問題をとくほど、きみに合った問題になるよ。'));
+    return box;
+  }
+
+  function osuSetup(main) {
+    main.innerHTML = '';
+    var last = osuLast();
+    var minutes = OSU_TIMES.indexOf(last.minutes) >= 0 ? last.minutes : 5;
+    var weak = last.weak || 'normal', challenge = last.challenge || 'normal';
+    var card = h('section', 'mm-setup osu-setup');
+    card.appendChild(h('p', 'mm-lead', 'これまでの きみの記録から、きみに合った問題を 毎回 組み立てるよ。時間をえらんで「スタート」をおそう。'));
+    card.appendChild(osuProfileBox());
+    card.appendChild(h('h2', 'mm-h', '時間'));
+    var tm = h('div', 'mm-choices osu-times');
+    var tmBtns = OSU_TIMES.map(function (m) {
+      var b = button('', 'mm-choice osu-time', function () { minutes = m; mark(); });
+      b.appendChild(h('span', 'mm-choice-t', m + '分'));
+      b.dataset.min = m;
+      tm.appendChild(b);
+      return b;
+    });
+    card.appendChild(tm);
+    var mixBox = h('div', 'osu-mix');
+    function mixRow(title, note, get, set) {
+      var r = h('div', 'osu-mix-row');
+      var t = h('div', 'osu-mix-title');
+      t.appendChild(h('span', 'osu-mix-name', title));
+      t.appendChild(h('span', 'osu-mix-note', note));
+      r.appendChild(t);
+      var g = h('div', 'osu-mix-btns');
+      var bs = OSU_MIX.map(function (x) {
+        var b = button(x.label, 'osu-mix-btn', function () { set(x.id); mark(); });
+        b.dataset.id = x.id;
+        g.appendChild(b);
+        return b;
+      });
+      r.appendChild(g);
+      mixBox.appendChild(r);
+      return function () { bs.forEach(function (b) { var on = b.dataset.id === get(); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); }); };
+    }
+    var m1 = mixRow('にがて', 'にがてな問題の多さ', function () { return weak; }, function (v) { weak = v; });
+    var m2 = mixRow('ちょうせん', 'むずかしい問題の多さ', function () { return challenge; }, function (v) { challenge = v; });
+    card.appendChild(mixBox);
+    var foot = h('div', 'mm-foot');
+    foot.appendChild(button('スタート ▶', 'primary mm-start osu-start', function () { osuPreview(main, { minutes: minutes, weak: weak, challenge: challenge }); }));
+    card.appendChild(foot);
+    main.appendChild(card);
+    function mark() {
+      tmBtns.forEach(function (b) { var on = Number(b.dataset.min) === minutes; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+      m1(); m2();
+    }
+    mark();
+    window.scrollTo(0, 0);
+  }
+
+  /* 組み立てて、始める前に「今日のおすすめ」を一言で見せる */
+  function osuPreview(main, opt) {
+    var built = recoCall('build', [{ minutes: opt.minutes, weak: opt.weak, challenge: opt.challenge }], null);
+    var probs = built && Array.isArray(built.problems) ? built.problems.filter(function (p) { return p && typeof p === 'object' && p.type; }) : [];
+    if (!probs.length) { toast('問題を作れませんでした'); return; }
+    var l = osuLast();
+    l.minutes = opt.minutes; l.weak = opt.weak; l.challenge = opt.challenge;
+    sessSave('osusume-last', l);
+    // 始めたときの「にがて」の技能（星「にがてだった技能で全問○」に使う）
+    var pf = recoCall('profile', [], null), weakSkills = [];
+    if (pf && pf.skills) Object.keys(pf.skills).forEach(function (id) { if (pf.skills[id] && pf.skills[id].status === 'weak') weakSkills.push(id); });
+    var stamp = Date.now().toString(36);
+    var st = {
+      minutes: opt.minutes, weak: opt.weak, challenge: opt.challenge, stamp: stamp,
+      summary: asStr(built.summary), focus: asList(built.focus).map(asStr),
+      weakSkills: weakSkills,
+      items: probs.map(function (p, i) { return { p: p, pid: 'os-' + stamp + '-' + i, tag: p.tag || '', skill: p.skill || '', role: p.role || '' }; }),
+      results: {}, meta: {}, missed: {}, mistakes: {}, elapsed: 0, timeUp: false
+    };
+    main.innerHTML = '';
+    var card = h('section', 'mm-setup osu-preview');
+    var hd = h('div', 'osu-today');
+    hd.appendChild(osusumeIcon('osu-today-icon'));
+    hd.appendChild(h('span', 'osu-today-label', '今日のおすすめ'));
+    card.appendChild(hd);
+    card.appendChild(h('p', 'osu-summary', st.summary || 'きみの記録に合わせて、いろいろな問題を出すよ。'));
+    card.appendChild(h('p', 'osu-preview-meta', st.minutes + '分・約' + st.items.length + '問（にがて ' + mixLabel(st.weak) + '・ちょうせん ' + mixLabel(st.challenge) + '）'));
+    var row = h('div', 'mm-foot osu-preview-row');
+    row.appendChild(button('えらびなおす', 'osu-back', function () { osuSetup(main); }));
+    row.appendChild(button('はじめる ▶', 'primary mm-start osu-go', function () {
+      sessSave('osusume', st);
+      runOsusume(main, st);
+    }));
+    card.appendChild(row);
+    main.appendChild(card);
+    window.scrollTo(0, 0);
+  }
+
+  function runOsusume(main, st) {
+    st.meta = st.meta || {}; st.missed = st.missed || {}; st.mistakes = st.mistakes || {};
+    var suggest = h('div', 'osu-suggest');
+    suggest.hidden = true;
+    var ctl = runTimed(main, st, {
+      sessKey: 'osusume', recKey: 'osusume', label: 'おすすめ・' + st.minutes + '分', cls: 'osu-status', before: suggest,
+      onAnswer: function (it, r) {
+        var m = st.meta[it.pid] || {};
+        if (typeof r.first === 'boolean') m.first = r.first;
+        if (typeof r.ms === 'number' && !('ms' in m)) m.ms = r.ms;
+        st.meta[it.pid] = m;
+        var firstOk = typeof r.first === 'boolean' ? r.first : !!r.correct;
+        // 最初の答えが×のとき（1問につき1回）、同じ技能のまちがいを数えて「みる」を案内する
+        if (firstOk || st.missed[it.pid]) return;
+        st.missed[it.pid] = 1;
+        var sk = it.skill || (it.p && it.p.skill);
+        if (!sk) return;
+        st.mistakes[sk] = (st.mistakes[sk] || 0) + 1;
+        var sg = recoCall('shouldSuggestMiru', [sk, st.mistakes[sk]], null);
+        if (sg && sg.lesson && lessonByNo(sg.lesson)) showSuggest(sk, sg.lesson);
+      },
+      onFinish: function (took, n) { osuFinish(main, st, took, n); }
+    });
+    function showSuggest(sk, no) {
+      suggest.innerHTML = '';
+      var tx = h('span', 'osu-suggest-text', '「' + skillLabel(sk) + '」で 2回 まちがえたよ。');
+      suggest.appendChild(tx);
+      var b = button('', 'primary osu-suggest-btn', function () { openMiruOverlay(no, ctl, function () { suggest.hidden = true; }); });
+      withIcon(b, 'telescope', '第' + no + '時の「みる」で確かめよう');
+      suggest.appendChild(b);
+      suggest.hidden = false;
+    }
+  }
+
+  /* その時の「みる」を重ねて開く。見ている間は時間を止める。とじると、つづきにもどる */
+  function openMiruOverlay(no, ctl, onClose) {
+    var lesson = lessonByNo(no);
+    if (!lesson) return;
+    if (ctl && ctl.pause) ctl.pause();
+    miruOpened(lesson.no);
+    var back = h('div', 'osu-miru-back');
+    var box = h('div', 'osu-miru');
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-modal', 'true');
+    box.setAttribute('aria-label', '第' + lesson.no + '時の「みる」');
+    var head = h('div', 'osu-miru-head');
+    var tt = h('div', 'osu-miru-title');
+    tt.appendChild(h('span', 'osu-miru-no', '第' + lesson.no + '時の「みる」'));
+    tt.appendChild(h('span', 'osu-miru-name', lesson.title || ''));
+    head.appendChild(tt);
+    head.appendChild(h('span', 'osu-miru-pause', '時間は 止まっているよ'));
+    var close = button('とじて つづける ▶', 'primary osu-miru-close', shut);
+    head.appendChild(close);
+    box.appendChild(head);
+    if (lesson.meate) {
+      var m = h('div', 'meate');
+      m.appendChild(h('span', 'meate-label', 'めあて'));
+      m.appendChild(h('span', 'meate-text', lesson.meate));
+      box.appendChild(m);
+    }
+    var holder = h('div', 'demo-holder osu-miru-body');
+    box.appendChild(holder);
+    var md = mountLessonDemos(holder, lesson);
+    back.appendChild(box);
+    document.body.appendChild(back);
+    document.documentElement.classList.add('osu-miru-open');
+    var done = false;
+    function onKey(e) { if (e.key === 'Escape') shut(); }
+    document.addEventListener('keydown', onKey);
+    function remove() {
+      if (done) return false;
+      done = true;
+      document.removeEventListener('keydown', onKey);
+      md.destroy();
+      back.remove();
+      document.documentElement.classList.remove('osu-miru-open');
+      return true;
+    }
+    function shut() {
+      if (!remove()) return;
+      if (ctl && ctl.resume) ctl.resume();
+      if (onClose) onClose();
+    }
+    cleanups.push(remove);
+    try { close.focus({ preventScroll: true }); } catch (e) {}
+  }
+
+  function osuFinish(main, st, took, n) {
+    var items = st.items, res = st.results || {}, meta = st.meta || {};
+    var ok = 0;
+    var aProblems = [], aResults = [];
+    items.forEach(function (it) {
+      var r = res[it.pid];
+      if (!r) return;
+      if (r.correct) ok++;
+      var m = meta[it.pid] || {};
+      aProblems.push(it.p);
+      aResults.push({ correct: !!r.correct, first: typeof m.first === 'boolean' ? m.first : !!r.correct, ms: typeof m.ms === 'number' ? m.ms : null, hints: r.hints || 0 });
+    });
+    var finished = n === items.length;
+    var acc = n ? ok / n : 0;
+    var perQ = n ? Math.round(took / n) : 0;
+    var prev = recoCall('lastResult', [], null);
+    var adv = recoCall('advice', [{ problems: aProblems, results: aResults, prev: prev, minutes: st.minutes, total: items.length, took: took }], null);
+    // 前の回より、正答率も1問の時間もよくなった
+    var improved = !!(finished && n >= 3 && prev && typeof prev.acc === 'number' && typeof prev.perQ === 'number' && prev.perQ > 0 &&
+      acc >= prev.acc && (acc > prev.acc || acc === 1) && perQ < prev.perQ);
+    // にがてだった技能で、1回の中の問題が全問○
+    var weakSet = {};
+    (st.weakSkills && st.weakSkills.length ? st.weakSkills : []).forEach(function (s) { weakSet[s] = 1; });
+    if (!Object.keys(weakSet).length) items.forEach(function (it) { if (it.role === 'weak' && it.skill) weakSet[it.skill] = 1; });
+    var bySkill = {};
+    items.forEach(function (it) {
+      var sk = it.skill || (it.p && it.p.skill);
+      if (!sk || !weakSet[sk]) return;
+      var b = bySkill[sk] || (bySkill[sk] = { total: 0, ok: 0 });
+      b.total++;
+      if (res[it.pid] && res[it.pid].correct) b.ok++;
+    });
+    var allWeak = Object.keys(bySkill).some(function (k) { return bySkill[k].total > 0 && bySkill[k].ok === bySkill[k].total; });
+    // Recommend.advice が星の判定のもと（stars）を返すときは、そちらを使う
+    if (adv && adv.stars && typeof adv.stars === 'object') {
+      if (typeof adv.stars.allCorrectWeakSkill === 'boolean') allWeak = adv.stars.allCorrectWeakSkill;
+      if (typeof adv.stars.improved === 'boolean') improved = finished && adv.stars.improved;
+    }
+    var result = {
+      v: 1, at: new Date().toISOString(), minutes: st.minutes, weak: st.weak, challenge: st.challenge,
+      total: items.length, answered: n, correct: ok, acc: Math.round(acc * 1000) / 1000, perQ: perQ, took: took, finished: finished,
+      focus: st.focus || [], summary: st.summary || '',
+      problems: items.map(function (it) { return it.p; }),
+      results: items.map(function (it) {
+        var r = res[it.pid];
+        if (!r) return null;
+        var m = meta[it.pid] || {};
+        return { correct: !!r.correct, first: typeof m.first === 'boolean' ? m.first : !!r.correct, ms: typeof m.ms === 'number' ? m.ms : null, hints: r.hints || 0 };
+      })
+    };
+    recoCall('saveResult', [result], null);
+    var got = starLog('recommend', { finished: finished, minutes: st.minutes, total: items.length, answered: n, correct: ok,
+      allCorrectWeakSkill: allWeak, improved: improved, seconds: Math.round(took / 1000) });
+    osuResult(main, st, { n: n, ok: ok, took: took, adv: adv, got: got, finished: finished, prev: prev, acc: acc, perQ: perQ });
+  }
+
+  function osuAction(a) {
+    if (!a || typeof a !== 'object') return null;
+    var kind = asStr(a.kind), label = asStr(a.label) || ({ textbook: '教科書を見直そう', miru: '「みる」で確かめよう', lesson: 'れんしゅうをやり直そう', review: 'ふくしゅうをしよう' })[kind] || '';
+    if (!label) return null;
+    var href = asStr(a.href);
+    var tab = a.tab === 'miru' || a.tab === 'renshu' ? a.tab : (kind === 'lesson' ? 'renshu' : kind === 'miru' ? 'miru' : '');
+    if (tab && /^#\/lesson\/\d+$/.test(href)) href += '/' + tab;
+    var el;
+    if (href && /^#\//.test(href)) el = link('', 'btn osu-act osu-act-' + kind, href);
+    else el = h('span', 'osu-act osu-act-' + kind + ' osu-act-plain');
+    if (OSU_ACT_ICON[kind]) withIcon(el, OSU_ACT_ICON[kind], label); else el.textContent = label;
+    return el;
+  }
+
+  function osuResult(main, st, R) {
+    main.innerHTML = '';
+    var adv = R.adv && typeof R.adv === 'object' ? R.adv : {};
+    var box = h('section', 'mm-result osu-result');
+    box.appendChild(h('div', 'done-msg', R.finished ? 'おすすめモード おつかれさま！' : 'ここまで よくがんばったね！'));
+    var score = h('div', 'mm-score');
+    score.appendChild(h('span', 'mm-score-big', '○ ' + R.ok));
+    score.appendChild(h('span', 'mm-score-of', ' / ' + st.items.length + '問'));
+    box.appendChild(score);
+    var meta = h('div', 'mm-meta');
+    meta.appendChild(h('span', null, 'おすすめ・' + st.minutes + '分コース'));
+    meta.appendChild(h('span', null, 'かかった時間 ' + mmss(R.took)));
+    if (R.n) meta.appendChild(h('span', null, '1問 平均 ' + Math.max(1, Math.round(R.perQ / 1000)) + '秒'));
+    if (R.n < st.items.length) meta.appendChild(h('span', null, 'のこした問題 ' + (st.items.length - R.n) + '問'));
+    box.appendChild(meta);
+
+    var compare = asList(adv.compare).map(asStr).filter(Boolean);
+    if (compare.length) {
+      var cp = h('div', 'osu-compare');
+      compare.forEach(function (t) { cp.appendChild(h('div', 'osu-compare-item', t)); });
+      box.appendChild(cp);
+    }
+    var praise = asList(adv.praise).map(asStr).filter(Boolean);
+    if (praise.length) {
+      var pr = h('div', 'osu-praise');
+      pr.appendChild(h('h2', 'mm-h', 'よくできたね'));
+      praise.forEach(function (t) {
+        var p = h('div', 'osu-praise-item');
+        var ic = iconEl('star', 'osu-praise-icon');
+        if (ic) p.appendChild(ic);
+        p.appendChild(h('span', null, t));
+        pr.appendChild(p);
+      });
+      box.appendChild(pr);
+    }
+    var improve = asList(adv.improve).filter(function (x) { return x && typeof x === 'object'; });
+    if (improve.length) {
+      var im = h('div', 'osu-improve');
+      im.appendChild(h('h2', 'mm-h', 'つぎに やってみよう'));
+      improve.forEach(function (x) {
+        var card = h('div', 'osu-imp');
+        var t = h('div', 'osu-imp-text');
+        if (x.skill) t.appendChild(h('span', 'osu-chip', skillLabel(asStr(x.skill))));
+        t.appendChild(h('span', 'osu-imp-msg', asStr(x.text)));
+        card.appendChild(t);
+        var acts = h('div', 'osu-imp-acts');
+        asList(x.actions).forEach(function (a) { var e = osuAction(a); if (e) acts.appendChild(e); });
+        if (acts.firstChild) card.appendChild(acts);
+        im.appendChild(card);
+      });
+      box.appendChild(im);
+    }
+    if (!compare.length && !praise.length && !improve.length) {
+      box.appendChild(h('p', 'mm-note', R.n ? 'つぎの おすすめモードでも、きみに合わせた問題を出すよ。' : '問題をといたら、アドバイスが出るよ。'));
+    }
+    var next = asStr(adv.next);
+    if (next) {
+      var nx = h('div', 'osu-next');
+      var nic = iconEl('rocket', 'osu-next-icon');
+      if (nic) nx.appendChild(nic);
+      nx.appendChild(h('span', null, next));
+      box.appendChild(nx);
+    }
+
+    var gotBox = h('div', 'mm-got');
+    gotBox.appendChild(h('h2', 'mm-h', 'もらった星'));
+    var got = Array.isArray(R.got) ? R.got : [];
+    if (got.length) {
+      var ul = h('ul', 'mm-got-list');
+      got.forEach(function (g) { ul.appendChild(h('li', null, (g && (g.label || g.name || g.id)) || '')); });
+      gotBox.appendChild(ul);
+    } else {
+      gotBox.appendChild(h('p', 'mm-note', S.Stars ? 'こんかいは 新しい星はなかったよ。つぎもがんばろう！' : ''));
+    }
+    box.appendChild(gotBox);
+
+    var row = h('div', 'matome-actions');
+    row.appendChild(button('もう一回（同じせってい）', 'primary', function () { osuPreview(main, { minutes: st.minutes, weak: st.weak, challenge: st.challenge }); }));
+    row.appendChild(button('時間などをえらぶ', '', function () { osuSetup(main); }));
     row.appendChild(link('ホームへ', 'btn', '#/'));
     box.appendChild(row);
     main.appendChild(box);
@@ -1141,6 +1649,7 @@
     lessons().forEach(function (l) { rows.push({ key: 'lesson-' + l.no, label: '第' + l.no + '時 ' + (l.title || '') }); });
     topics().forEach(function (t) { rows.push({ key: 'review-' + t.id, label: 'ふくしゅう：' + t.title }); });
     rows.push({ key: 'matome', label: 'まとめモード' });
+    rows.push({ key: 'osusume', label: 'おすすめモード' });
     rows.push({ key: 'friend', label: 'ともだちの問題' });
     var known = rows.map(function (r) { return r.key; });
     (store() ? store().keys() : []).forEach(function (k) { if (known.indexOf(k) < 0) rows.push({ key: k, label: k }); });
@@ -2199,7 +2708,7 @@
     var hash = location.hash.replace(/^#\/?/, '');
     var parts = hash.split('/');
     try {
-      if (parts[0] === 'lesson' && parts[1]) viewLesson(parts[1]);
+      if (parts[0] === 'lesson' && parts[1]) viewLesson(parts[1], parts[2]);
       else if (parts[0] === 'review' && parts[1]) viewReview(decodeURIComponent(parts[1]));
       else if (parts[0] === 'teacher' && parts[1] === 'goal') viewGoalEdit();
       else if (parts[0] === 'teacher') viewTeacher();
@@ -2209,6 +2718,7 @@
       else if (parts[0] === 'g' && parts[1]) viewGoalCode(hash.slice(2));
       else if (parts[0] === 'r' && parts[1]) viewReflCode(hash.slice(2));
       else if (parts[0] === 'matome') viewMatome();
+      else if (parts[0] === 'osusume') viewOsusume();
       else if (parts[0] === 'stars') viewStars();
       else if (parts[0] === 'practice-write') viewPracticeWrite();
       else if (parts[0] === 'make' || parts[0] === 'my' || parts[0] === 'edit') viewMaker(hash);

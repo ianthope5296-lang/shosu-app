@@ -7,7 +7,7 @@
  *   { v:1, got:{星id: もらった時刻ms}, made:{tokenハッシュ: kind}, friend:{tokenハッシュ: {c:0|1, a:authorKeyハッシュ}},
  *     present:{tokenハッシュ:1}, more:もっとれんしゅう○の数(記録したぶん), title:いまの称号id, ev:[出来事の記録(新しい100こ)],
  *     plan:{日付:1}（今日の計画を立てた日）, refl:{日付: 1=めあて◎ | 2=計画どおり | 4=前回のTをやった}（ふりかえりを書いた日）,
- *     road:{goalIdハッシュ:1}（地図をやりきったゴール） }
+ *     road:{goalIdハッシュ:1}（地図をやりきったゴール）, reco:おすすめモードをさいごまでやった回数（追加5） }
  * token は長い（最大6000字）ので、ハッシュにしてから保存する。
  * classic script。Node でも require できる（DOM を使う部分は呼ばなければ動かない）。
  */
@@ -82,6 +82,15 @@
     }
     add({ id: 'reflect-double3', kind: 'normal', group: 'plan', sub: 'reflect', label: 'めあてが◎の日が3日', short: 'めあて◎ 3日',
       how: 'ふりかえりで、めあてを◎（よくできた）と言える日を3日つくろう' });
+    // おすすめモード（追加5）4こ
+    add({ id: 'reco-1', kind: 'normal', group: 'recommend', sub: 'finish', label: 'おすすめモードを さいごまで 1回', short: 'さいごまで1回',
+      how: 'おすすめモードを、さいごの問題までやろう' });
+    add({ id: 'reco-3', kind: 'normal', group: 'recommend', sub: 'finish', label: 'おすすめモードを さいごまで 3回', short: 'さいごまで3回',
+      how: 'おすすめモードを、さいごの問題まで あわせて3回やろう' });
+    add({ id: 'reco-weak', kind: 'normal', group: 'recommend', sub: 'good', label: 'にがてだった技能で 全問○', short: 'にがてを全問○',
+      how: 'おすすめモードで、にがてだった技能の問題を、1回の中でぜんぶ○にしよう' });
+    add({ id: 'reco-up', kind: 'normal', group: 'recommend', sub: 'good', label: '前の回より 正答率も 時間も よくなった', short: '前の回よりアップ',
+      how: 'おすすめモードをさいごまでやって、前の回より 正答率も 1問の時間も よくしよう' });
     // とくべつな星 8しゅるい
     add({ id: 'sp-make1', kind: 'special', group: 'make', label: 'はじめて問題を作った', short: 'はじめての問題',
       how: '「もんだいをつくる」で問題を作って、ほぞんするか、ともだちに送ろう' });
@@ -102,7 +111,7 @@
   })();
   var BY_ID = {};
   CATALOG.forEach(function (s) { BY_ID[s.id] = s; });
-  var NORMAL_MAX = CATALOG.filter(function (s) { return s.kind === 'normal'; }).length;   // 63
+  var NORMAL_MAX = CATALOG.filter(function (s) { return s.kind === 'normal'; }).length;   // 67
   var SPECIAL_MAX = CATALOG.filter(function (s) { return s.kind === 'special'; }).length; // 8
 
   /* ---------- 自前のSVG（絵文字は使わない） ---------- */
@@ -198,7 +207,7 @@
       return ls;
     } catch (e) { return null; }
   }
-  function blank() { return { v: 1, got: {}, made: {}, friend: {}, present: {}, more: 0, title: 'earth', ev: [], plan: {}, refl: {}, road: {}, fresh: true }; }
+  function blank() { return { v: 1, got: {}, made: {}, friend: {}, present: {}, more: 0, title: 'earth', ev: [], plan: {}, refl: {}, road: {}, reco: 0, fresh: true }; }
   function isObj(o) { return !!o && typeof o === 'object' && !Array.isArray(o); }
   function sanitize(d) {
     var s = blank();
@@ -213,6 +222,7 @@
     if (isObj(d.refl)) for (k in d.refl) if (DATE_RE.test(k)) { var fl = Number(d.refl[k]); s.refl[k] = isFinite(fl) ? (fl & 7) : 0; }
     if (isObj(d.road)) for (k in d.road) s.road[k] = 1;
     var m = Number(d.more); s.more = isFinite(m) && m > 0 ? Math.floor(m) : 0;
+    var rc = Number(d.reco); s.reco = isFinite(rc) && rc > 0 ? Math.floor(rc) : 0;
     s.title = typeof d.title === 'string' && titleIndex(d.title) >= 0 ? d.title : 'earth';
     if (Array.isArray(d.ev)) s.ev = d.ev.filter(function (e) { return Array.isArray(e); }).slice(-100);
     return s;
@@ -225,7 +235,7 @@
   }
   function save() {
     var o = { v: 1, got: state.got, made: state.made, friend: state.friend, present: state.present, more: state.more, title: state.title, ev: state.ev,
-      plan: state.plan, refl: state.refl, road: state.road };
+      plan: state.plan, refl: state.refl, road: state.road, reco: state.reco };
     var str;
     for (var tries = 0; tries < 3; tries++) {
       try { str = JSON.stringify(o); } catch (e) { return false; }
@@ -379,6 +389,8 @@
     if (pc.road >= 1) ids.push('plan-roadmap');
     REFLECT_STEPS.forEach(function (n) { if (pc.refl >= n) ids.push('reflect-' + n); });
     if (pc.double >= 3) ids.push('reflect-double3');
+    if (state.reco >= 1) ids.push('reco-1');
+    if (state.reco >= 3) ids.push('reco-3');
     return ids;
   }
   // ids のうち、まだもらっていない星をもらう。カタログの順で返す
@@ -509,6 +521,12 @@
           info = dateOf(data);
           state.refl[info] = (state.refl[info] || 0) | (data.eval === 'double' ? RF.double : 0) |
             (data.planDone ? RF.planDone : 0) | (data.usedPrevT ? RF.prevT : 0);
+          break;
+        case 'recommend':     // おすすめモードが終わった {finished, minutes, total, correct, allCorrectWeakSkill, improved}
+          if (data.finished) state.reco++;
+          if (data.allCorrectWeakSkill) extra.push('reco-weak');
+          if (data.improved) extra.push('reco-up');
+          info = (Number(data.minutes) || 0) + ':' + (Number(data.correct) || 0) + '/' + (Number(data.total) || 0) + (data.finished ? ':f' : '');
           break;
         case 'roadmapDone':   // ゴールまでの地図をやりきった {goalId}
           state.road[hash(data.goalId != null && data.goalId !== '' ? data.goalId : 'goal')] = 1;
@@ -833,6 +851,11 @@
       sec = section('計画・ふりかえり', group('plan'), '「じぶんで計画」で今日の計画を立てて、学習のあとにふりかえりを書くと星がもらえるよ。いま ふりかえり ' + pc.refl + '回。');
       sec.appendChild(rowOf('今日の計画', group('plan').filter(function (s) { return s.sub === 'plan'; })));
       sec.appendChild(rowOf('ふりかえり', group('plan').filter(function (s) { return s.sub === 'reflect'; })));
+      wrap.appendChild(sec);
+      // おすすめモード
+      sec = section('おすすめモード', group('recommend'), 'きみに合わせた問題が出るよ。さいごまでやったり、にがてを全問○にしたりすると星がもらえるよ。いま さいごまで ' + state.reco + '回。');
+      sec.appendChild(rowOf('さいごまで', group('recommend').filter(function (s) { return s.sub === 'finish'; })));
+      sec.appendChild(rowOf('できるようになった', group('recommend').filter(function (s) { return s.sub === 'good'; })));
       wrap.appendChild(sec);
       // とくべつな星
       var spAll = CATALOG.filter(function (s) { return s.kind === 'special'; });

@@ -3,6 +3,11 @@
  *   r = { correct, method:'auto'|'self', hints }
  * 1回の表示につき、最初の判定を onResult で知らせる。
  * そのあと「読みまちがい？」で子どもが自己採点したときは、もう一度 onResult を呼ぶ（Store は上書き）。
+ * 追加5：r には ms（表示してから最初の判定までの時間。タブを離れていた時間・pause() の間は引く。30分をこえたら null）、
+ *   first（最初の答えで○か。最初の答えの「読みまちがい？」の直しは反映）、retried（やり直して○になったか）も入る。
+ *   opts.reportRetry が true なら、×のあとやり直して○になったときにも onResult({..., retry:true, retried:true}) を呼ぶ
+ *   （このときの correct は前に知らせた結果のまま。記録の○×は変えない）。
+ * 戻り値の pause()/resume() で、時間の計測を止められる（おすすめモードで「みる」を重ねて開いている間など）。
  */
 (function (S) {
   'use strict';
@@ -28,6 +33,7 @@
   function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
   function num(s) { var v = parseFloat(String(s).replace(/[^\d.\-]/g, '')); return isFinite(v) ? v : NaN; }
   function numEq(a, b) { var x = num(a), y = num(b); return isFinite(x) && isFinite(y) && Math.abs(x - y) < 1e-9; }
+  var MS_MAX = 30 * 60 * 1000; // 30分をこえるもの（放置）は時間を記録しない
   function settings() { return (S.Store && S.Store.getSettings) ? S.Store.getSettings() : { checkMode: 'auto', bigText: false }; }
   function recognizerReady() {
     try { return !!(S.Recognizer && S.Recognizer.recognize && (!S.Recognizer.isReady || S.Recognizer.isReady())); }
@@ -90,8 +96,34 @@
       wantedAuto: st.checkMode !== 'self',
       hintsUsed: 0,
       reported: false,
-      finished: false
+      finished: false,
+      attempt: 0,          // 何回目の答えか（0 = 最初の答え。やり直すと増える）
+      firstOk: undefined,  // 最初の答えで○か
+      retried: false,      // やり直して○になったか
+      ms: null
     };
+    /* 表示してから最初の判定までの時間（タブを離れていた時間・止めていた時間は引く） */
+    var shownAt = Date.now(), awayMs = 0, awayAt = 0, awayN = 0, clockOn = true;
+    function awayStart() { if (awayN++ === 0) awayAt = Date.now(); }
+    function awayEnd() { if (awayN > 0 && --awayN === 0) { awayMs += Date.now() - awayAt; awayAt = 0; } }
+    var hidden = false;
+    function onVis() {
+      var hd = typeof document !== 'undefined' && document.visibilityState === 'hidden';
+      if (hd && !hidden) { hidden = true; awayStart(); }
+      else if (!hd && hidden) { hidden = false; awayEnd(); }
+    }
+    onVis();
+    document.addEventListener('visibilitychange', onVis);
+    var paused = false;
+    f.pause = function () { if (!paused) { paused = true; awayStart(); } };
+    f.resume = function () { if (paused) { paused = false; awayEnd(); } };
+    f.elapsedMs = function () { var now = Date.now(); return now - shownAt - awayMs - (awayN > 0 ? now - awayAt : 0); };
+    f.dispose = function () {
+      if (!clockOn) return;
+      clockOn = false;
+      document.removeEventListener('visibilitychange', onVis);
+    };
+    f.newAttempt = function () { if (f.firstOk !== undefined) f.attempt++; };
     var root = h('div', 'problem p-' + type);
     var markEl = h('div', 'p-mark');
     root.appendChild(markEl);
@@ -184,10 +216,31 @@
       markEl.textContent = '';
     };
     f.report = function (correct, method, override) {
-      if (f.reported && !override) return;
+      correct = !!correct;
+      var retriedNow = false;
+      if (f.firstOk === undefined) {
+        f.firstOk = correct;
+        var ms = f.elapsedMs();
+        f.ms = ms >= 0 && ms <= MS_MAX ? Math.round(ms) : null;
+        f.dispose();
+      } else if (f.attempt === 0) {
+        if (override) f.firstOk = correct; // 最初の答えの「読みまちがい？」の直し
+      } else if (correct && !f.firstOk && !f.retried) {
+        f.retried = true;
+        retriedNow = true;
+      }
+      var r = { correct: correct, method: method, hints: f.hintsUsed, ms: f.ms, first: f.firstOk, retried: f.retried };
+      if (f.reported && !override) {
+        if (retriedNow && opts.reportRetry && opts.onResult) {
+          r.correct = f.lastCorrect; r.method = f.lastMethod; r.retry = true;
+          try { opts.onResult(r); } catch (e) { console.error(e); }
+        }
+        return;
+      }
       f.reported = true;
+      f.lastCorrect = correct; f.lastMethod = method;
       if (opts.onResult) {
-        try { opts.onResult({ correct: !!correct, method: method, hints: f.hintsUsed }); } catch (e) { console.error(e); }
+        try { opts.onResult(r); } catch (e) { console.error(e); }
       }
     };
     f.showExplain = function () {
@@ -316,6 +369,7 @@
       });
     }
     function retry() {
+      f.newAttempt();
       f.answerEl.innerHTML = '';
       f.setStatus(null);
       slots.forEach(function (s) {
@@ -388,7 +442,7 @@
 
     function selfShow() {
       f.selfJudge(fullAnswerNode(), function (ok) {
-        f.setActions([ok ? null : button('もう一度', 'retry', function () { f.answerEl.innerHTML = ''; initialActions(); }), f.hintButton(), f.nextButton()]);
+        f.setActions([ok ? null : button('もう一度', 'retry', function () { f.newAttempt(); f.answerEl.innerHTML = ''; initialActions(); }), f.hintButton(), f.nextButton()]);
       });
     }
 
@@ -412,6 +466,7 @@
     var hintB = f.hintButton();
     function choose(o, b) {
       if (solved) return;
+      f.newAttempt();
       btns.forEach(function (x) { x.classList.remove('ng'); });
       if (String(o) === String(p.a)) {
         solved = true;
@@ -491,6 +546,7 @@
     }
     function check() {
       if (placed.length < items.length) return;
+      f.newAttempt();
       var ok = true, firstBad = -1;
       for (var k = 1; k < placed.length; k++) {
         var a = num(placed[k - 1].v), b = num(placed[k].v);
@@ -683,6 +739,7 @@
       else f.setActions([button('答えを見る', 'primary show', selfShow), hintB, memoB]);
     }
     function retry() {
+      f.newAttempt();
       f.answerEl.innerHTML = '';
       f.setStatus(null);
       initialActions();
@@ -774,7 +831,9 @@
     }
     return {
       root: f && f.root,
-      destroy: function () { container.innerHTML = ''; }
+      pause: function () { if (f && f.pause) f.pause(); },
+      resume: function () { if (f && f.resume) f.resume(); },
+      destroy: function () { if (f && f.dispose) f.dispose(); container.innerHTML = ''; }
     };
   }
 

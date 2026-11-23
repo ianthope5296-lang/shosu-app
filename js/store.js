@@ -45,12 +45,47 @@
   // 記録は問題IDごとに「最新の結果」を持つ。読みまちがいの自己採点などで上書きできる。
   // rec.<key> = { entries: { pid: {correct, method, hints, n, t, at} } }
   //   t = 記録した時刻（ms）、at = 同じ時刻の ISO 文字列（日ごとの履歴用。追加4）、tag = 問題の分類（あれば）
+  // 追加5（おすすめモードの分析用。今までの数え方は変えない）：
+  //   ms = 問題を開いてから最初の「こたえあわせ」までの時間（タブを離れていた時間は引く。30分をこえたら入れない）
+  //   first = 最初の答えで○か、retried = やり直して○になったか、skill = 細かい技能（あれば）
+  //   r.retry === true … 「やり直して○」を知らせるだけ（○×・回数・時刻は変えない）
+  // 「みる」を開いた記録：record('miru', 'lesson-N', {at}) … 'shosu.rec.miru' に {at, t, n, since} だけを残す。
+  //   keys には入れない（記録一覧・ふりかえり・○の数え方に入らないように）。
+  var MS_MAX = 30 * 60 * 1000;
+  function str40(v) { return typeof v === 'string' ? v.slice(0, 40) : ''; }
+  function addExtra(e, r, prev) {
+    var ms = r && typeof r.ms === 'number' && isFinite(r.ms) && r.ms >= 0 && r.ms <= MS_MAX ? Math.round(r.ms) : null;
+    if (ms == null && r && r.ms === undefined && prev && typeof prev.ms === 'number') ms = prev.ms;
+    if (ms != null) e.ms = ms;
+    if (r && typeof r.first === 'boolean') e.first = r.first;
+    else if (prev && typeof prev.first === 'boolean') e.first = prev.first;
+    if ((r && r.retried) || (prev && prev.retried)) e.retried = true;
+    var sk = str40(r && r.skill) || (prev && str40(prev.skill)) || '';
+    if (sk) e.skill = sk;
+  }
+  function recordMiru(pid, r) {
+    var data = getJSON('rec.miru', { entries: {} });
+    if (!data.entries || typeof data.entries !== 'object') data.entries = {};
+    var prev = data.entries[pid];
+    var at = r && typeof r.at === 'string' && !isNaN(Date.parse(r.at)) ? r.at : new Date().toISOString();
+    data.entries[pid] = { at: at, t: Date.parse(at), n: (prev && prev.n ? prev.n : 0) + 1, since: (prev && prev.since) || at };
+    setJSON('rec.miru', data);
+  }
   function record(key, pid, r) {
     if (!key) return;
     pid = String(pid == null ? 'p' + Date.now() : pid);
+    if (key === 'miru') { recordMiru(pid, r); return; }
     var data = getJSON('rec.' + key, { entries: {} });
     if (!data.entries) data.entries = {};
     var prev = data.entries[pid];
+    if (r && r.retry === true) {
+      // やり直して○：前の記録に印をつけるだけ
+      if (!prev) return;
+      prev.retried = true;
+      prev.hints = Math.max(prev.hints || 0, (r && r.hints) || 0);
+      setJSON('rec.' + key, data);
+      return;
+    }
     data.entries[pid] = {
       correct: !!(r && r.correct),
       method: (r && r.method) === 'self' ? 'self' : 'auto',
@@ -61,6 +96,7 @@
     };
     var tag = r && typeof r.tag === 'string' ? r.tag.slice(0, 40) : (prev && prev.tag) || '';
     if (tag) data.entries[pid].tag = tag;
+    addExtra(data.entries[pid], r, prev);
     setJSON('rec.' + key, data);
     var keys = getJSON('keys', []);
     if (keys.indexOf(key) < 0) { keys.push(key); setJSON('keys', keys); }
@@ -84,6 +120,13 @@
   }
 
   function keys() { return getJSON('keys', []).slice(); }
+  // 1問ずつの記録（{pid: {correct, method, hints, n, t, at, tag?, ms?, first?, retried?, skill?}}）のコピー。
+  // 'miru' は {pid('lesson-N'): {at, t, n, since}}。ふりかえり・おすすめの分析用（追加5）
+  function entries(key) {
+    var data = getJSON('rec.' + key, { entries: {} });
+    var e = data && data.entries && typeof data.entries === 'object' ? data.entries : {};
+    return JSON.parse(JSON.stringify(e));
+  }
 
   function resetAll() {
     var ks = keys();
@@ -189,6 +232,7 @@
     record: record,
     stats: stats,
     keys: keys,
+    entries: entries,
     resetAll: resetAll,
     myList: myList,
     mySave: mySave,

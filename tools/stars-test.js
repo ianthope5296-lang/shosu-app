@@ -82,6 +82,14 @@ function giveNormal(n) {
     function () { R('09'); R('10'); }                                                  // reflect-10
   ];
   for (k = 0; k < planSteps.length && c < n; k++) { planSteps[k](); c++; }
+  // おすすめモード（追加5。1ステップで★1こずつ）
+  var recoSteps = [
+    function () { Stars.log('recommend', { finished: true, minutes: 5, total: 6, correct: 3 }); },                  // reco-1
+    function () { Stars.log('recommend', { finished: false, minutes: 5, total: 6, correct: 6, allCorrectWeakSkill: true }); }, // reco-weak
+    function () { Stars.log('recommend', { finished: true, minutes: 5, total: 6, correct: 6, improved: true }); },   // reco-up（さいごまで2回目）
+    function () { Stars.log('recommend', { finished: true, minutes: 10, total: 12, correct: 8 }); }                 // reco-3
+  ];
+  for (k = 0; k < recoSteps.length && c < n; k++) { recoSteps[k](); c++; }
   eq(Stars.summary().normal, n, '★を' + n + 'こそろえる');
 }
 function giveAllKinds() {
@@ -91,7 +99,9 @@ function giveAllKinds() {
 }
 
 /* ---------- カタログと称号 ---------- */
-eq(Stars.CATALOG.filter(function (s) { return s.kind === 'normal'; }).length, 63, 'ふつうの星は63こ');
+eq(Stars.CATALOG.filter(function (s) { return s.kind === 'normal'; }).length, 67, 'ふつうの星は67こ');
+eq(Stars.CATALOG.filter(function (s) { return s.group === 'recommend'; }).length, 4, 'おすすめモード4');
+ok(Stars.CATALOG.filter(function (s) { return s.group === 'recommend'; }).every(function (s) { return s.kind === 'normal'; }), 'おすすめモードはふつうの星');
 eq(Stars.CATALOG.filter(function (s) { return s.group === 'plan'; }).length, 8, '計画・ふりかえり8');
 ok(Stars.CATALOG.filter(function (s) { return s.group === 'plan'; }).every(function (s) { return s.kind === 'normal'; }), '計画・ふりかえりはふつうの星');
 eq(Stars.CATALOG.filter(function (s) { return s.kind === 'special'; }).length, 8, 'とくべつな星は8しゅるい');
@@ -160,7 +170,7 @@ eq(Stars.log('matome', { level: 'normal', minutes: 20, total: 4, correct: 4, fin
 
 /* ---------- 計画・ふりかえり（追加4） ---------- */
 fresh();
-eq(Stars.summary().normalMax, 63, 'normalMax 63');
+eq(Stars.summary().normalMax, 67, 'normalMax 67');
 eq(ids(Stars.log('plan', { date: '2026-11-20' })).join(), 'plan-first', 'はじめて今日の計画');
 eq(Stars.log('plan', { date: '2026-11-21' }).length, 0, '2日目の計画では増えない');
 eq(ids(Stars.log('reflect', { date: '2026-11-20', eval: 'double', planDone: true })).join(), 'reflect-1', 'ふりかえり1回');
@@ -254,7 +264,7 @@ sm = Stars.summary(); eq(sm.next.id, 'sun', '次はサン'); eq(sm.needForNext.n
 fresh(); giveNormal(55); giveAllKinds(); eq(Stars.summary().specialKinds, 8, '✦8しゅるい'); eq(Stars.summary().title.id, 'comet', '★55＋全しゅるいはコメット');
 sm = Stars.summary(); eq(sm.needForNext.normal, 1, 'サンまで★1');
 fresh(); giveNormal(56); giveAllKinds(); eq(Stars.summary().title.id, 'sun', '★56＋全しゅるいはサン');
-sm = Stars.summary(); eq(sm.needForNext.normal, 7, 'ギャラクシーまで★7'); eq(sm.needForNext.specialTotal, 30 - sm.specialTotal, 'ギャラクシーまで✦合計');
+sm = Stars.summary(); eq(sm.needForNext.normal, 11, 'ギャラクシーまで★11'); eq(sm.needForNext.specialTotal, 30 - sm.specialTotal, 'ギャラクシーまで✦合計');
 fresh(); giveNormal(50); giveAllKinds(); eq(Stars.summary().title.id, 'comet', '★50＋全しゅるいは（前とちがい）まだコメット');
 // 問題作りだけで✦合計が多くても、しゅるいがそろわないとサンにならない
 fresh(); giveNormal(56);
@@ -264,11 +274,11 @@ ok(sm.specialTotal >= 8, '問題作りだけで✦合計8以上（' + sm.special
 eq(sm.specialKinds, 3, '問題作りだけでは✦しゅるいは3');
 eq(sm.title.id, 'comet', '問題作りだけではサンにならない');
 // ギャラクシー
-fresh(); giveNormal(62); giveAllKinds();
+fresh(); giveNormal(66); giveAllKinds();
 for (i = 0; i < 20; i++) Stars.log('made', { kind: 'fill', token: 'gy-' + i });
-ok(Stars.summary().specialTotal >= 30, '✦30以上'); eq(Stars.summary().title.id, 'sun', '★62＋全しゅるい＋✦30以上はサン（★ぜんぶではない）');
-fresh(); giveNormal(63); giveAllKinds();
-eq(Stars.summary().title.id, 'sun', '★63＋全しゅるい＋✦合計16はサン');
+ok(Stars.summary().specialTotal >= 30, '✦30以上'); eq(Stars.summary().title.id, 'sun', '★66＋全しゅるい＋✦30以上はサン（★ぜんぶではない）');
+fresh(); giveNormal(67); giveAllKinds();
+eq(Stars.summary().title.id, 'sun', '★67＋全しゅるい＋✦合計16はサン');
 for (i = 0; i < 13; i++) Stars.log('made', { kind: 'fill', token: 'gx-' + i });
 eq(Stars.summary().specialTotal, 29, '✦29'); eq(Stars.summary().title.id, 'sun', '✦29はサン');
 Stars.log('present', { token: 'gx-0' });
@@ -332,6 +342,25 @@ Object.defineProperty(global, 'localStorage', { configurable: true, get: functio
 try { Stars._reload(); Stars.log('present', { token: 'zz' }); ok(Stars.summary().specialTotal >= 1, 'localStorage なしでも動く'); }
 catch (e) { ok(false, 'localStorage なしで落ちた ' + e); }
 Object.defineProperty(global, 'localStorage', { configurable: true, writable: true, value: saveLS });
+
+/* ---------- おすすめモード（追加5） ---------- */
+fresh();
+eq(Stars.log('recommend', { finished: false, minutes: 5, total: 6, correct: 2 }).length, 0, 'とちゅうでやめたら0');
+eq(ids(Stars.log('recommend', { finished: true, minutes: 5, total: 6, correct: 2 })).join(), 'reco-1', 'さいごまで1回');
+eq(Stars.log('recommend', { finished: true, minutes: 5, total: 6, correct: 2 }).length, 0, 'さいごまで2回では増えない');
+eq(Stars._state().reco, 2, 'さいごまでの回数を数える');
+Stars._reload();
+eq(Stars._state().reco, 2, '回数は保存される');
+eq(ids(Stars.log('recommend', { finished: true, minutes: 10, total: 12, correct: 12, allCorrectWeakSkill: true, improved: true })).join(), 'reco-1,reco-3,reco-weak,reco-up'.replace('reco-1,', ''), 'さいごまで3回・にがて全問○・前よりアップ');
+eq(Stars.CATALOG.filter(function (s) { return s.group === 'recommend' && Stars._state().got[s.id]; }).length, 4, 'おすすめの星4こぜんぶ');
+eq(Stars.summary().specialTotal, 0, 'おすすめでは✦はふえない');
+eq(Stars._state().ev.slice(-1)[0][0], 'recommend', '出来事に記録');
+eq(Stars._state().ev.slice(-1)[0][2], '10:12/12:f', '出来事の中身');
+// 前の版の保存データ（reco なし）でも動く・こわれた値は0
+ls.clear(); ls.setItem('shosu.stars', JSON.stringify({ v: 1, got: { 'lesson-1-try': 1 }, reco: 'abc' })); Stars._reload();
+eq(Stars._state().reco, 0, 'こわれた reco は0');
+eq(Stars.evaluate().length, 0, '前の版のデータの evaluate で星はふえない');
+ok(Stars._state().got['lesson-1-try'], '前の版の星は残る');
 
 /* ---------- onChange ---------- */
 fresh();

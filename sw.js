@@ -3,7 +3,7 @@
  * つながらないとき（または応答がおそいとき）だけキャッシュを使う。
  * そのため、ファイルを更新すれば子どもの端末にも自動で新しい版が届く。
  * VERSION はキャッシュのしくみ自体を変えたときだけ上げる。 */
-var VERSION = 'shosu-v6';
+var VERSION = 'shosu-v7';
 var CORE = [
   './',
   './index.html',
@@ -15,6 +15,7 @@ var CORE = [
   './css/stars.css',
   './css/planner.css',
   './css/reflect.css',
+  './css/recommend.css',
   './js/preset.js',
   './model/digit-model.js',
   './js/icons.js',
@@ -29,6 +30,7 @@ var CORE = [
   './js/present.js',
   './js/generators.js',
   './js/matome.js',
+  './js/recommend.js',
   './js/demos/core.js',
   './js/lessons.js',
   './js/maker.js',
