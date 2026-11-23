@@ -62,6 +62,10 @@
     if ((r && r.retried) || (prev && prev.retried)) e.retried = true;
     var sk = str40(r && r.skill) || (prev && str40(prev.skill)) || '';
     if (sk) e.skill = sk;
+    var ty = str40(r && r.type) || (prev && str40(prev.type)) || '';
+    if (ty) e.type = ty;   // 問題の形（fill/choice/order/hissan）
+    var est = r && typeof r.est === 'number' && isFinite(r.est) && r.est > 0 ? Math.round(r.est) : (prev && prev.est) || 0;
+    if (est) e.est = est;  // 目安の時間（秒）
   }
   function recordMiru(pid, r) {
     var data = getJSON('rec.miru', { entries: {} });

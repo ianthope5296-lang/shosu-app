@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<!-- 小数アプリ（1ファイル版） 作成日 2026-11-21 -->
+<!-- 小数アプリ（1ファイル版） 作成日 2026-11-23 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>小数コスモス 〜小数の星を集める旅〜</title>
@@ -1995,6 +1995,101 @@ body:has(.present) .toast { bottom: auto; top: 5.5rem; }
 .rf-muted { color: #9aa3c0; }
 
 </style>
+<style>/* css/recommend.css */
+/* css/recommend.css — おすすめモード（追加5・担当P）。まとめモードの見た目（.mm-*）をもとに、足りないところだけ */
+
+/* ---------- ホームの入口（まとめモードのすぐ上・横いっぱい） ---------- */
+.osusume-entry {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: 1rem; min-height: 112px; padding: 0.8rem 1.4rem;
+  border-radius: 18px; text-decoration: none; color: #fff;
+  background:
+    radial-gradient(1.5px 1.5px at 58% 24%, #fff 60%, transparent), radial-gradient(1px 1px at 82% 72%, #fff 60%, transparent),
+    radial-gradient(1.5px 1.5px at 36% 80%, #c9fff0 60%, transparent),
+    linear-gradient(120deg, #0f4d63 0%, #137a74 50%, #2a9d78 100%);
+  border: 2px solid rgba(255, 211, 77, .75);
+  box-shadow: 0 6px 18px rgba(4, 6, 30, .45), 0 0 22px rgba(80, 230, 190, .3); touch-action: manipulation; transition: transform .1s;
+}
+.osusume-entry:hover { border-color: var(--gold); }
+.osusume-entry:active { transform: scale(0.99); }
+.ic.osusume-entry-icon { width: 72px; height: 72px; flex: none; filter: drop-shadow(0 0 8px rgba(159, 240, 216, .55)); }
+
+/* ---------- 選ぶ画面 ---------- */
+.osu-profile { margin: 0.4rem 0 0.2rem; padding: 0.6rem 1rem 0.8rem; border-radius: 14px; background: #f4fbf8; border: 2px solid #bfe6d8; }
+.osu-profile .mm-h { margin-top: 0.2rem; }
+.osu-prof-row { display: flex; align-items: center; gap: 0.8rem; padding: 0.25rem 0; flex-wrap: wrap; }
+.osu-prof-label { flex: none; min-width: 4.5em; text-align: center; font-weight: bold; border-radius: 999px; padding: 0.15em 0.8em; color: #fff; }
+.osu-prof-row.weak .osu-prof-label { background: #d27a2c; }
+.osu-prof-row.strong .osu-prof-label { background: #2f8f6a; }
+.osu-prof-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.osu-prof-none { color: var(--ink-soft); }
+.osu-chip { display: inline-block; background: #fff; border: 2px solid #9fd8c4; border-radius: 999px; padding: 0.1em 0.8em; font-weight: bold; color: #1d5546; }
+.osu-prof-row.weak .osu-chip { border-color: #f0b98a; color: #8a4512; }
+.mm-choices.osu-times { grid-template-columns: repeat(3, 1fr); }
+.osu-times .btn.mm-choice { min-height: 84px; }
+.osu-times .mm-choice-t { font-size: 1.7rem; }
+.osu-mix { margin-top: 1rem; display: grid; gap: 0.6rem; }
+.osu-mix-row { display: grid; grid-template-columns: 12em 1fr; align-items: center; gap: 0.8rem; }
+@media (max-width: 700px) { .osu-mix-row { grid-template-columns: 1fr; } }
+.osu-mix-title { display: flex; flex-direction: column; }
+.osu-mix-name { font-size: 1.2rem; font-weight: bold; }
+.osu-mix-note { font-size: 0.85rem; color: var(--ink-soft); }
+.osu-mix-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
+.btn.osu-mix-btn { min-height: 56px; font-size: 1.15rem; font-weight: bold; }
+.btn.osu-mix-btn.on { background: linear-gradient(135deg, #137a74, #2a9d78); border-color: #137a74; color: #fff; box-shadow: 0 0 0 4px rgba(255, 211, 77, .65); }
+
+/* ---------- 始める前（今日のおすすめ） ---------- */
+.osu-preview { text-align: center; }
+.osu-today { display: inline-flex; align-items: center; gap: 0.6rem; }
+.ic.osu-today-icon { width: 56px; height: 56px; }
+.osu-today-label { font-size: 1.5rem; font-weight: bold; color: #137a74; }
+.osu-summary { font-size: 1.45rem; font-weight: bold; line-height: 1.6; margin: 0.6rem auto; max-width: 46em; background: #f4fbf8; border: 2px solid #bfe6d8; border-radius: 14px; padding: 0.8rem 1.2rem; }
+.osu-preview-meta { color: var(--ink-soft); font-size: 1.05rem; margin: 0.2rem 0 0; }
+.osu-preview-row { gap: 1rem; flex-wrap: wrap; }
+.btn.osu-back { min-height: 76px; min-width: 200px; font-size: 1.2rem; }
+
+/* ---------- 解く画面：「みる」の案内 ---------- */
+.osu-suggest {
+  display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0.6rem 1rem;
+  margin: 0 0 0.8rem; padding: 0.6rem 1rem; border-radius: 14px;
+  background: #fff8e1; color: var(--ink); border: 2px solid #f0b400; box-shadow: 0 4px 14px rgba(4, 6, 30, .3);
+}
+.osu-suggest[hidden] { display: none; }
+.osu-suggest-text { font-weight: bold; font-size: 1.1rem; }
+.btn.osu-suggest-btn { min-height: 56px; font-size: 1.15rem; }
+
+/* 「みる」を重ねて開く */
+.osu-miru-back { position: fixed; inset: 0; z-index: 95; background: rgba(8, 10, 40, .72); display: flex; align-items: stretch; justify-content: center; padding: 2vh 2vw; }
+.osu-miru {
+  background: var(--card, #fff); color: var(--ink); border-radius: 18px; width: 100%; max-width: 1280px;
+  display: flex; flex-direction: column; overflow: auto; padding: 0.8rem 1.2rem 1.2rem;
+  border: 2px solid rgba(255, 211, 77, .8); box-shadow: 0 10px 30px rgba(0, 0, 0, .4);
+}
+.osu-miru-head { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; padding-bottom: 0.6rem; border-bottom: 2px solid var(--line, #e3e6ef); margin-bottom: 0.6rem; position: sticky; top: -0.8rem; background: inherit; z-index: 1; }
+.osu-miru-title { display: flex; flex-direction: column; margin-right: auto; }
+.osu-miru-no { font-size: 1.4rem; font-weight: bold; }
+.osu-miru-name { color: var(--ink-soft); }
+.osu-miru-pause { font-size: 0.95rem; background: #eef6ff; border-radius: 999px; padding: 0.2em 0.9em; color: #2a4a7a; }
+.btn.osu-miru-close { min-height: 60px; font-size: 1.2rem; }
+html.osu-miru-open { overflow: hidden; }
+
+/* ---------- 結果とアドバイス ---------- */
+.osu-compare { margin: 0.6rem auto 0; display: flex; flex-direction: column; gap: 0.3rem; max-width: 40em; }
+.osu-compare-item { background: #eef6ff; border-radius: 12px; padding: 0.4rem 0.9rem; font-weight: bold; color: #24467a; }
+.osu-praise, .osu-improve { text-align: left; margin-top: 0.6rem; }
+.osu-praise-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.8rem; border-radius: 12px; background: #fff8dc; margin-bottom: 0.4rem; font-size: 1.1rem; }
+.ic.osu-praise-icon, .osu-praise-icon .ic { width: 1.5em; height: 1.5em; }
+.osu-imp { border: 2px solid #f0b98a; border-radius: 14px; padding: 0.6rem 0.9rem; margin-bottom: 0.6rem; background: #fffaf4; }
+.osu-imp-text { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; font-size: 1.1rem; }
+.osu-imp .osu-chip { border-color: #f0b98a; color: #8a4512; }
+.osu-imp-acts { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+.btn.osu-act { min-height: 52px; font-size: 1.05rem; }
+.osu-act-plain { display: inline-flex; align-items: center; gap: 0.4em; min-height: 52px; padding: 0 1em; border-radius: 12px; border: 2px dashed #c9b28a; background: #fff; font-weight: bold; }
+.osu-act .ic { width: 1.3em; height: 1.3em; }
+.osu-next { display: flex; align-items: center; justify-content: center; gap: 0.6rem; margin: 0.8rem auto 0; padding: 0.6rem 1rem; border-radius: 14px; background: #f4fbf8; border: 2px solid #bfe6d8; font-size: 1.15rem; font-weight: bold; color: #1d5546; max-width: 44em; }
+.ic.osu-next-icon, .osu-next-icon .ic { width: 1.8em; height: 1.8em; }
+
+</style>
 </head>
 <body>
 <div id="app" aria-live="polite"></div>
@@ -2300,12 +2395,51 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
   // 記録は問題IDごとに「最新の結果」を持つ。読みまちがいの自己採点などで上書きできる。
   // rec.<key> = { entries: { pid: {correct, method, hints, n, t, at} } }
   //   t = 記録した時刻（ms）、at = 同じ時刻の ISO 文字列（日ごとの履歴用。追加4）、tag = 問題の分類（あれば）
+  // 追加5（おすすめモードの分析用。今までの数え方は変えない）：
+  //   ms = 問題を開いてから最初の「こたえあわせ」までの時間（タブを離れていた時間は引く。30分をこえたら入れない）
+  //   first = 最初の答えで○か、retried = やり直して○になったか、skill = 細かい技能（あれば）
+  //   r.retry === true … 「やり直して○」を知らせるだけ（○×・回数・時刻は変えない）
+  // 「みる」を開いた記録：record('miru', 'lesson-N', {at}) … 'shosu.rec.miru' に {at, t, n, since} だけを残す。
+  //   keys には入れない（記録一覧・ふりかえり・○の数え方に入らないように）。
+  var MS_MAX = 30 * 60 * 1000;
+  function str40(v) { return typeof v === 'string' ? v.slice(0, 40) : ''; }
+  function addExtra(e, r, prev) {
+    var ms = r && typeof r.ms === 'number' && isFinite(r.ms) && r.ms >= 0 && r.ms <= MS_MAX ? Math.round(r.ms) : null;
+    if (ms == null && r && r.ms === undefined && prev && typeof prev.ms === 'number') ms = prev.ms;
+    if (ms != null) e.ms = ms;
+    if (r && typeof r.first === 'boolean') e.first = r.first;
+    else if (prev && typeof prev.first === 'boolean') e.first = prev.first;
+    if ((r && r.retried) || (prev && prev.retried)) e.retried = true;
+    var sk = str40(r && r.skill) || (prev && str40(prev.skill)) || '';
+    if (sk) e.skill = sk;
+    var ty = str40(r && r.type) || (prev && str40(prev.type)) || '';
+    if (ty) e.type = ty;   // 問題の形（fill/choice/order/hissan）
+    var est = r && typeof r.est === 'number' && isFinite(r.est) && r.est > 0 ? Math.round(r.est) : (prev && prev.est) || 0;
+    if (est) e.est = est;  // 目安の時間（秒）
+  }
+  function recordMiru(pid, r) {
+    var data = getJSON('rec.miru', { entries: {} });
+    if (!data.entries || typeof data.entries !== 'object') data.entries = {};
+    var prev = data.entries[pid];
+    var at = r && typeof r.at === 'string' && !isNaN(Date.parse(r.at)) ? r.at : new Date().toISOString();
+    data.entries[pid] = { at: at, t: Date.parse(at), n: (prev && prev.n ? prev.n : 0) + 1, since: (prev && prev.since) || at };
+    setJSON('rec.miru', data);
+  }
   function record(key, pid, r) {
     if (!key) return;
     pid = String(pid == null ? 'p' + Date.now() : pid);
+    if (key === 'miru') { recordMiru(pid, r); return; }
     var data = getJSON('rec.' + key, { entries: {} });
     if (!data.entries) data.entries = {};
     var prev = data.entries[pid];
+    if (r && r.retry === true) {
+      // やり直して○：前の記録に印をつけるだけ
+      if (!prev) return;
+      prev.retried = true;
+      prev.hints = Math.max(prev.hints || 0, (r && r.hints) || 0);
+      setJSON('rec.' + key, data);
+      return;
+    }
     data.entries[pid] = {
       correct: !!(r && r.correct),
       method: (r && r.method) === 'self' ? 'self' : 'auto',
@@ -2316,6 +2450,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     };
     var tag = r && typeof r.tag === 'string' ? r.tag.slice(0, 40) : (prev && prev.tag) || '';
     if (tag) data.entries[pid].tag = tag;
+    addExtra(data.entries[pid], r, prev);
     setJSON('rec.' + key, data);
     var keys = getJSON('keys', []);
     if (keys.indexOf(key) < 0) { keys.push(key); setJSON('keys', keys); }
@@ -2339,6 +2474,13 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
   }
 
   function keys() { return getJSON('keys', []).slice(); }
+  // 1問ずつの記録（{pid: {correct, method, hints, n, t, at, tag?, ms?, first?, retried?, skill?}}）のコピー。
+  // 'miru' は {pid('lesson-N'): {at, t, n, since}}。ふりかえり・おすすめの分析用（追加5）
+  function entries(key) {
+    var data = getJSON('rec.' + key, { entries: {} });
+    var e = data && data.entries && typeof data.entries === 'object' ? data.entries : {};
+    return JSON.parse(JSON.stringify(e));
+  }
 
   function resetAll() {
     var ks = keys();
@@ -2444,6 +2586,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     record: record,
     stats: stats,
     keys: keys,
+    entries: entries,
     resetAll: resetAll,
     myList: myList,
     mySave: mySave,
@@ -2544,7 +2687,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
  *   { v:1, got:{星id: もらった時刻ms}, made:{tokenハッシュ: kind}, friend:{tokenハッシュ: {c:0|1, a:authorKeyハッシュ}},
  *     present:{tokenハッシュ:1}, more:もっとれんしゅう○の数(記録したぶん), title:いまの称号id, ev:[出来事の記録(新しい100こ)],
  *     plan:{日付:1}（今日の計画を立てた日）, refl:{日付: 1=めあて◎ | 2=計画どおり | 4=前回のTをやった}（ふりかえりを書いた日）,
- *     road:{goalIdハッシュ:1}（地図をやりきったゴール） }
+ *     road:{goalIdハッシュ:1}（地図をやりきったゴール）, reco:おすすめモードをさいごまでやった回数（追加5） }
  * token は長い（最大6000字）ので、ハッシュにしてから保存する。
  * classic script。Node でも require できる（DOM を使う部分は呼ばなければ動かない）。
  */
@@ -2619,6 +2762,15 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     }
     add({ id: 'reflect-double3', kind: 'normal', group: 'plan', sub: 'reflect', label: 'めあてが◎の日が3日', short: 'めあて◎ 3日',
       how: 'ふりかえりで、めあてを◎（よくできた）と言える日を3日つくろう' });
+    // おすすめモード（追加5）4こ
+    add({ id: 'reco-1', kind: 'normal', group: 'recommend', sub: 'finish', label: 'おすすめモードを さいごまで 1回', short: 'さいごまで1回',
+      how: 'おすすめモードを、さいごの問題までやろう' });
+    add({ id: 'reco-3', kind: 'normal', group: 'recommend', sub: 'finish', label: 'おすすめモードを さいごまで 3回', short: 'さいごまで3回',
+      how: 'おすすめモードを、さいごの問題まで あわせて3回やろう' });
+    add({ id: 'reco-weak', kind: 'normal', group: 'recommend', sub: 'good', label: 'にがてだった技能で 全問○', short: 'にがてを全問○',
+      how: 'おすすめモードで、にがてだった技能の問題を、1回の中でぜんぶ○にしよう' });
+    add({ id: 'reco-up', kind: 'normal', group: 'recommend', sub: 'good', label: '前の回より 正答率も 時間も よくなった', short: '前の回よりアップ',
+      how: 'おすすめモードをさいごまでやって、前の回より 正答率も 1問の時間も よくしよう' });
     // とくべつな星 8しゅるい
     add({ id: 'sp-make1', kind: 'special', group: 'make', label: 'はじめて問題を作った', short: 'はじめての問題',
       how: '「もんだいをつくる」で問題を作って、ほぞんするか、ともだちに送ろう' });
@@ -2639,7 +2791,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
   })();
   var BY_ID = {};
   CATALOG.forEach(function (s) { BY_ID[s.id] = s; });
-  var NORMAL_MAX = CATALOG.filter(function (s) { return s.kind === 'normal'; }).length;   // 63
+  var NORMAL_MAX = CATALOG.filter(function (s) { return s.kind === 'normal'; }).length;   // 67
   var SPECIAL_MAX = CATALOG.filter(function (s) { return s.kind === 'special'; }).length; // 8
 
   /* ---------- 自前のSVG（絵文字は使わない） ---------- */
@@ -2735,7 +2887,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       return ls;
     } catch (e) { return null; }
   }
-  function blank() { return { v: 1, got: {}, made: {}, friend: {}, present: {}, more: 0, title: 'earth', ev: [], plan: {}, refl: {}, road: {}, fresh: true }; }
+  function blank() { return { v: 1, got: {}, made: {}, friend: {}, present: {}, more: 0, title: 'earth', ev: [], plan: {}, refl: {}, road: {}, reco: 0, fresh: true }; }
   function isObj(o) { return !!o && typeof o === 'object' && !Array.isArray(o); }
   function sanitize(d) {
     var s = blank();
@@ -2750,6 +2902,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     if (isObj(d.refl)) for (k in d.refl) if (DATE_RE.test(k)) { var fl = Number(d.refl[k]); s.refl[k] = isFinite(fl) ? (fl & 7) : 0; }
     if (isObj(d.road)) for (k in d.road) s.road[k] = 1;
     var m = Number(d.more); s.more = isFinite(m) && m > 0 ? Math.floor(m) : 0;
+    var rc = Number(d.reco); s.reco = isFinite(rc) && rc > 0 ? Math.floor(rc) : 0;
     s.title = typeof d.title === 'string' && titleIndex(d.title) >= 0 ? d.title : 'earth';
     if (Array.isArray(d.ev)) s.ev = d.ev.filter(function (e) { return Array.isArray(e); }).slice(-100);
     return s;
@@ -2762,7 +2915,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
   }
   function save() {
     var o = { v: 1, got: state.got, made: state.made, friend: state.friend, present: state.present, more: state.more, title: state.title, ev: state.ev,
-      plan: state.plan, refl: state.refl, road: state.road };
+      plan: state.plan, refl: state.refl, road: state.road, reco: state.reco };
     var str;
     for (var tries = 0; tries < 3; tries++) {
       try { str = JSON.stringify(o); } catch (e) { return false; }
@@ -2916,6 +3069,8 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     if (pc.road >= 1) ids.push('plan-roadmap');
     REFLECT_STEPS.forEach(function (n) { if (pc.refl >= n) ids.push('reflect-' + n); });
     if (pc.double >= 3) ids.push('reflect-double3');
+    if (state.reco >= 1) ids.push('reco-1');
+    if (state.reco >= 3) ids.push('reco-3');
     return ids;
   }
   // ids のうち、まだもらっていない星をもらう。カタログの順で返す
@@ -3046,6 +3201,12 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
           info = dateOf(data);
           state.refl[info] = (state.refl[info] || 0) | (data.eval === 'double' ? RF.double : 0) |
             (data.planDone ? RF.planDone : 0) | (data.usedPrevT ? RF.prevT : 0);
+          break;
+        case 'recommend':     // おすすめモードが終わった {finished, minutes, total, correct, allCorrectWeakSkill, improved}
+          if (data.finished) state.reco++;
+          if (data.allCorrectWeakSkill) extra.push('reco-weak');
+          if (data.improved) extra.push('reco-up');
+          info = (Number(data.minutes) || 0) + ':' + (Number(data.correct) || 0) + '/' + (Number(data.total) || 0) + (data.finished ? ':f' : '');
           break;
         case 'roadmapDone':   // ゴールまでの地図をやりきった {goalId}
           state.road[hash(data.goalId != null && data.goalId !== '' ? data.goalId : 'goal')] = 1;
@@ -3370,6 +3531,11 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       sec = section('計画・ふりかえり', group('plan'), '「じぶんで計画」で今日の計画を立てて、学習のあとにふりかえりを書くと星がもらえるよ。いま ふりかえり ' + pc.refl + '回。');
       sec.appendChild(rowOf('今日の計画', group('plan').filter(function (s) { return s.sub === 'plan'; })));
       sec.appendChild(rowOf('ふりかえり', group('plan').filter(function (s) { return s.sub === 'reflect'; })));
+      wrap.appendChild(sec);
+      // おすすめモード
+      sec = section('おすすめモード', group('recommend'), 'きみに合わせた問題が出るよ。さいごまでやったり、にがてを全問○にしたりすると星がもらえるよ。いま さいごまで ' + state.reco + '回。');
+      sec.appendChild(rowOf('さいごまで', group('recommend').filter(function (s) { return s.sub === 'finish'; })));
+      sec.appendChild(rowOf('できるようになった', group('recommend').filter(function (s) { return s.sub === 'good'; })));
       wrap.appendChild(sec);
       // とくべつな星
       var spAll = CATALOG.filter(function (s) { return s.kind === 'special'; });
@@ -5174,6 +5340,11 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
  *   r = { correct, method:'auto'|'self', hints }
  * 1回の表示につき、最初の判定を onResult で知らせる。
  * そのあと「読みまちがい？」で子どもが自己採点したときは、もう一度 onResult を呼ぶ（Store は上書き）。
+ * 追加5：r には ms（表示してから最初の判定までの時間。タブを離れていた時間・pause() の間は引く。30分をこえたら null）、
+ *   first（最初の答えで○か。最初の答えの「読みまちがい？」の直しは反映）、retried（やり直して○になったか）も入る。
+ *   opts.reportRetry が true なら、×のあとやり直して○になったときにも onResult({..., retry:true, retried:true}) を呼ぶ
+ *   （このときの correct は前に知らせた結果のまま。記録の○×は変えない）。
+ * 戻り値の pause()/resume() で、時間の計測を止められる（おすすめモードで「みる」を重ねて開いている間など）。
  */
 (function (S) {
   'use strict';
@@ -5199,6 +5370,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
   function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
   function num(s) { var v = parseFloat(String(s).replace(/[^\d.\-]/g, '')); return isFinite(v) ? v : NaN; }
   function numEq(a, b) { var x = num(a), y = num(b); return isFinite(x) && isFinite(y) && Math.abs(x - y) < 1e-9; }
+  var MS_MAX = 30 * 60 * 1000; // 30分をこえるもの（放置）は時間を記録しない
   function settings() { return (S.Store && S.Store.getSettings) ? S.Store.getSettings() : { checkMode: 'auto', bigText: false }; }
   function recognizerReady() {
     try { return !!(S.Recognizer && S.Recognizer.recognize && (!S.Recognizer.isReady || S.Recognizer.isReady())); }
@@ -5261,8 +5433,34 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       wantedAuto: st.checkMode !== 'self',
       hintsUsed: 0,
       reported: false,
-      finished: false
+      finished: false,
+      attempt: 0,          // 何回目の答えか（0 = 最初の答え。やり直すと増える）
+      firstOk: undefined,  // 最初の答えで○か
+      retried: false,      // やり直して○になったか
+      ms: null
     };
+    /* 表示してから最初の判定までの時間（タブを離れていた時間・止めていた時間は引く） */
+    var shownAt = Date.now(), awayMs = 0, awayAt = 0, awayN = 0, clockOn = true;
+    function awayStart() { if (awayN++ === 0) awayAt = Date.now(); }
+    function awayEnd() { if (awayN > 0 && --awayN === 0) { awayMs += Date.now() - awayAt; awayAt = 0; } }
+    var hidden = false;
+    function onVis() {
+      var hd = typeof document !== 'undefined' && document.visibilityState === 'hidden';
+      if (hd && !hidden) { hidden = true; awayStart(); }
+      else if (!hd && hidden) { hidden = false; awayEnd(); }
+    }
+    onVis();
+    document.addEventListener('visibilitychange', onVis);
+    var paused = false;
+    f.pause = function () { if (!paused) { paused = true; awayStart(); } };
+    f.resume = function () { if (paused) { paused = false; awayEnd(); } };
+    f.elapsedMs = function () { var now = Date.now(); return now - shownAt - awayMs - (awayN > 0 ? now - awayAt : 0); };
+    f.dispose = function () {
+      if (!clockOn) return;
+      clockOn = false;
+      document.removeEventListener('visibilitychange', onVis);
+    };
+    f.newAttempt = function () { if (f.firstOk !== undefined) f.attempt++; };
     var root = h('div', 'problem p-' + type);
     var markEl = h('div', 'p-mark');
     root.appendChild(markEl);
@@ -5355,10 +5553,31 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       markEl.textContent = '';
     };
     f.report = function (correct, method, override) {
-      if (f.reported && !override) return;
+      correct = !!correct;
+      var retriedNow = false;
+      if (f.firstOk === undefined) {
+        f.firstOk = correct;
+        var ms = f.elapsedMs();
+        f.ms = ms >= 0 && ms <= MS_MAX ? Math.round(ms) : null;
+        f.dispose();
+      } else if (f.attempt === 0) {
+        if (override) f.firstOk = correct; // 最初の答えの「読みまちがい？」の直し
+      } else if (correct && !f.firstOk && !f.retried) {
+        f.retried = true;
+        retriedNow = true;
+      }
+      var r = { correct: correct, method: method, hints: f.hintsUsed, ms: f.ms, first: f.firstOk, retried: f.retried };
+      if (f.reported && !override) {
+        if (retriedNow && opts.reportRetry && opts.onResult) {
+          r.correct = f.lastCorrect; r.method = f.lastMethod; r.retry = true;
+          try { opts.onResult(r); } catch (e) { console.error(e); }
+        }
+        return;
+      }
       f.reported = true;
+      f.lastCorrect = correct; f.lastMethod = method;
       if (opts.onResult) {
-        try { opts.onResult({ correct: !!correct, method: method, hints: f.hintsUsed }); } catch (e) { console.error(e); }
+        try { opts.onResult(r); } catch (e) { console.error(e); }
       }
     };
     f.showExplain = function () {
@@ -5487,6 +5706,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       });
     }
     function retry() {
+      f.newAttempt();
       f.answerEl.innerHTML = '';
       f.setStatus(null);
       slots.forEach(function (s) {
@@ -5559,7 +5779,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
 
     function selfShow() {
       f.selfJudge(fullAnswerNode(), function (ok) {
-        f.setActions([ok ? null : button('もう一度', 'retry', function () { f.answerEl.innerHTML = ''; initialActions(); }), f.hintButton(), f.nextButton()]);
+        f.setActions([ok ? null : button('もう一度', 'retry', function () { f.newAttempt(); f.answerEl.innerHTML = ''; initialActions(); }), f.hintButton(), f.nextButton()]);
       });
     }
 
@@ -5583,6 +5803,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     var hintB = f.hintButton();
     function choose(o, b) {
       if (solved) return;
+      f.newAttempt();
       btns.forEach(function (x) { x.classList.remove('ng'); });
       if (String(o) === String(p.a)) {
         solved = true;
@@ -5662,6 +5883,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     }
     function check() {
       if (placed.length < items.length) return;
+      f.newAttempt();
       var ok = true, firstBad = -1;
       for (var k = 1; k < placed.length; k++) {
         var a = num(placed[k - 1].v), b = num(placed[k].v);
@@ -5854,6 +6076,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       else f.setActions([button('答えを見る', 'primary show', selfShow), hintB, memoB]);
     }
     function retry() {
+      f.newAttempt();
       f.answerEl.innerHTML = '';
       f.setStatus(null);
       initialActions();
@@ -5945,7 +6168,9 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     }
     return {
       root: f && f.root,
-      destroy: function () { container.innerHTML = ''; }
+      pause: function () { if (f && f.pause) f.pause(); },
+      resume: function () { if (f && f.resume) f.resume(); },
+      destroy: function () { if (f && f.dispose) f.dispose(); container.innerHTML = ''; }
     };
   }
 
@@ -6476,6 +6701,8 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
  * Shosu.Generators.make(name, rng?, {level:'easy'|'normal'|'hard'}?) -> problem
  *   level を省略（または 'normal'）すると今までと同じ問題（教科書レベル）。
  * Shosu.Generators.names()
+ * Shosu.Generators.make(name, rng, {level, skill}) / skillOf(problem) / skillIds() / skillGens(skill)
+ *   細かい技能（おすすめモード用。担当O）。下の「細かい技能」を見よ。
  * 小数の計算は、浮動小数の誤差をさけるため整数（100倍・1000倍）で行い、文字列にする。
  * 生成した問題には src（再検証用の元データ）を付ける。
  */
@@ -7892,16 +8119,215 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     return wordProblem('wordSub', lv, sc, [fmt(a, 2), fmt(b, 2)], '-');
   }
 
+  // =====================================================================
+  // 細かい技能（おすすめモード用。担当O）
+  //   skillOf(problem) -> 技能id … 問題の中身（数・図・文）から判定する。教科書の問題（src なし）にも使える。
+  //   make(name, rng, {level, skill}) … その技能になる問題だけを作る（同じ生成器で作って、合うものを選ぶ）。
+  //     そのレベルで作れない技能（かんたんの「くり上がりあり」など）は、ふつう → もう1つのレベル の順で作る。
+  //     作った問題の src.skill に技能id、src.lv に実際のレベル（ふつうは無し）が入る。
+  //   skill を省略したときは、今までと同じ問題（乱数の使い方も同じ）。
+  // =====================================================================
+  var SKILL_GENS = {
+    'rep-001': ['masuRead'], 'rep-0001': ['masuRead'], 'kui': ['masuRead', 'compose', 'decompose'],
+    'unit-m': ['unitConvert'], 'unit-k': ['unitConvert'], 'numberline': ['numberlineRead'],
+    'place-name': ['decompose'], 'compose': ['compose', 'decompose'], 'count-units': ['countUnits'],
+    'cmp-two': ['compare'], 'cmp-digits': ['compare'], 'order': ['order'],
+    'times10': ['times10'], 'times100': ['times10'], 'div10': ['times10'],
+    'add-nocarry': ['hissanAdd'], 'add-carry': ['hissanAdd'], 'add-mis': ['hissanAdd'], 'add-trail0': ['hissanAdd'],
+    'sub-noborrow': ['hissanSub'], 'sub-borrow': ['hissanSub'], 'sub-multi': ['hissanSub'], 'sub-int': ['hissanSub'],
+    'laws': ['laws']
+  };
+  var ADD_RANK = ['add-nocarry', 'add-carry', 'add-trail0', 'add-mis'];
+  var SUB_RANK = ['sub-noborrow', 'sub-borrow', 'sub-multi', 'sub-int'];
+
+  function textOf(p) {
+    var t = typeof p.q === 'string' ? p.q : '';
+    (p.parts || []).forEach(function (x) { if (typeof x === 'string') t += x; });
+    return t;
+  }
+  function slotsOf(p) {
+    return (p.parts || []).filter(function (x) { return x && typeof x === 'object' && x.a != null; }).map(function (x) { return String(x.a); });
+  }
+  // 小数部分に「0の位」（左右に0でない数字がある0）があるか。1.02、7.305 など
+  function hasKui(str) {
+    str = String(str);
+    var m = /^(\d+)(?:\.(\d+))?$/.exec(str);
+    if (!m || !m[2]) return false;
+    var ip = m[1].replace(/^0+/, ''), fp = m[2];
+    for (var i = 0; i < fp.length; i++) {
+      if (fp[i] !== '0') continue;
+      var left = ip + fp.slice(0, i), right = fp.slice(i + 1);
+      if (/[1-9]/.test(left) && /[1-9]/.test(right)) return true;
+    }
+    return false;
+  }
+  // 2つの数の筆算の技能（a, b は小数の文字列）
+  function hissanSkill(op, a, b) {
+    var e = Math.max(decimals(a), decimals(b));
+    var A = parse(a, e), B = parse(b, e);
+    if (op === '+') {
+      if (decimals(a) !== decimals(b)) return 'add-mis';
+      if (e > 0 && (A + B) % 10 === 0) return 'add-trail0';
+      return carryCount(A, B) ? 'add-carry' : 'add-nocarry';
+    }
+    if (decimals(a) === 0 && decimals(b) > 0) return 'sub-int';
+    if (A < B) return 'sub-borrow';
+    var k = borrowCount(A, B);
+    return k === 0 ? 'sub-noborrow' : k === 1 ? 'sub-borrow' : 'sub-multi';
+  }
+  // いくつかの数を順に計算して、いちばんむずかしい技能を返す（3つの数のたし算・文章題）
+  function chainSkill(op, nums) {
+    var rank = op === '+' ? ADD_RANK : SUB_RANK, best = -1, acc = nums[0];
+    for (var i = 1; i < nums.length; i++) {
+      var sk = hissanSkill(op, acc, nums[i]);
+      best = Math.max(best, rank.indexOf(sk));
+      var e = Math.max(decimals(acc), decimals(nums[i]));
+      var v = op === '+' ? parse(acc, e) + parse(nums[i], e) : parse(acc, e) - parse(nums[i], e);
+      if (v < 0) break;
+      acc = fmt(v, e);
+    }
+    return rank[Math.max(0, best)];
+  }
+  var SMALL_UNIT = { cm: 100, mm: 1000, g: 1000, mL: 1000 };
+  // 文章の数（単位つき）を取り出す。大きい単位の数とまざっていれば、小さい単位（cm・g・mL）をそろえる
+  function wordNums(text) {
+    var re = /(\d+(?:\.\d+)?)(km|kg|mL|mm|cm|dL|m|g|L)?/g, m, out = [];
+    while ((m = re.exec(text))) out.push([m[1], m[2] || '']);
+    var hasBig = out.some(function (x) { return x[1] === 'm' || x[1] === 'kg' || x[1] === 'L'; });
+    return out.map(function (x) {
+      if (hasBig && SMALL_UNIT[x[1]]) return fmt(Math.round(parse(x[0], 3) / SMALL_UNIT[x[1]]), 3);
+      return x[0];
+    });
+  }
+  function exprNums(expr, op) { // src.expr '2.15-85/100' など
+    return String(expr).split(op).map(function (t) {
+      var m = /^([\d.]+)\/(\d+)$/.exec(t);
+      if (!m) return t;
+      return fmt(Math.round(parse(m[1], 3) / parseInt(m[2], 10)), 3);
+    });
+  }
+  function unitSkill(units) {
+    for (var i = 0; i < units.length; i++) if (/^(km|kg|mm|mL|g)$/.test(units[i])) return 'unit-k';
+    return 'unit-m';
+  }
+  function masuSkill(f) {
+    var v = fmt((f.L || 0) * 1000 + (f.d1 || 0) * 100 + (f.d2 || 0) * 10 + (f.level === 3 ? f.d3 || 0 : 0), 3);
+    if (hasKui(v)) return 'kui';
+    return f.level === 3 ? 'rep-0001' : 'rep-001';
+  }
+  function cmpSkill(q) {
+    var m = /([\d.]+) □ ([\d.]+)$/.exec(q || '');
+    if (!m) return 'cmp-digits';
+    return decimals(m[1]) === decimals(m[2]) ? 'cmp-two' : 'cmp-digits';
+  }
+  function jubaiSkill(t) {
+    if (/(100|1000)倍/.test(t)) return 'times100';
+    if (/1\/10/.test(t)) return 'div10';
+    return 'times10';
+  }
+  function composeSkill(p) {
+    var x = /^([\d.]+)は、/.exec(String((p.parts || [])[0] || ''));
+    var num = x ? x[1] : slotsOf(p)[0];
+    if (/^[\d.]+は、\d+と$/.test(p.parts && p.parts[0] || '')) return 'compose'; // 2.81は、2と□
+    return num && hasKui(num) ? 'kui' : 'compose';
+  }
+  function maxDecimals(t) {
+    var m = t.match(/\d+(?:\.\d+)?/g) || [];
+    return m.reduce(function (a, s) { return Math.max(a, decimals(s)); }, 0);
+  }
+
+  function skillOf(p) {
+    if (!p || typeof p !== 'object') return null;
+    var src = p.src || {}, gen = src.gen, t = textOf(p);
+    if (p.type === 'hissan' && p.a != null && p.b != null) {
+      try { return hissanSkill(p.op === '-' ? '-' : '+', String(p.a), String(p.b)); } catch (e) { return p.op === '-' ? 'sub-borrow' : 'add-carry'; }
+    }
+    switch (gen) {
+      case 'masuRead': return masuSkill(p.fig || src);
+      case 'unitConvert': return unitSkill((src.from || []).map(function (f) { return f[1]; }).concat([src.to]));
+      case 'numberlineRead': return 'numberline';
+      case 'compose': return composeSkill(p);
+      case 'decompose': return p.type === 'choice' || src.kind === 'digit' ? 'place-name' : composeSkill(p);
+      case 'countUnits': return 'count-units';
+      case 'compare': return cmpSkill(p.q);
+      case 'order': return 'order';
+      case 'times10': return jubaiSkill(t);
+      case 'laws': return 'laws';
+      case 'threeSum': try { return chainSkill('+', src.nums); } catch (e) { return 'add-carry'; }
+      case 'wordAdd': try { return chainSkill('+', exprNums(src.expr, '+')); } catch (e) { return 'add-carry'; }
+      case 'wordSub': try { return chainSkill('-', exprNums(src.expr, '-')); } catch (e) { return 'sub-borrow'; }
+    }
+    // 教科書の問題など（src なし）：tag と中身から
+    var tag = p.tag;
+    if (p.fig && p.fig.kind === 'masu') return masuSkill(p.fig);
+    if (p.fig && p.fig.kind === 'numberline' && (tag === 'hyoshikata' || tag === 'daisho' || !tag)) return 'numberline';
+    switch (tag) {
+      case 'hyoshikata': {
+        if (/こ集め/.test(t)) return maxDecimals(t) >= 3 ? 'rep-0001' : 'rep-001';
+        if (p.type === 'choice' && /読み方/.test(t)) return maxDecimals(t) >= 3 ? 'rep-0001' : 'rep-001';
+        var units = [], re = /\d(km|kg|mL|mm|cm|dL|m|g|L)/g, m;
+        while ((m = re.exec(t))) units.push(m[1]);
+        (p.parts || []).forEach(function (x) { if (typeof x === 'string' && /^(km|kg|mL|mm|cm|dL|m|g|L)$/.test(x)) units.push(x); });
+        if (/何(km|kg|mL|mm|cm|dL|m|g|L)/.test(t)) units.push(/何(km|kg|mL|mm|cm|dL|m|g|L)/.exec(t)[1]);
+        if (units.length) return unitSkill(units);
+        return 'rep-001';
+      }
+      case 'shikumi':
+        if (/こ集め/.test(t) || /倍です|1\/です/.test(t)) return 'count-units'; // 0.01を何こ集めた数・1は0.01の100倍
+        if (/の位/.test(t)) return 'place-name';
+        return composeSkill(p);
+      case 'daisho':
+        if (p.type === 'order') return 'order';
+        if (p.type === 'choice') return cmpSkill(p.q);
+        return 'order';
+      case 'jubai': return jubaiSkill(t);
+      case 'tashizan': case 'hikizan': {
+        var op = tag === 'tashizan' ? '+' : '-';
+        var ex = /(\d+(?:\.\d+)?)\s*[＋+]\s*(\d+(?:\.\d+)?)/.exec(t);
+        if (op === '+' && ex) { try { return hissanSkill('+', ex[1], ex[2]); } catch (e) { /* 下へ */ } }
+        var ns = wordNums(typeof p.q === 'string' ? p.q : t);
+        if (ns.length >= 2 && ns.length <= 3) { try { return chainSkill(op, ns); } catch (e) { /* 下へ */ } }
+        return op === '+' ? 'add-carry' : 'sub-borrow';
+      }
+      case 'kimari': return 'laws';
+    }
+    if (p.type === 'order') return 'order';
+    return null;
+  }
+
+  function makeSkill(name, r, lv, skill) {
+    var list = SKILL_GENS[skill];
+    if (!list) throw new Error('unknown skill: ' + skill);
+    if (list.indexOf(name) < 0) throw new Error('skill ' + skill + ' は ' + name + ' では作れません');
+    var order = lv === 'easy' ? ['easy', 'normal', 'hard'] : lv === 'hard' ? ['hard', 'normal', 'easy'] : ['normal', 'easy', 'hard'];
+    var last = null;
+    for (var k = 0; k < order.length; k++) {
+      var L = order[k];
+      for (var t = 0; t < 400; t++) {
+        var p = L !== 'normal' && LV[L][name] ? LV[L][name](r) : gens[name](r);
+        last = p;
+        if (skillOf(p) === skill) {
+          if (p.fig === undefined) delete p.fig;
+          p.src.skill = skill;
+          return p;
+        }
+      }
+    }
+    if (last && last.fig === undefined) delete last.fig;
+    return last;
+  }
+
   var NAMES = ['masuRead', 'unitConvert', 'compose', 'decompose', 'countUnits',
     'compare', 'order', 'times10', 'numberlineRead', 'hissanAdd', 'hissanSub', 'laws',
     'threeSum', 'wordAdd', 'wordSub'];
   var LEVELS = ['easy', 'normal', 'hard'];
 
-  // make(name, rng?, {level}?)  level 省略・'normal' は今までと同じ問題
+  // make(name, rng?, {level, skill}?)  level 省略・'normal' は今までと同じ問題。skill は上の技能id
   function make(name, rng, opts) {
     if (!gens[name]) throw new Error('unknown generator: ' + name);
     var r = typeof rng === 'function' ? rng : Math.random;
     var lv = opts && (opts.level === 'easy' || opts.level === 'hard') ? opts.level : null;
+    if (opts && opts.skill) return makeSkill(name, r, lv || 'normal', opts.skill);
     var p = lv && LV[lv][name] ? LV[lv][name](r) : gens[name](r, lv || undefined);
     if (p.fig === undefined) delete p.fig;
     return p;
@@ -7912,7 +8338,10 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     names: function () { return NAMES.slice(); },
     LEVELS: LEVELS,
     hissanHints: hissanHints,
-    util: { fmt: fmt, parse: parse, decimals: decimals, unitAnswer: unitAnswer, carryCount: carryCount, borrowCount: borrowCount }
+    skillOf: skillOf,
+    skillGens: function (skill) { return SKILL_GENS[skill] ? SKILL_GENS[skill].slice() : []; },
+    skillIds: function () { return Object.keys(SKILL_GENS); },
+    util: { fmt: fmt, parse: parse, decimals: decimals, unitAnswer: unitAnswer, carryCount: carryCount, borrowCount: borrowCount, hasKui: hasKui }
   };
   S.Generators = G;
   if (typeof module !== 'undefined' && module.exports) module.exports = G;
@@ -10228,6 +10657,878 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
   S.Lessons = Lessons;
   S.ReviewTopics = ReviewTopics;
   if (typeof module !== 'undefined' && module.exports) module.exports = { Lessons: Lessons, ReviewTopics: ReviewTopics };
+})((function () {
+  var root = typeof window !== 'undefined' ? window : globalThis;
+  return (root.Shosu = root.Shosu || {});
+})());
+
+</script>
+<script>/* js/recommend.js */
+/* recommend.js — おすすめモードの分析と組み立て（担当O。PLAN「追加機能5」・CONTRACTS「追加5」）
+ * Shosu.Recommend.SKILLS                 細かい技能（PLAN C）
+ * Shosu.Recommend.skillOf(problem)       問題 → 技能id（教科書の問題・生成した問題どちらも）
+ * Shosu.Recommend.profile()              記録（Store の全キー）から、技能ごとのできぐあい・はやさ・ヒント
+ * Shosu.Recommend.build({minutes, weak, challenge, rng})   今日のおすすめの問題（PLAN D）
+ * Shosu.Recommend.advice({problems, results, prev})       終わったときのアドバイス（PLAN F）
+ * Shosu.Recommend.shouldSuggestMiru(skillId, mistakes)    同じ技能で2回まちがえたら「みる」へ（PLAN E）
+ * Shosu.Recommend.saveResult(result) / lastResult()       localStorage 'shosu.recommend'
+ * classic script。Node でも require できる（Store が無ければ記録なしとして動く）。
+ */
+(function (S) {
+  'use strict';
+
+  /* ---------- ほかのファイル ---------- */
+  function need(name, file) {
+    if (S[name]) return S[name];
+    if (typeof require === 'function') { try { return require(file); } catch (e) { /* なし */ } }
+    return null;
+  }
+  function Gen() { return need('Generators', './generators.js'); }
+  function Mat() { return need('Matome', './matome.js'); }
+  function lessons() {
+    if (S.Lessons) return S.Lessons;
+    var m = need('__lessons', './lessons.js');
+    return (m && m.Lessons) || S.Lessons || [];
+  }
+  function topics() {
+    if (!S.ReviewTopics) lessons();
+    return S.ReviewTopics || [];
+  }
+
+  /* ---------- 細かい技能（PLAN C） ----------
+   * lesson は「その技能を習う時」（出す範囲 frontier の判定に使う）。page は lessons.js の page（読み込み後に合わせる）。
+   * up は「ちょうせん」で、その技能のむずかしいレベルが作れないときに代わりに出す、1つむずかしい技能。 */
+  function sk(id, tag, label, short, lesson, page, gens, up) {
+    return {
+      id: id, tag: tag, label: label, short: short, lesson: lesson, page: page,
+      gens: gens.map(function (n) { return { name: n, opts: { skill: id } }; }),
+      review: tag === 'kimari' ? 'tashizan' : tag, up: up || null, lessons: [lesson]
+    };
+  }
+  var SKILLS = [
+    sk('rep-001', 'hyoshikata', '表し方（0.01の何こ分）', '0.01の何こ分', 1, 'p.33〜35', ['masuRead'], 'rep-0001'),
+    sk('unit-m', 'hyoshikata', '単位のかんさん（m・cm）', '単位のかんさん（m・cm）', 2, 'p.36', ['unitConvert'], 'unit-k'),
+    sk('numberline', 'hyoshikata', '数直線の読み', '数直線の読み', 2, 'p.36', ['numberlineRead']),
+    sk('kui', 'hyoshikata', '0のある位（空位）', '0のある位', 2, 'p.36', ['masuRead', 'compose', 'decompose']),
+    sk('rep-0001', 'hyoshikata', '表し方（0.001の何こ分）', '0.001の何こ分', 3, 'p.37〜38', ['masuRead'], 'kui'),
+    sk('unit-k', 'hyoshikata', '単位のかんさん（km・kg・mm など）', '単位のかんさん（km・kg など）', 3, 'p.37〜38', ['unitConvert']),
+    sk('place-name', 'shikumi', '位の名前', '位の名前', 4, 'p.39〜40', ['decompose']),
+    sk('compose', 'shikumi', '数の構成', '数の構成', 4, 'p.39〜40', ['compose', 'decompose'], 'kui'),
+    sk('count-units', 'shikumi', '0.01（0.001）を何こ集めた数', '何こ集めた数', 4, 'p.39〜40', ['countUnits']),
+    sk('cmp-two', 'daisho', '大小（2つの数）', '大小（2つの数）', 5, 'p.41', ['compare'], 'cmp-digits'),
+    sk('cmp-digits', 'daisho', '大小（けた数がちがう数）', '大小（けた数がちがう）', 5, 'p.41', ['compare']),
+    sk('order', 'daisho', 'ならべかえ（3つ以上）', 'ならべかえ', 5, 'p.41', ['order']),
+    sk('times10', 'jubai', '10倍', '10倍', 6, 'p.42', ['times10'], 'times100'),
+    sk('times100', 'jubai', '100倍・1000倍', '100倍・1000倍', 6, 'p.42', ['times10']),
+    sk('div10', 'jubai', '1/10', '1/10', 6, 'p.42', ['times10']),
+    sk('add-nocarry', 'tashizan', 'たし算（くり上がりなし）', 'たし算', 7, 'p.43〜44', ['hissanAdd'], 'add-carry'),
+    sk('add-carry', 'tashizan', 'たし算（くり上がりあり）', 'たし算（くり上がり）', 7, 'p.43〜44', ['hissanAdd']),
+    sk('add-mis', 'tashizan', 'たし算（けたがそろっていない）', 'たし算（けたがちがう）', 7, 'p.43〜44', ['hissanAdd']),
+    sk('add-trail0', 'tashizan', 'たし算（答えの終わりが0）', 'たし算（答えの0）', 7, 'p.43〜44', ['hissanAdd']),
+    sk('sub-noborrow', 'hikizan', 'ひき算（くり下がりなし）', 'ひき算', 8, 'p.45〜46', ['hissanSub'], 'sub-borrow'),
+    sk('sub-borrow', 'hikizan', 'ひき算（くり下がりあり）', 'ひき算（くり下がり）', 8, 'p.45〜46', ['hissanSub']),
+    sk('sub-multi', 'hikizan', 'ひき算（何回もくり下がる）', 'ひき算（何回もくり下がる）', 8, 'p.45〜46', ['hissanSub']),
+    sk('sub-int', 'hikizan', 'ひき算（整数−小数）', 'ひき算（整数−小数）', 8, 'p.45〜46', ['hissanSub']),
+    sk('laws', 'kimari', '計算のきまり', '計算のきまり', 9, 'p.47', ['laws'])
+  ];
+  var BY_ID = {};
+  SKILLS.forEach(function (s) { BY_ID[s.id] = s; });
+  var TAG_LABELS = {
+    hyoshikata: '表し方・単位', shikumi: 'しくみ', daisho: '大小', jubai: '10倍・1/10',
+    tashizan: 'たし算', hikizan: 'ひき算', kimari: '計算のきまり'
+  };
+  var DEMO_LABEL = {
+    masu: 'ますの図', zoomline: '数直線', units: '単位', blocks: '位のブロック', compare: '大小くらべ',
+    shift: '位のうつり方', hissan: '筆算ステップ', laws: '計算のきまり', furikaeri: 'ふりかえり'
+  };
+
+  // lessons.js の page・関係する時・ふくしゅうの id に合わせる（1回だけ）
+  var synced = false;
+  function sync() {
+    if (synced) return;
+    var ls = lessons();
+    if (!ls || !ls.length) return;
+    synced = true;
+    var G = Gen();
+    SKILLS.forEach(function (s) { s.lessons = []; });
+    ls.forEach(function (l) {
+      SKILLS.forEach(function (s) { if (s.lesson === l.no && l.page) s.page = l.page; });
+      (l.problems || []).forEach(function (p) {
+        var id = G && p ? G.skillOf(p) : null;
+        if (id && BY_ID[id] && BY_ID[id].lessons.indexOf(l.no) < 0) BY_ID[id].lessons.push(l.no);
+      });
+    });
+    SKILLS.forEach(function (s) {
+      if (s.lessons.indexOf(s.lesson) < 0) s.lessons.unshift(s.lesson);
+      s.lessons.sort(function (a, b) { return a - b; });
+      var t = topics();
+      var hit = t.filter(function (x) { return x.id === s.tag; })[0] ||
+        t.filter(function (x) { return (x.gens || []).some(function (g) { return s.gens.some(function (sg) { return sg.name === g; }); }); })[0];
+      if (hit) s.review = hit.id;
+    });
+  }
+  function lessonByNo(no) { return lessons().filter(function (l) { return l.no === no; })[0] || null; }
+  var lpIndex = null;
+  function lessonProblem(pid) {
+    if (!lpIndex || !lpIndex.__n) {
+      lpIndex = { __n: 0 };
+      lessons().forEach(function (l) { (l.problems || []).forEach(function (p) { if (p && p.id) { lpIndex[p.id] = { p: p, no: l.no }; lpIndex.__n++; } }); });
+    }
+    var x = lpIndex[pid];
+    return x && typeof x === 'object' ? x : null;
+  }
+
+  function skillOf(p) {
+    var G = Gen();
+    if (!p) return null;
+    if (p.skill && BY_ID[p.skill]) return p.skill;
+    var id = G ? G.skillOf(p) : null;
+    if (id && BY_ID[id]) return id;
+    // 分からないときは、tag のいちばん基本の技能
+    var first = SKILLS.filter(function (s) { return s.tag === p.tag; })[0];
+    return first ? first.id : null;
+  }
+
+  /* ---------- 乱数・小道具 ---------- */
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      var t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
+  function wpick(rng, list) { // [[item, weight], ...]
+    var sum = 0, i;
+    for (i = 0; i < list.length; i++) sum += Math.max(0, list[i][1]);
+    if (!(sum > 0)) return list.length ? list[Math.floor(rng() * list.length)][0] : null;
+    var r = rng() * sum;
+    for (i = 0; i < list.length; i++) { r -= Math.max(0, list[i][1]); if (r < 0) return list[i][0]; }
+    return list[list.length - 1][0];
+  }
+  function isObj(x) { return !!x && typeof x === 'object' && !Array.isArray(x); }
+  var DAY = 86400000;
+  var MAX_MS = 30 * 60 * 1000; // 30分をこえるもの（放置）は使わない
+  var BASE = { fill: 40, choice: 35, order: 45, hissan: 60 };
+
+  /* ---------- 保存 ---------- */
+  var mem = {};
+  function ls() { try { return typeof localStorage !== 'undefined' ? localStorage : (typeof window !== 'undefined' ? window.localStorage : null); } catch (e) { return null; } }
+  function getJSON(k, def) {
+    var v = null, L = ls();
+    try { v = L ? L.getItem(k) : (k in mem ? mem[k] : null); } catch (e) { v = null; }
+    if (v == null) return def;
+    try { return JSON.parse(v); } catch (e) { return def; }
+  }
+  function trySet(k, obj) {
+    var s;
+    try { s = JSON.stringify(obj); } catch (e) { return false; }
+    var L = ls();
+    if (!L) { mem[k] = s; return true; }
+    try { L.setItem(k, s); return true; } catch (e) { return false; }
+  }
+
+  /* ---------- 記録を読む ---------- */
+  function recKeys() {
+    var ks = null;
+    try { ks = S.Store && S.Store.keys ? S.Store.keys() : null; } catch (e) { ks = null; }
+    if (!Array.isArray(ks)) ks = getJSON('shosu.keys', []);
+    return Array.isArray(ks) ? ks : [];
+  }
+  function recEntries(key) {
+    var e = null;
+    try { e = S.Store && S.Store.entries ? S.Store.entries(key) : null; } catch (x) { e = null; }
+    if (isObj(e)) return e;
+    var d = getJSON('shosu.rec.' + key, null);
+    return d && isObj(d.entries) ? d.entries : {};
+  }
+
+  // 技能ごとの目安（その技能の問題の目安秒と、問題の形）。1回だけ作って覚えておく
+  var estCache = {};
+  function skillSample(id) {
+    if (estCache[id]) return estCache[id];
+    var s = BY_ID[id], G = Gen(), M = Mat(), out = { sec: 45, type: 'fill' };
+    if (s && G && M) {
+      try {
+        var r = mulberry32(777), sum = 0, n = 0, types = {};
+        for (var i = 0; i < 6; i++) {
+          var g = s.gens[i % s.gens.length];
+          var p = G.make(g.name, r, g.opts);
+          sum += M.estimate(p, 'normal'); n++;
+          types[p.type] = (types[p.type] || 0) + 1;
+        }
+        out.sec = Math.round(sum / n);
+        out.type = Object.keys(types).sort(function (a, b) { return types[b] - types[a]; })[0];
+      } catch (e) { /* 目安のまま */ }
+    }
+    estCache[id] = out;
+    return out;
+  }
+
+  // 1問ずつの記録にする
+  function readRecords() {
+    sync();
+    var out = { recs: [], frontier: 1, miru: {}, lessonTried: {} };
+    var M = Mat();
+    var keys = recKeys().slice();
+    if (keys.indexOf('miru') < 0) keys.push('miru'); // Store は「みる」の記録を keys に入れない
+    keys.forEach(function (key) {
+      var ents = recEntries(key), m, pid;
+      if (key === 'miru') {
+        for (pid in ents) {
+          if ((m = /^lesson-(\d+)$/.exec(pid))) { out.miru[+m[1]] = 1; out.frontier = Math.max(out.frontier, +m[1]); }
+        }
+        return;
+      }
+      var lessonNo = (m = /^lesson-(\d+)$/.exec(key)) ? +m[1] : 0;
+      var reviewTag = (m = /^review-(.+)$/.exec(key)) ? m[1] : null;
+      var any = false;
+      for (pid in ents) {
+        var e = ents[pid];
+        if (!isObj(e)) continue;
+        any = true;
+        var t = Number(e.t) || Date.parse(e.at) || 0;
+        var lp = lessonNo ? lessonProblem(pid) : null;
+        var ok = typeof e.first === 'boolean' ? e.first : !!e.correct;
+        var skill = typeof e.skill === 'string' && BY_ID[e.skill] ? e.skill : (lp ? skillOf(lp.p) : null);
+        var tag = lp ? lp.p.tag : (typeof e.tag === 'string' && e.tag ? e.tag : reviewTag);
+        var type = typeof e.type === 'string' && BASE[e.type] ? e.type : lp ? lp.p.type : skill ? skillSample(skill).type : null;
+        var est = Number(e.est) > 0 ? Number(e.est) : lp && M ? M.estimate(lp.p, 'normal') : skill ? skillSample(skill).sec : (type ? BASE[type] : 45);
+        var ms = Number(e.ms);
+        if (!(ms > 0 && ms <= MAX_MS)) ms = null;
+        // 「もっとれんしゅう」（lesson-N の more-…）は、その時の more の生成器の技能にしぼる
+        var limit = null, gens = null;
+        if (lessonNo && !lp) { limit = lessonNo; var L = lessonByNo(lessonNo); gens = L && L.more ? L.more : null; }
+        out.recs.push({
+          key: key, pid: pid, t: t, ok: ok, correct: !!e.correct, first: typeof e.first === 'boolean' ? e.first : null,
+          hints: Number(e.hints) || 0, ms: ms, est: est, type: type, skill: skill, tag: tag,
+          lesson: lp ? lp.no : 0, lp: lp, limit: limit, gens: gens
+        });
+      }
+      if (any && lessonNo) { out.lessonTried[lessonNo] = 1; out.frontier = Math.max(out.frontier, lessonNo); }
+    });
+    out.frontier = clamp(out.frontier, 1, 10);
+    return out;
+  }
+
+  // 技能の分からない記録（tag だけ）は、その tag の技能に等分して足す
+  function spreadTargets(r) {
+    var c = SKILLS.filter(function (s) {
+      if (s.tag !== r.tag) return false;
+      if (r.limit && s.lesson > r.limit) return false;
+      if (r.gens && !s.gens.some(function (g) { return r.gens.indexOf(g.name) >= 0; })) return false;
+      return true;
+    });
+    if (!c.length && r.tag) c = SKILLS.filter(function (s) { return s.tag === r.tag; });
+    return c;
+  }
+
+  /* ---------- profile ----------
+   * 1問の重み = 0.5^(日数/7)（半減期7日：先週の記録は今日の半分の重さ）。技能ごとに新しい20問まで。
+   * acc      … 重みつき正答率（最初の答えで○か。first が無い古い記録は correct）
+   * speed    … かかった時間 ÷ その問題の目安（matome.estimate）。ms の無い記録・30分超は使わない。1つの記録は 0.2〜4 にまるめる
+   * hintRate … ヒントを1つ以上使った問題のわりあい
+   * n        … 記録の数（tag だけの記録は、その tag の技能の数でわった分だけ数える）
+   * status のしきい値（tools/recommend-test.js のサンプルの子で確かめた）：
+   *   n < 3                                         → unknown（3問未満では、1問のまちがいで判定がゆれすぎる）
+   *   acc < 0.6 または (acc < 0.75 かつ (speed > 1.6 または hintRate > 0.5))  → weak
+   *       （5問中3問○はにがて。4問中3問○でも、目安の1.6倍以上かかる／半分以上ヒントを見るなら、まだ身についていない）
+   *   acc >= 0.9 かつ speed <= 1.1（記録なしは問わない）かつ hintRate < 0.2 → strong
+   *       （10問中9問○で、目安どおりの時間・ヒントなし。ちょうせんに回してよい）
+   *   ほか → soso
+   */
+  var TH = { minN: 3, weakAcc: 0.6, sosoAcc: 0.75, slow: 1.6, hintHeavy: 0.5, strongAcc: 0.9, fast: 1.1, hintLow: 0.2, halfLifeDays: 7, lastN: 20 };
+  function statusOf(x) {
+    if (x.n < TH.minN) return 'unknown';
+    var sp = x.speed == null ? 1 : x.speed;
+    if (x.acc < TH.weakAcc || (x.acc < TH.sosoAcc && (sp > TH.slow || x.hintRate > TH.hintHeavy))) return 'weak';
+    if (x.acc >= TH.strongAcc && sp <= TH.fast && x.hintRate < TH.hintLow) return 'strong';
+    return 'soso';
+  }
+
+  function profile(opts) {
+    opts = opts || {};
+    var now = Number(opts.now) || Date.now();
+    var data = readRecords();
+    var per = {};
+    SKILLS.forEach(function (s) { per[s.id] = []; });
+    data.recs.forEach(function (r) {
+      if (r.skill) per[r.skill].push({ r: r, share: 1 });
+      else if (r.tag) {
+        var c = spreadTargets(r);
+        c.forEach(function (s) { per[s.id].push({ r: r, share: 1 / c.length }); });
+      }
+    });
+    var skills = {};
+    SKILLS.forEach(function (s) {
+      var list = per[s.id].sort(function (a, b) { return b.r.t - a.r.t; });
+      // 新しい20問分まで（share の合計で数える）
+      var cut = [], cnt = 0;
+      for (var i = 0; i < list.length && cnt < TH.lastN; i++) { cut.push(list[i]); cnt += list[i].share; }
+      var W = 0, A = 0, H = 0, SW = 0, SP = 0, n = 0, lastAt = 0, lastOk = null;
+      cut.forEach(function (x) {
+        var age = Math.max(0, now - x.r.t) / DAY;
+        var w = Math.pow(0.5, age / TH.halfLifeDays) * x.share;
+        W += w; n += x.share;
+        if (x.r.ok) A += w;
+        if (x.r.hints > 0) H += w;
+        if (x.r.ms != null && x.r.est > 0) { SW += w; SP += w * clamp(x.r.ms / 1000 / x.r.est, 0.2, 4); }
+        if (x.r.t > lastAt) { lastAt = x.r.t; lastOk = x.r.ok; }
+      });
+      var o = {
+        acc: W > 0 ? A / W : 0,
+        speed: SW > 0 ? SP / SW : null,
+        hintRate: W > 0 ? H / W : 0,
+        n: Math.round(n * 10) / 10,
+        lastAt: lastAt || null,
+        lastOk: lastOk
+      };
+      o.status = statusOf(o);
+      o.acc = Math.round(o.acc * 1000) / 1000;
+      if (o.speed != null) o.speed = Math.round(o.speed * 100) / 100;
+      o.hintRate = Math.round(o.hintRate * 1000) / 1000;
+      skills[s.id] = o;
+    });
+    // 種類別の平均秒：目安5問分を前においてならす（記録が少ないうちは目安に近い）
+    var K = 5, avgSec = {}, factor = {}, allR = 0, allN = 0;
+    Object.keys(BASE).forEach(function (type) {
+      var sr = 0, sn = 0;
+      data.recs.forEach(function (r) {
+        if (r.type !== type || r.ms == null || !(r.est > 0)) return;
+        sr += clamp(r.ms / 1000 / r.est, 0.2, 4); sn++;
+      });
+      allR += sr; allN += sn;
+      factor[type] = (sr + K) / (sn + K);
+      avgSec[type] = Math.round(BASE[type] * factor[type]);
+    });
+    // 前にまちがえた教科書の問題（リベンジのもと）
+    var mistakes = [];
+    data.recs.forEach(function (r) {
+      if (!r.lp || r.key.indexOf('lesson-') !== 0) return;
+      if (r.ok && r.correct) return;
+      mistakes.push({ pid: r.pid, lesson: r.lp.no, skill: r.skill, t: r.t, fixed: !!r.correct });
+    });
+    return {
+      skills: skills, frontier: data.frontier, avgSec: avgSec, factor: factor,
+      speedFactor: Math.round((allR + K) / (allN + K) * 100) / 100,
+      records: data.recs.length, mistakes: mistakes, now: now
+    };
+  }
+
+  /* ---------- 保存（'shosu.recommend'） ---------- */
+  var KEY = 'shosu.recommend';
+  function loadStore() {
+    var d = getJSON(KEY, null);
+    if (!isObj(d)) d = {};
+    if (!Array.isArray(d.results)) d.results = [];
+    d.results = d.results.filter(isObj);
+    if (!isObj(d.prefs)) d.prefs = {};
+    return d;
+  }
+  function saveStore(d) {
+    var copy = { v: 1, results: d.results.slice(0, 5), prefs: d.prefs };
+    if (trySet(KEY, copy)) return true;
+    // 容量超過：古い結果からへらす
+    while (copy.results.length > 1) { copy.results.pop(); if (trySet(KEY, copy)) return true; }
+    if (copy.results.length) { copy.results[0] = { at: copy.results[0].at, total: copy.results[0].total, correct: copy.results[0].correct, avgSec: copy.results[0].avgSec, sigs: [] }; if (trySet(KEY, copy)) return true; }
+    copy.results = [];
+    return trySet(KEY, copy);
+  }
+
+  // 同じ問題・同じ数の問題を見分けるしるし（保存の容量をへらすため、短いハッシュにする）
+  function hash(str) {
+    var h1 = 5381, h2 = 52711;
+    for (var i = 0; i < str.length; i++) { var c = str.charCodeAt(i); h1 = (h1 * 33) ^ c; h2 = (h2 * 31 + c) | 0; }
+    return (h1 >>> 0).toString(36) + (h2 >>> 0).toString(36);
+  }
+  function sigKeys(p) {
+    return sigRaw(p).map(hash);
+  }
+  function sigRaw(p) {
+    var M = Mat(), out = [];
+    try { out.push(M ? M.signature(p) : JSON.stringify([p.type, p.q, p.parts, p.items, p.a, p.b])); } catch (e) { /* なし */ }
+    if (p.type === 'hissan') out.push('h' + p.op + [String(p.a), String(p.b)].sort().join(','));
+    if (p.type === 'choice' && typeof p.q === 'string') {
+      var m = /([\d.]+) □ ([\d.]+)$/.exec(p.q);
+      if (m) out.push('c' + [m[1], m[2]].sort().join(','));
+    }
+    if (p.from) out.push('L' + p.from);
+    return out;
+  }
+
+  function okOf(r) { return r ? (typeof r.first === 'boolean' ? r.first : !!r.correct) : null; }
+  function msOf(r) { var v = r ? Number(r.ms) : NaN; return v > 0 && v <= MAX_MS ? v : null; }
+
+  // 1回分の結果をまとめる（saveResult・advice の prev に使う形）
+  function summarize(o) {
+    o = o || {};
+    var ps = o.problems || [], rs = o.results || [], M = Mat();
+    var skills = {}, correct = 0, done = 0, msSum = 0, msN = 0, sigs = [], revenge = [];
+    ps.forEach(function (p, i) {
+      if (!p) return;
+      sigKeys(p).forEach(function (k) { sigs.push(k); });
+      var r = rs[i], ok = okOf(r), id = p.skill || skillOf(p);
+      if (p.revenge && p.from) revenge.push({ pid: p.from, ok: ok === true });
+      if (!r) return;
+      done++;
+      if (ok) correct++;
+      var ms = msOf(r);
+      if (ms != null) { msSum += ms; msN++; }
+      if (!id) return;
+      var x = skills[id] || (skills[id] = { n: 0, ok: 0, rs: 0, rn: 0, role: p.role || '' });
+      x.n++; if (ok) x.ok++;
+      if (ms != null) { var est = M ? M.estimate(p, p.level || 'normal') : BASE[p.type] || 45; x.rs += ms / 1000 / est; x.rn++; }
+      if (p.role === 'weak') x.role = 'weak';
+    });
+    var sk2 = {};
+    for (var id in skills) {
+      var x = skills[id];
+      sk2[id] = { n: x.n, ok: x.ok, ratio: x.rn ? Math.round(x.rs / x.rn * 100) / 100 : null, role: x.role };
+    }
+    return {
+      v: 1, at: o.at || new Date().toISOString(), minutes: o.minutes || null,
+      total: done, planned: ps.length, correct: correct,
+      rate: done ? Math.round(correct / done * 100) : 0,
+      avgSec: msN ? Math.round(msSum / msN / 1000) : null,
+      skills: sk2, sigs: sigs, revenge: revenge, focus: o.focus || []
+    };
+  }
+
+  function saveResult(result) {
+    if (!isObj(result)) return false;
+    if (Array.isArray(result.problems)) result = summarize(result);
+    var d = loadStore();
+    d.results.unshift(result);
+    return saveStore(d);
+  }
+  function results() { return loadStore().results.slice(); }
+  function lastResult() { return loadStore().results[0] || null; }
+  function prefs() {
+    var p = loadStore().prefs, ok = { few: 1, normal: 1, many: 1 };
+    return {
+      minutes: [5, 10, 15].indexOf(p.minutes) >= 0 ? p.minutes : 10,
+      weak: ok[p.weak] ? p.weak : 'normal',
+      challenge: ok[p.challenge] ? p.challenge : 'normal'
+    };
+  }
+  function setPrefs(o) {
+    var d = loadStore();
+    for (var k in o) if (k === 'minutes' || k === 'weak' || k === 'challenge') d.prefs[k] = o[k];
+    return saveStore(d);
+  }
+
+  /* ---------- build（PLAN D） ----------
+   * わりあい：にがて few 0.4 / normal 0.6 / many 0.8。ちょうせん few 0〜0.05（切り捨て）/ normal 0.1（1問以上）/ many 0.2（切り上げ）。のこりが確認（1問以上）。
+   * 範囲：frontier 以下の時の技能だけ。
+   * にがて：weak・soso を、弱いほど重く選ぶ。weak の技能は1回目かんたん→2回目からふつう、soso はふつう。
+   *         前にまちがえた教科書の問題（最近3回に出していない・リベンジで○になっていない）を「リベンジ」として入れる。
+   * 確認：前に○だった（acc>=0.75）技能を、しばらく取り組んでいないものほど重く。ふつう。
+   * ちょうせん：strong の技能をむずかしいで（作れなければ up の技能）。全部進めて strong が7わり以上なら、ちょうせんをふやす。
+   * にがて候補が無く、まだ分からない技能が多い子は、確認の中で技能を広く出す。
+   * 問題数：その子の種類別の速さ（profile.factor）を目安秒にかけて、minutes に合わせる（5分で5〜8問）。
+   * 最近3回に出した問題（同じ数の筆算・大小も）は出さない。同じ技能は続けない。1つの技能は全体の4わり（にがて多めは5わり）まで。 */
+  var WEAK_R = { few: 0.4, normal: 0.6, many: 0.8 };
+  function chalCount(sel, N) {
+    if (sel === 'few') return Math.floor(N * 0.05); // 0〜0.05（20問未満なら0問）
+    if (sel === 'many') return Math.ceil(N * 0.2);
+    return Math.max(1, Math.round(N * 0.1));
+  }
+  function weakness(x) {
+    var sp = x.speed == null ? 1 : x.speed;
+    return (1 - x.acc) + 0.25 * Math.max(0, sp - 1) + 0.3 * x.hintRate + (x.status === 'weak' ? 0.3 : 0) + 0.05;
+  }
+  function timeFactor(prof, type) {
+    var f = prof && prof.factor && prof.factor[type] ? prof.factor[type] : 1;
+    return 0.3 + 0.7 * clamp(f, 0.5, 2.5); // 目安とその子の速さを 3:7 でまぜる
+  }
+
+  function build(opts) {
+    opts = opts || {};
+    sync();
+    var G = Gen(), M = Mat();
+    var rng = typeof opts.rng === 'function' ? opts.rng : Math.random;
+    var minutes = Number(opts.minutes) > 0 ? Number(opts.minutes) : 10;
+    var weakSel = WEAK_R[opts.weak] ? opts.weak : 'normal';
+    var chalSel = WEAK_R[opts.challenge] ? opts.challenge : 'normal';
+    var prof = opts.profile || profile({ now: opts.now });
+    var store = loadStore();
+    var recent = store.results.slice(0, 3);
+    var seen = {};
+    recent.forEach(function (r) { (r.sigs || []).forEach(function (k) { seen[k] = 1; }); });
+    var revengeDone = {};
+    store.results.forEach(function (r) { (r.revenge || []).forEach(function (x) { if (x && x.ok) revengeDone[x.pid] = 1; }); });
+
+    var range = SKILLS.filter(function (s) { return s.lesson <= prof.frontier; });
+    var st = function (id) { return prof.skills[id] || { status: 'unknown', acc: 0, n: 0, hintRate: 0, speed: null, lastAt: null }; };
+    var target = minutes * 60;
+    var minN = Math.max(3, Math.round(minutes * 0.9)), maxN = Math.round(minutes * 1.6);
+    var avgEst = range.reduce(function (a, s) { var x = skillSample(s.id); return a + x.sec * timeFactor(prof, x.type); }, 0) / range.length;
+    var N = clamp(Math.round(target / avgEst), minN, maxN);
+
+    var weakC = range.filter(function (s) { var x = st(s.id); return x.status === 'weak' || x.status === 'soso'; });
+    var strongC = range.filter(function (s) { return st(s.id).status === 'strong'; });
+    var unknownN = range.filter(function (s) { return st(s.id).status === 'unknown'; }).length;
+    var okC = range.filter(function (s) { var x = st(s.id); return x.status !== 'unknown' && x.acc >= 0.75; });
+    var broad = !weakC.length && unknownN >= range.length / 2;
+    // 全部進めていて、にがてが無く、ほとんど（7わり以上）とくい → ちょうせん（むずかしい）をふやす
+    var allStrong = prof.frontier >= 10 && !range.some(function (s) { return st(s.id).status === 'weak'; }) && strongC.length >= range.length * 0.7;
+
+    var nC = strongC.length ? chalCount(chalSel, N) : 0;
+    if (allStrong && nC < N) nC += Math.round(N * 0.2);
+    var nW = weakC.length || prof.mistakes.length ? Math.round(N * WEAK_R[weakSel]) : 0;
+    if (N - nW - nC < 1) { nW = Math.max(0, N - nC - 1); }
+    if (N - nW - nC < 1) { nC = Math.max(0, N - nW - 1); }
+
+    // 1つの技能は全体の4わりまで（範囲がせまい子は、範囲の技能で足りる数まで広げる）
+    // にがて「多め」は5わりまで（1つの技能だけがにがての子でも、多めを選んだ分ふえるように）
+    var cap = Math.max(2, Math.ceil(N * (weakSel === 'many' ? 0.5 : 0.4)), Math.ceil(maxN / range.length));
+    var count = {}, items = [];
+    function used(id) { return count[id] || 0; }
+    function add(p, s, role, extra) {
+      p.skill = s; p.role = role;
+      if (!p.tag) p.tag = BY_ID[s].tag;
+      if (extra) for (var k in extra) p[k] = extra[k];
+      p.level = p.src && p.src.lv ? p.src.lv : 'normal';
+      p.skillStatus = st(s).status; // 組み立てたときの判定（アドバイスのほめ方に使う）
+      sigKeys(p).forEach(function (k) { seen[k] = 1; });
+      count[s] = used(s) + 1;
+      items.push(p);
+    }
+    function fresh(p) { return !sigKeys(p).some(function (k) { return seen[k]; }); }
+    function makeFor(id, level) {
+      var s = BY_ID[id];
+      for (var t = 0; t < 30; t++) {
+        var g = s.gens[Math.floor(rng() * s.gens.length)];
+        var o = { skill: id };
+        if (level !== 'normal') o.level = level;
+        var p = G.make(g.name, rng, o);
+        if (G.skillOf(p) !== id) continue;
+        if (fresh(p)) return p;
+      }
+      return null;
+    }
+
+    // ---- にがて（リベンジ → 技能） ----
+    var revenge = 0;
+    if (nW > 0) {
+      var cand = prof.mistakes.filter(function (m) {
+        if (m.lesson > prof.frontier || revengeDone[m.pid]) return false;
+        var lp = lessonProblem(m.pid);
+        return lp && fresh(lp.p);
+      });
+      var nRev = Math.min(cand.length, Math.max(1, Math.round(nW * 0.34)));
+      var weight = function (m) { var x = m.skill ? st(m.skill) : null; return (m.fixed ? 1 : 2) * (x && (x.status === 'weak' || x.status === 'soso') ? 2 : 1); };
+      for (var i = 0; i < nRev && cand.length; i++) {
+        var pickM = wpick(rng, cand.map(function (m) { return [m, weight(m) * (m.skill && used(m.skill) >= cap ? 0 : 1)]; }));
+        if (!pickM) break;
+        cand.splice(cand.indexOf(pickM), 1);
+        var lp = lessonProblem(pickM.pid);
+        var cp = JSON.parse(JSON.stringify(lp.p));
+        var sid = pickM.skill || skillOf(cp);
+        if (!sid || used(sid) >= cap) continue;
+        add(cp, sid, 'weak', { revenge: true, from: pickM.pid, fromLesson: lp.no });
+        revenge++;
+      }
+    }
+    var weakSeen = {};
+    function addWeak() {
+      var c = weakC.filter(function (s) { return used(s.id) < cap; });
+      if (!c.length) return false;
+      for (var t = 0; t < 6; t++) {
+        var s = wpick(rng, c.map(function (s2) { return [s2, weakness(st(s2.id)) / (1 + used(s2.id))]; }));
+        var x = st(s.id);
+        var level = x.status === 'weak' && !weakSeen[s.id] ? 'easy' : 'normal';
+        var p = makeFor(s.id, level);
+        if (p) { weakSeen[s.id] = 1; add(p, s.id, 'weak'); return true; }
+        c = c.filter(function (y) { return y !== s; });
+        if (!c.length) return false;
+      }
+      return false;
+    }
+    while (items.length < nW) if (!addWeak()) break;
+    var weakMade = items.length;
+
+    // ---- ちょうせん ----
+    var chalFrom = [];
+    function addChallenge() {
+      var c = strongC.filter(function (s) { return used(s.id) < cap && chalFrom.indexOf(s.id) < 0; });
+      if (!c.length) c = strongC.filter(function (s) { return used(s.id) < cap; });
+      while (c.length) {
+        var s = wpick(rng, c.map(function (s2) { return [s2, 1 / (1 + used(s2.id))]; }));
+        var p = makeFor(s.id, 'hard'), id = s.id;
+        if (p && p.src && p.src.lv !== 'hard' && s.up && BY_ID[s.up].lesson <= prof.frontier && used(s.up) < cap) {
+          var q = makeFor(s.up, 'hard');
+          if (q) { p = q; id = s.up; }
+        }
+        if (p) { chalFrom.push(s.id); add(p, id, 'challenge', { challengeFrom: s.id }); return true; }
+        c = c.filter(function (y) { return y !== s; });
+      }
+      return false;
+    }
+    var chalMade = 0;
+    for (var ci = 0; ci < nC; ci++) if (addChallenge()) chalMade++;
+
+    // ---- 確認（のこり。1問以上） ----
+    function addCheck() {
+      var pool = okC.slice();
+      if (broad || pool.length < 2) pool = range.slice();
+      var c = pool.filter(function (s) { return used(s.id) < cap; });
+      if (!c.length) c = range.filter(function (s) { return used(s.id) < cap; });
+      while (c.length) {
+        var s = wpick(rng, c.map(function (s2) {
+          var x = st(s2.id);
+          var age = x.lastAt ? Math.max(0, prof.now - x.lastAt) / DAY : 30;
+          var w = x.status === 'unknown' ? (broad ? 3 : 0.5) : 1 + Math.min(age, 30) / 3;
+          if (x.status === 'weak') w *= 0.3; // にがてはにがての部分で出す
+          return [s2, w / (1 + used(s2.id) * 3)];
+        }));
+        var p = makeFor(s.id, 'normal');
+        if (p) { add(p, s.id, 'check'); return true; }
+        c = c.filter(function (y) { return y !== s; });
+      }
+      return false;
+    }
+    var want = Math.max(1, N - items.length);
+    for (var k = 0; k < want; k++) if (!addCheck()) break;
+
+    // ---- 時間に合わせる ----
+    function secOf(p) { return Math.round(M.estimate(p, p.level) * timeFactor(prof, p.type)); }
+    function totalSec() { return items.reduce(function (a, p) { return a + secOf(p); }, 0); }
+    var guard = 0;
+    while (items.length > minN && totalSec() > target + 25 && guard++ < 30) {
+      // 確認（2問以上のとき）→ にがて（リベンジ以外）の順にへらす
+      var roles = ['check', 'weak', 'challenge'], removed = false;
+      for (var ri = 0; ri < roles.length && !removed; ri++) {
+        var role = roles[ri];
+        var idx = -1;
+        for (var j = items.length - 1; j >= 0; j--) if (items[j].role === role && !items[j].revenge) { idx = j; break; }
+        var left = items.filter(function (p) { return p.role === role; }).length;
+        if (idx >= 0 && (role !== 'check' || left > 1)) { count[items[idx].skill]--; items.splice(idx, 1); removed = true; }
+      }
+      if (!removed) break;
+    }
+    guard = 0;
+    while (items.length < maxN && totalSec() < target - 30 && guard++ < 30) {
+      var r = weakC.length && items.filter(function (p) { return p.role === 'weak'; }).length < Math.round(items.length * WEAK_R[weakSel]) ? addWeak() : false;
+      if (!r && !addCheck()) break;
+    }
+    while (items.length < minN && guard++ < 60) if (!addCheck() && !addWeak()) break;
+
+    // ---- ならべる：同じ技能が続かないように（のこりの多い技能から、前と同じでないものを） ----
+    var rest = items.slice(), list = [], prev = null;
+    // にがて・ちょうせんが1問目にならないように、さいしょは確認から（あれば）
+    while (rest.length) {
+      var groups = {};
+      rest.forEach(function (p) { (groups[p.skill] = groups[p.skill] || []).push(p); });
+      var ids = Object.keys(groups).filter(function (id) { return id !== prev; });
+      if (!ids.length) ids = Object.keys(groups);
+      var maxLen = Math.max.apply(null, ids.map(function (id) { return groups[id].length; }));
+      var top = ids.filter(function (id) { return groups[id].length === maxLen; });
+      if (!list.length) {
+        var chk = ids.filter(function (id) { return groups[id].some(function (p) { return p.role === 'check'; }); });
+        // 1問目は確認（いちばん多い技能が半分をこえるときは、その技能を先に）
+        if (chk.length && maxLen * 2 <= rest.length) top = chk;
+      }
+      var pickId = top[Math.floor(rng() * top.length)];
+      var g = groups[pickId];
+      var it = list.length ? g[Math.floor(rng() * g.length)] : (g.filter(function (p) { return p.role === 'check'; })[0] || g[0]);
+      list.push(it); rest.splice(rest.indexOf(it), 1); prev = pickId;
+    }
+
+    var seconds = [];
+    list.forEach(function (p, i) { p.id = 'R-' + (i + 1); seconds.push(secOf(p)); });
+    var total = seconds.reduce(function (a, b) { return a + b; }, 0);
+
+    // ---- 今日のおすすめの一言 ----
+    var wc = {};
+    list.forEach(function (p) { if (p.role === 'weak' && !p.revenge) wc[p.skill] = (wc[p.skill] || 0) + 1; });
+    var focus = Object.keys(wc).sort(function (a, b) { return wc[b] - wc[a] || weakness(st(b)) - weakness(st(a)); }).slice(0, 2);
+    var chal = {};
+    list.forEach(function (p) { if (p.role === 'challenge') chal[p.challengeFrom || p.skill] = (chal[p.challengeFrom || p.skill] || 0) + 1; });
+    var summary;
+    if (focus.length) {
+      summary = focus.map(function (id, i) {
+        var w = st(id).status === 'weak' ? 'にがてな ' : 'もう少しの ';
+        if (i > 0 && st(id).status === st(focus[0]).status) w = '';
+        return w + BY_ID[id].short;
+      }).join('と ') + 'を中心に';
+    } else if (broad) summary = 'いろいろな問題で、今の力を たしかめよう';
+    else summary = 'わすれていないか、いろいろな問題で たしかめよう';
+    var cids = Object.keys(chal);
+    if (cids.length) {
+      var cn = cids.reduce(function (a, id) { return a + chal[id]; }, 0);
+      summary += (focus.length ? '、' : '。') + 'とくいな ' + cids.slice(0, 2).map(function (id) { return BY_ID[id].short; }).join('と ') + 'に' + cn + '問ちょうせん';
+    }
+    if (revenge) summary += '（前にまちがえた教科書の問題の リベンジも' + revenge + '問）';
+    else if (!focus.length) summary += '。';
+
+    return {
+      problems: list, seconds: seconds, total: total, summary: summary, focus: focus,
+      minutes: minutes, frontier: prof.frontier,
+      counts: {
+        weak: list.filter(function (p) { return p.role === 'weak'; }).length,
+        check: list.filter(function (p) { return p.role === 'check'; }).length,
+        challenge: list.filter(function (p) { return p.role === 'challenge'; }).length,
+        revenge: revenge
+      }
+    };
+  }
+
+  /* ---------- アクション（教科書・みる・れんしゅう・ふくしゅう） ---------- */
+  function actionsFor(id) {
+    sync();
+    var s = BY_ID[id];
+    if (!s) return [];
+    var L = lessonByNo(s.lesson), page = (L && L.page) || s.page;
+    var demo = L && L.demo && DEMO_LABEL[L.demo.id] ? '（' + DEMO_LABEL[L.demo.id] + '）' : '';
+    var topic = topics().filter(function (t) { return t.id === s.review; })[0];
+    var acts = [
+      { kind: 'textbook', label: '教科書 ' + page + ' を見直そう', page: page, lesson: s.lesson },
+      { kind: 'miru', label: '第' + s.lesson + '時の「みる」' + demo + 'で確かめよう', href: '#/lesson/' + s.lesson, lesson: s.lesson, tab: 'miru' },
+      { kind: 'lesson', label: '第' + s.lesson + '時のれんしゅうを やり直そう', href: '#/lesson/' + s.lesson, lesson: s.lesson, tab: 'renshu' }
+    ];
+    if (topic) acts.push({ kind: 'review', label: 'ふくしゅう「' + topic.title + '」をやろう', href: '#/review/' + encodeURIComponent(topic.id), review: topic.id });
+    return acts;
+  }
+
+  /* ---------- advice（PLAN F） ---------- */
+  function advice(o) {
+    o = o || {};
+    sync();
+    var ps = o.problems || [], rs = o.results || [], prev = isObj(o.prev) ? o.prev : null;
+    var cur = summarize({ problems: ps, results: rs, minutes: o.minutes, focus: o.focus });
+    var per = {}, M = Mat();
+    ps.forEach(function (p, i) {
+      var r = rs[i];
+      if (!p || !r) return;
+      var id = p.skill || skillOf(p);
+      if (!id || !BY_ID[id]) return;
+      var x = per[id] || (per[id] = { id: id, n: 0, ok: 0, wrong: 0, hints: 0, rs: 0, rn: 0, weakN: 0, weakOk: 0, was: null });
+      if (p.role === 'weak' && p.skillStatus) x.was = p.skillStatus;
+      var ok = okOf(r);
+      x.n++; if (ok) x.ok++; else x.wrong++;
+      x.hints += Number(r.hints) || 0;
+      var ms = msOf(r);
+      if (ms != null) { x.rs += ms / 1000 / (M ? M.estimate(p, p.level || 'normal') : 45); x.rn++; }
+      if (p.role === 'weak') { x.weakN++; if (ok) x.weakOk++; }
+    });
+    var list = Object.keys(per).map(function (id) { var x = per[id]; x.ratio = x.rn ? x.rs / x.rn : null; return x; });
+
+    // 改善（まちがい → 時間 → ヒント）
+    var improve = [];
+    list.filter(function (x) { return x.wrong > 0 || (x.ratio != null && x.ratio > 1.6) || (x.n && x.hints / x.n >= 1.5); })
+      .sort(function (a, b) { return b.wrong - a.wrong || (a.ok / a.n) - (b.ok / b.n) || (b.ratio || 0) - (a.ratio || 0); })
+      .slice(0, 3)
+      .forEach(function (x) {
+        var lb = BY_ID[x.id].label, text;
+        if (x.wrong >= 2) text = lb + 'で まちがいが多かったよ。';
+        else if (x.wrong === 1) text = lb + 'で 1問 まちがえたよ。';
+        else if (x.ratio != null && x.ratio > 1.6) text = lb + 'は 時間が かかったね。やり方を もう一度 たしかめよう。';
+        else text = lb + 'は ヒントを たくさん使ったね。ヒントなしで できるように なろう。';
+        improve.push({ skill: x.id, text: text, actions: actionsFor(x.id) });
+      });
+
+    // ほめる
+    var praise = [];
+    list.filter(function (x) { return x.wrong === 0 && x.n > 0; })
+      .sort(function (a, b) { return b.weakN - a.weakN || b.n - a.n || (a.ratio || 9) - (b.ratio || 9); })
+      .forEach(function (x) {
+        if (praise.length >= 3) return;
+        var lb = BY_ID[x.id].label, pr = prev && prev.skills && prev.skills[x.id];
+        if (x.weakN >= 1 && x.weakOk === x.weakN && x.was !== 'soso') praise.push('にがてだった ' + lb + 'が、' + (x.n >= 2 ? '全部' : '') + 'できたね！');
+        else if (x.weakN >= 1 && x.weakOk === x.weakN) praise.push(lb + 'が、' + (x.n >= 2 ? '全部 ' : '') + 'しっかりできたね！');
+        else if (pr && pr.ratio != null && x.ratio != null && x.ratio < pr.ratio * 0.85) praise.push(lb + 'は、はやく正確に なったね！');
+        else if (x.ratio != null && x.ratio <= 1 && x.n >= 2) praise.push(lb + 'は、はやくて正確だね！');
+        else if (x.n >= 2) praise.push(lb + 'は、全部できたね！');
+      });
+    if (!praise.length && cur.total) praise.push(cur.correct ? 'さいごまで よくがんばったね！' + cur.correct + '問 できたよ。' : 'さいごまで よくがんばったね！');
+
+    // 前回とのちがい
+    var compare = [];
+    if (prev && prev.total > 0 && cur.total > 0) {
+      var pr0 = typeof prev.rate === 'number' ? prev.rate : Math.round(prev.correct / prev.total * 100);
+      if (cur.rate >= pr0 + 5) compare.push('正答率が ' + pr0 + '% から ' + cur.rate + '% に 上がったね！');
+      else if (cur.rate <= pr0 - 5) compare.push('正答率は 前回 ' + pr0 + '%、今回 ' + cur.rate + '% だったよ。つぎで とりもどそう。');
+      else compare.push('正答率は ' + cur.rate + '%（前回 ' + pr0 + '%）。安定して いるね。');
+      if (prev.avgSec != null && cur.avgSec != null) {
+        var d = prev.avgSec - cur.avgSec;
+        if (d >= 3) compare.push('1問の時間が ' + d + '秒 はやくなったね！');
+        else if (d <= -3) compare.push('1問の時間は ' + (-d) + '秒 長くなったよ。ていねいに といたのかな。');
+        else compare.push('1問の時間は 前回と ほぼ同じ（' + cur.avgSec + '秒）だよ。');
+      }
+    }
+
+    // 次の一歩
+    var nextIds = improve.map(function (x) { return x.skill; }).slice(0, 2);
+    if (!nextIds.length) {
+      var prof = o.profile || null;
+      if (!prof) { try { prof = profile(); } catch (e) { prof = null; } }
+      if (prof) nextIds = Object.keys(prof.skills).filter(function (id) { return prof.skills[id].status === 'weak' && BY_ID[id].lesson <= prof.frontier; })
+        .sort(function (a, b) { return weakness(prof.skills[b]) - weakness(prof.skills[a]); }).slice(0, 2);
+    }
+    var next = nextIds.length
+      ? '次のおすすめモードでは、' + nextIds.map(function (id) { return BY_ID[id].short; }).join('と ') + 'を中心に出すよ。'
+      : '次のおすすめモードでは、ちょうせん問題も ためしてみよう。';
+
+    // 星の判定のもと（P が Stars.log('recommend', …) に使う）
+    var allCorrectWeakSkill = list.some(function (x) { return x.weakN >= 2 && x.weakOk === x.weakN; });
+    var improved = false;
+    if (prev && prev.total > 0 && cur.total > 0 && prev.avgSec != null && cur.avgSec != null) {
+      var prRate = typeof prev.rate === 'number' ? prev.rate : Math.round(prev.correct / prev.total * 100);
+      improved = (cur.rate > prRate || (cur.rate === 100 && prRate === 100)) && cur.avgSec < prev.avgSec;
+    }
+    return {
+      praise: praise, improve: improve, compare: compare, next: next,
+      stars: { allCorrectWeakSkill: allCorrectWeakSkill, improved: improved },
+      result: cur
+    };
+  }
+
+  /* ---------- とちゅうの「みる」（PLAN E） ----------
+   * mistakes：その技能のまちがいの数（数）、または [{skill, first|correct}] / [skillId] の配列、または {skillId: 数}。
+   * 同じ技能で2回目のまちがい（最初の答えが×）から {lesson, href, label, tab:'miru'} を返す。 */
+  function shouldSuggestMiru(skillId, mistakes) {
+    sync();
+    var s = BY_ID[skillId];
+    if (!s) return null;
+    var n = 0;
+    if (typeof mistakes === 'number') n = mistakes;
+    else if (Array.isArray(mistakes)) {
+      mistakes.forEach(function (x) {
+        if (x === skillId) n++;
+        else if (isObj(x) && x.skill === skillId && okOf(x) === false) n++;
+      });
+    } else if (isObj(mistakes)) n = Number(mistakes[skillId]) || 0;
+    if (n < 2) return null;
+    var L = lessonByNo(s.lesson);
+    var demo = L && L.demo && DEMO_LABEL[L.demo.id] ? '（' + DEMO_LABEL[L.demo.id] + '）' : '';
+    return { lesson: s.lesson, href: '#/lesson/' + s.lesson, tab: 'miru', skill: skillId, label: '第' + s.lesson + '時の「みる」' + demo + 'で確かめよう' };
+  }
+
+  var R = {
+    SKILLS: SKILLS,
+    TAG_LABELS: TAG_LABELS,
+    TH: TH,
+    skill: function (id) { sync(); return BY_ID[id] || null; },
+    skillOf: skillOf,
+    profile: profile,
+    build: build,
+    advice: advice,
+    actionsFor: actionsFor,
+    shouldSuggestMiru: shouldSuggestMiru,
+    summarize: summarize,
+    saveResult: saveResult,
+    lastResult: lastResult,
+    results: results,
+    prefs: prefs,
+    setPrefs: setPrefs,
+    signatures: sigKeys,
+    _statusOf: statusOf
+  };
+  try { sync(); } catch (e) { /* lessons.js がまだなら、使うときに合わせる */ }
+  S.Recommend = R;
+  if (typeof module !== 'undefined' && module.exports) module.exports = R;
 })((function () {
   var root = typeof window !== 'undefined' ? window : globalThis;
   return (root.Shosu = root.Shosu || {});
@@ -12988,6 +14289,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     if ((m = /^more-(\d+)$/.exec(id))) return '第' + m[1] + '時のもっとれんしゅう';
     if ((m = /^review-(.+)$/.exec(id))) return 'ふくしゅう「' + topicTitle(m[1]) + '」';
     if (/^matome/.test(id)) return 'まとめモード';
+    if (/^osusume/.test(id)) return 'おすすめモード';
     if (id === 'make') return 'もんだいづくり';
     if (id === 'friend') return 'ともだちの問題';
     return id;
@@ -14167,6 +15469,17 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
 
     // まとめモードと星のずかん（第1〜10時と、ふくしゅうの間）
     var mm = h('section', 'home-matome');
+    // おすすめモード（追加5）：まとめモードのすぐ上に、目立つ入口
+    var osA = link('', 'osusume-entry', '#/osusume');
+    osA.appendChild(osusumeIcon('osusume-entry-icon'));
+    var osT = h('span', 'matome-entry-text');
+    osT.appendChild(h('span', 'matome-entry-title', 'おすすめモード'));
+    var osSub = 'きみの記録から、きみに合った問題を 毎回 組み立てるよ（5・10・15分）';
+    if (validOsusume(sessLoad('osusume'))) osSub = 'とちゅうのところがあるよ。つづきから できるよ';
+    osT.appendChild(h('span', 'matome-entry-sub', osSub));
+    osA.appendChild(osT);
+    osA.appendChild(arrows(h('span', 'matome-entry-go', 'スタート ▶')));
+    mm.appendChild(osA);
     var mmA = link('', 'matome-entry', '#/matome');
     mmA.appendChild(cosmosIcon('matome-entry-icon'));
     var mmT = h('span', 'matome-entry-text');
@@ -14305,12 +15618,24 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       if (!S.Problems) { area.appendChild(h('div', 'empty-note', '問題を表示できません。')); drawProgress(); return; }
       var seen = false; // この表示で、もう結果を受け取ったか
       handle = S.Problems.render(area, it.p, {
+        reportRetry: true,
         onResult: function (r) {
           if (stopped) return;
-          results[it.pid] = r;
-          // 問題の tag（ふくしゅうの分類）も記録する（ふりかえりの候補・おすすめ用。追加4）
+          // 問題の tag（ふくしゅうの分類）・skill（細かい技能）も記録する（ふりかえりの候補・おすすめ用。追加4・5）
           var tg = (it.p && it.p.tag) || it.tag || '';
-          record(key, it.pid, tg ? { correct: r && r.correct, method: r && r.method, hints: r && r.hints, tag: tg } : r);
+          var sk = (it.p && it.p.skill) || it.skill || skillOfProblem(it.p);
+          var rec = { correct: r && r.correct, method: r && r.method, hints: r && r.hints };
+          if (tg) rec.tag = tg;
+          if (sk) rec.skill = sk;
+          if (it.p && it.p.type) rec.type = it.p.type;
+          var est = estimateSec(it.p, opts.level);
+          if (est) rec.est = est;
+          if (r && 'ms' in r) rec.ms = r.ms;
+          if (r && typeof r.first === 'boolean') rec.first = r.first;
+          if (r && r.retried) rec.retried = true;
+          if (r && r.retry) { rec.retry = true; record(key, it.pid, rec); return; } // やり直して○：記録に印をつけるだけ
+          results[it.pid] = r;
+          record(key, it.pid, rec);
           drawProgress();
           var first = !seen;
           seen = true;
@@ -14338,7 +15663,9 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     else show();
     cleanups.push(function () { if (handle) handle.destroy(); });
     return {
-      stop: function () { stopped = true; if (handle) handle.destroy(); handle = null; wrap.remove(); }
+      stop: function () { stopped = true; if (handle) handle.destroy(); handle = null; wrap.remove(); },
+      pause: function () { if (handle && handle.pause) handle.pause(); },
+      resume: function () { if (handle && handle.resume) handle.resume(); }
     };
   }
 
@@ -14348,8 +15675,68 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     return h('div', 'summary-score', items.length + '問中 ○ が ' + ok + '問' + (n < items.length ? '（とばした問題 ' + (items.length - n) + '問）' : ''));
   }
 
+  /* 問題の細かい技能と目安の時間（おすすめモードの分析用。追加5）。なければ undefined */
+  function skillOfProblem(p) {
+    if (!p || typeof p !== 'object') return undefined;
+    var fns = [S.Recommend && S.Recommend.skillOf, S.Generators && S.Generators.skillOf];
+    for (var i = 0; i < fns.length; i++) {
+      if (typeof fns[i] !== 'function') continue;
+      try { var v = fns[i](p); if (typeof v === 'string' && v) return v; } catch (e) { /* 判定できない */ }
+    }
+    return undefined;
+  }
+  function estimateSec(p, level) {
+    if (!p || !(S.Matome && typeof S.Matome.estimate === 'function')) return undefined;
+    try { var v = S.Matome.estimate(p, level || p.level || 'normal'); return typeof v === 'number' && isFinite(v) && v > 0 ? Math.round(v) : undefined; }
+    catch (e) { return undefined; }
+  }
+  /* 「みる」を開いた記録（追加5：その子がどこまで進めているかの判断に使う）。同じ画面では1回だけ */
+  var miruLogged = {};
+  function miruOpened(no) {
+    var k = routeGen + ':' + no;
+    if (miruLogged[k]) return;
+    miruLogged[k] = 1;
+    record('miru', 'lesson-' + no, { at: new Date().toISOString() });
+  }
+  /* その時の「みる」の教材（lesson.demos / lesson.demo）を holder に出す。教材が2つ以上なら切りかえボタン */
+  function mountLessonDemos(holder, lesson) {
+    var demos = lesson.demos && lesson.demos.length ? lesson.demos : (lesson.demo ? [lesson.demo] : []);
+    var cur = null;
+    if (demos.length && S.Demos && S.Demos.mount) {
+      var titles = {};
+      (S.Demos.list ? S.Demos.list() : []).forEach(function (x) { titles[x.id] = x.title; });
+      var head = h('div', 'demo-head');
+      var stage = h('div', 'demo-stage');
+      holder.appendChild(head); holder.appendChild(stage);
+      var show = function (i) {
+        if (cur) { try { cur.destroy && cur.destroy(); } catch (e) {} cur = null; }
+        stage.innerHTML = '';
+        head.innerHTML = '';
+        if (demos.length > 1) {
+          demos.forEach(function (dm, j) {
+            var b = button(titles[dm.id] || dm.id, j === i ? 'primary' : '', function () { show(j); });
+            head.appendChild(b);
+          });
+        } else if (titles[demos[i].id]) {
+          head.appendChild(h('h3', 'demo-title', titles[demos[i].id]));
+        }
+        try {
+          cur = S.Demos.mount(stage, demos[i].id, demos[i].opts || {});
+        } catch (e) {
+          console.error('Demos.mount', e);
+          stage.appendChild(h('div', 'empty-note', '「みる」の教材を表示できませんでした。'));
+        }
+      };
+      show(0);
+    } else {
+      holder.appendChild(h('div', 'empty-note', 'この時の「みる」は、じゅんび中です。'));
+    }
+    return { destroy: function () { try { if (cur && cur.destroy) cur.destroy(); } catch (e) {} cur = null; } };
+  }
+
   /* ---------- 各時 ---------- */
-  function viewLesson(no) {
+  // tab: 'miru' | 'renshu'（#/lesson/N/renshu のように開く。おすすめモードのアドバイスのボタンから）
+  function viewLesson(no, tab) {
     var lesson = null;
     lessons().forEach(function (l) { if (String(l.no) === String(no)) lesson = l; });
     if (!lesson) { app.appendChild(topbar('第' + no + '時')); app.appendChild(h('div', 'empty-note', 'この時の内容が見つかりません。')); return; }
@@ -14382,44 +15769,15 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       tRen.setAttribute('aria-selected', which === 'renshu');
       pMiru.hidden = which !== 'miru';
       pRen.hidden = which !== 'renshu';
+      if (which === 'miru') miruOpened(lesson.no);
       if (which === 'miru' && !demoMounted) { demoMounted = true; mountDemo(); }
       if (which === 'renshu' && !practiceStarted) { practiceStarted = true; startPractice(); }
     }
     function mountDemo() {
       var holder = h('div', 'demo-holder');
       pMiru.appendChild(holder);
-      var demos = lesson.demos && lesson.demos.length ? lesson.demos : (lesson.demo ? [lesson.demo] : []);
-      if (demos.length && S.Demos && S.Demos.mount) {
-        var titles = {};
-        (S.Demos.list ? S.Demos.list() : []).forEach(function (x) { titles[x.id] = x.title; });
-        var cur = null;
-        var head = h('div', 'demo-head');
-        var stage = h('div', 'demo-stage');
-        holder.appendChild(head); holder.appendChild(stage);
-        var show = function (i) {
-          if (cur) { try { cur.destroy && cur.destroy(); } catch (e) {} cur = null; }
-          stage.innerHTML = '';
-          head.innerHTML = '';
-          if (demos.length > 1) {
-            demos.forEach(function (dm, j) {
-              var b = button(titles[dm.id] || dm.id, j === i ? 'primary' : '', function () { show(j); });
-              head.appendChild(b);
-            });
-          } else if (titles[demos[i].id]) {
-            head.appendChild(h('h3', 'demo-title', titles[demos[i].id]));
-          }
-          try {
-            cur = S.Demos.mount(stage, demos[i].id, demos[i].opts || {});
-          } catch (e) {
-            console.error('Demos.mount', e);
-            stage.appendChild(h('div', 'empty-note', '「みる」の教材を表示できませんでした。'));
-          }
-        };
-        show(0);
-        cleanups.push(function () { try { cur && cur.destroy && cur.destroy(); } catch (e) {} });
-      } else {
-        holder.appendChild(h('div', 'empty-note', 'この時の「みる」は、じゅんび中です。'));
-      }
+      var md = mountLessonDemos(holder, lesson);
+      cleanups.push(function () { md.destroy(); });
       var go = h('div', 'panel-foot');
       go.appendChild(button('れんしゅうへ ▶', 'primary', function () { select('renshu'); window.scrollTo(0, 0); }));
       pMiru.appendChild(go);
@@ -14563,7 +15921,8 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       });
     }
     var hasSession = !!(loadLessonSession() || loadMoreSession());
-    select(lesson.demo && !hasSession ? 'miru' : 'renshu');
+    if (tab === 'miru' || tab === 'renshu') select(tab);
+    else select(lesson.demo && !hasSession ? 'miru' : 'renshu');
   }
 
   /* ---------- ふくしゅう ---------- */
@@ -14784,19 +16143,22 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     runMatome(main, st);
   }
 
-  /* 問題を出す。時間は「始めた時刻」と「それまでにかかった時間」で計算するので、
-     タブをはなれてもずれない。アプリを閉じていた時間は数えない（つづきからで残り時間を引きつぐ） */
-  function runMatome(main, st) {
+  /* 時間を決めて問題を出す（まとめモード・おすすめモードで共通）。
+     時間は「始めた時刻」と「それまでにかかった時間」で計算するので、タブをはなれてもずれない。
+     アプリを閉じていた時間は数えない（つづきからで残り時間を引きつぐ）。
+     cfg: { sessKey, recKey, label, cls, before(area前に置く要素), onAnswer(it, r, results, first), onFinish(took) }
+     戻り値: { pause(), resume(), finish() } … pause の間は時間を止める（「みる」を重ねて開いている間など） */
+  function runTimed(main, st, cfg) {
     main.innerHTML = '';
     var limit = st.minutes * 60000;
     var since = Date.now() - (st.elapsed || 0);
-    var over = false, timer = null, lastSave = Date.now(), dlg = null;
+    var over = false, timer = null, lastSave = Date.now(), dlg = null, pausedAt = 0;
     var items = st.items;
-    function elapsed() { return Date.now() - since; }
+    function elapsed() { return (pausedAt || Date.now()) - since; }
 
-    var bar = h('div', 'mm-status');
+    var bar = h('div', 'mm-status' + (cfg.cls ? ' ' + cfg.cls : ''));
     bar.setAttribute('role', 'status');
-    var lvEl = h('span', 'mm-st-level', levelLabel(st.level) + '・' + st.minutes + '分');
+    var lvEl = h('span', 'mm-st-level', cfg.label);
     var timeEl = h('span', 'mm-st-time');
     var leftEl = h('span', 'mm-st-left');
     var endB = button('ここでおわる', 'small mm-st-end', function () {
@@ -14805,6 +16167,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     endB.classList.remove('danger');
     bar.appendChild(lvEl); bar.appendChild(timeEl); bar.appendChild(leftEl); bar.appendChild(endB);
     main.appendChild(bar);
+    if (cfg.before) main.appendChild(cfg.before);
     var area = h('div', 'mm-area');
     main.appendChild(area);
 
@@ -14819,12 +16182,12 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       if (over) return;
       st.elapsed = elapsed();
       lastSave = Date.now();
-      sessSave('matome', st);
+      sessSave(cfg.sessKey, st);
     }
     function tick() {
       if (over) return;
       draw();
-      if (!st.timeUp && elapsed() >= limit) {
+      if (!pausedAt && !st.timeUp && elapsed() >= limit) {
         st.timeUp = true;
         persist();
         timeUpDialog();
@@ -14859,10 +16222,11 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     cleanups.push(function () { persist(); stopTimer(); });
 
     var start = firstOpen(items, st.results);
-    var ctl = runSet(area, items, 'matome', function () { finish(); }, {
-      results: st.results, start: start < 0 ? 0 : start,
-      onAnswer: function (it, r, results) {
+    var ctl = runSet(area, items, cfg.recKey, function () { finish(); }, {
+      results: st.results, start: start < 0 ? 0 : start, level: cfg.level,
+      onAnswer: function (it, r, results, first) {
         st.results = cleanResults(items, results);
+        if (cfg.onAnswer) { try { cfg.onAnswer(it, r, results, first); } catch (e) { console.error(e); } }
         persist();
         draw();
       }
@@ -14872,32 +16236,61 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
 
     function finish() {
       if (over) return;
+      if (pausedAt) { since += Date.now() - pausedAt; pausedAt = 0; }
       var took = elapsed();
       st.elapsed = took;
       over = true;
       stopTimer();
       if (ctl) ctl.stop();
-      sessClear('matome');
-      var res = st.results;
-      var n = answered(), ok = 0;
-      var byTag = {}, tagOrder = [];
-      items.forEach(function (it) {
-        var tag = it.tag || (it.p && it.p.tag) || '';
-        if (!byTag[tag]) { byTag[tag] = { n: 0, ok: 0, total: 0 }; tagOrder.push(tag); }
-        byTag[tag].total++;
-        var r = res[it.pid];
-        if (r) { byTag[tag].n++; if (r.correct) { byTag[tag].ok++; ok++; } }
-      });
-      // 内容ごとの×の割合を、次の回のために残す
-      var weak = {};
-      tagOrder.forEach(function (t) { if (t && byTag[t].n) weak[t] = Math.round((1 - byTag[t].ok / byTag[t].n) * 100) / 100; });
-      var l = matomeLast();
-      l.level = st.level; l.minutes = st.minutes; l.weak = weak; l.t = Date.now();
-      sessSave('matome-last', l);
-      var finished = n === items.length;
-      var got = starLog('matome', { level: st.level, minutes: st.minutes, total: items.length, answered: n, correct: ok, finished: finished, seconds: Math.round(took / 1000) });
-      matomeResult(main, st, { n: n, ok: ok, took: took, byTag: byTag, tagOrder: tagOrder, got: got, finished: finished });
+      sessClear(cfg.sessKey);
+      cfg.onFinish(took, answered());
     }
+    return {
+      pause: function () {
+        if (over || pausedAt) return;
+        pausedAt = Date.now();
+        if (ctl && ctl.pause) ctl.pause();
+        persist();
+        draw();
+      },
+      resume: function () {
+        if (over || !pausedAt) return;
+        since += Date.now() - pausedAt;
+        pausedAt = 0;
+        if (ctl && ctl.resume) ctl.resume();
+        persist();
+        tick();
+      },
+      finish: finish
+    };
+  }
+
+  function runMatome(main, st) {
+    var items = st.items;
+    runTimed(main, st, {
+      sessKey: 'matome', recKey: 'matome', label: levelLabel(st.level) + '・' + st.minutes + '分', level: st.level,
+      onFinish: function (took, n) {
+        var res = st.results;
+        var ok = 0;
+        var byTag = {}, tagOrder = [];
+        items.forEach(function (it) {
+          var tag = it.tag || (it.p && it.p.tag) || '';
+          if (!byTag[tag]) { byTag[tag] = { n: 0, ok: 0, total: 0 }; tagOrder.push(tag); }
+          byTag[tag].total++;
+          var r = res[it.pid];
+          if (r) { byTag[tag].n++; if (r.correct) { byTag[tag].ok++; ok++; } }
+        });
+        // 内容ごとの×の割合を、次の回のために残す
+        var weak = {};
+        tagOrder.forEach(function (t) { if (t && byTag[t].n) weak[t] = Math.round((1 - byTag[t].ok / byTag[t].n) * 100) / 100; });
+        var l = matomeLast();
+        l.level = st.level; l.minutes = st.minutes; l.weak = weak; l.t = Date.now();
+        sessSave('matome-last', l);
+        var finished = n === items.length;
+        var got = starLog('matome', { level: st.level, minutes: st.minutes, total: items.length, answered: n, correct: ok, finished: finished, seconds: Math.round(took / 1000) });
+        matomeResult(main, st, { n: n, ok: ok, took: took, byTag: byTag, tagOrder: tagOrder, got: got, finished: finished });
+      }
+    });
   }
 
   function matomeResult(main, st, R) {
@@ -14949,6 +16342,452 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     var row = h('div', 'matome-actions');
     row.appendChild(button('もう一回（同じレベル・時間）', 'primary', function () { startMatome(main, st.level, st.minutes); }));
     row.appendChild(button('レベル・時間をえらぶ', '', function () { matomeSetup(main); }));
+    row.appendChild(link('ホームへ', 'btn', '#/'));
+    box.appendChild(row);
+    main.appendChild(box);
+    window.scrollTo(0, 0);
+  }
+
+  /* ---------- おすすめモード（分析と組み立ては Shosu.Recommend：担当O。画面と記録はここ） ---------- */
+  var OSU_TIMES = [5, 10, 15];
+  var OSU_MIX = [{ id: 'few', label: '少なめ' }, { id: 'normal', label: 'ふつう' }, { id: 'many', label: '多め' }];
+  var OSU_ACT_ICON = { textbook: 'reflect', miru: 'telescope', lesson: 'pen', review: 'moon' };
+  function recoApi() { return S.Recommend && typeof S.Recommend.build === 'function' ? S.Recommend : null; }
+  function recoCall(name, args, def) {
+    var r = recoApi();
+    if (!r || typeof r[name] !== 'function') return def;
+    try { var v = r[name].apply(r, args || []); return v == null ? def : v; }
+    catch (e) { console.error('Recommend.' + name, e); return def; }
+  }
+  function skillInfo(id) {
+    var list = recoApi() && Array.isArray(S.Recommend.SKILLS) ? S.Recommend.SKILLS : [];
+    for (var i = 0; i < list.length; i++) if (list[i] && list[i].id === id) return list[i];
+    return null;
+  }
+  function skillLabel(id) { var sk = skillInfo(id); return sk && sk.label ? sk.label : tagLabel(id); }
+  function mixLabel(id) { var l = 'ふつう'; OSU_MIX.forEach(function (x) { if (x.id === id) l = x.label; }); return l; }
+  // 前に選んだ時間・わりあい（Recommend.prefs があればそれを使う）
+  function osuLast() {
+    var p = recoCall('prefs', [], null);
+    if (p && typeof p === 'object') return p;
+    var v = sessLoad('osusume-last'); return v && typeof v === 'object' ? v : {};
+  }
+  function osuSetLast(o) {
+    var r = recoApi();
+    if (r && typeof r.setPrefs === 'function') { recoCall('setPrefs', [o], null); return; }
+    sessSave('osusume-last', o);
+  }
+  function validOsusume(st) { return st && validItems(st.items) && typeof st.minutes === 'number'; }
+  function lessonByNo(no) { var r = null; lessons().forEach(function (l) { if (String(l.no) === String(no)) r = l; }); return r; }
+  function asStr(v) { return typeof v === 'string' ? v : (v == null ? '' : String(v)); }
+  function asList(v) { return Array.isArray(v) ? v : (v ? [v] : []); }
+
+  /* ホームの入口のアイコン（自作のSVG：ロケットが、目じるしの星に向かう航路） */
+  function osusumeIcon(cls) {
+    var NS = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 64 64');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('class', 'ic ' + (cls || ''));
+    svg.innerHTML =
+      '<path d="M8 54C18 50 22 40 30 36S46 30 52 16" fill="none" stroke="#9ff0d8" stroke-width="2.6" stroke-dasharray="3 4" stroke-linecap="round"/>' +
+      '<circle cx="52" cy="14" r="9" fill="none" stroke="#ffd34d" stroke-width="2.4"/>' +
+      '<circle cx="52" cy="14" r="4.2" fill="none" stroke="#ffd34d" stroke-width="2"/>' +
+      '<path d="M52 7.5L53.6 12.4 58.5 14 53.6 15.6 52 20.5 50.4 15.6 45.5 14 50.4 12.4Z" fill="#fff4c2"/>' +
+      '<g transform="translate(22 42) scale(1.5) rotate(40) translate(-22 -42)">' +
+      '<path d="M22 30c4.6 3.6 6 9.6 4.4 17h-8.8C16 39.6 17.4 33.6 22 30z" fill="#eef2fa" stroke="#9aa8c8" stroke-width="1.2"/>' +
+      '<path d="M22 30c2 1.5 3.4 3.5 4.1 6h-8.2c.7-2.5 2.1-4.5 4.1-6z" fill="#3fc6a0"/>' +
+      '<circle cx="22" cy="40" r="2.4" fill="#4fa3f7" stroke="#3d5a80" stroke-width="1"/>' +
+      '<path d="M17.6 43l-4 5v3l4.4-2.4zM26.4 43l4 5v3l-4.4-2.4z" fill="#3fc6a0"/>' +
+      '<path d="M19.6 47.4c-1 3 0 5.6 2.4 7.4 2.4-1.8 3.4-4.4 2.4-7.4z" fill="#ffb42e"/>' +
+      '</g>' +
+      '<circle cx="10" cy="12" r="1.6" fill="#fff"/><circle cx="36" cy="8" r="1.2" fill="#fff"/><circle cx="58" cy="44" r="1.4" fill="#fff"/>';
+    return svg;
+  }
+
+  function viewOsusume() {
+    app.appendChild(topbar('おすすめモード', { sub: 'きみに合わせた れんしゅう' }));
+    var main = h('main', 'mm osu');
+    app.appendChild(main);
+    if (!recoApi()) { main.appendChild(h('div', 'empty-note', 'おすすめモードは、じゅんび中です。')); return; }
+    var st = sessLoad('osusume');
+    if (validOsusume(st)) {
+      var res = cleanResults(st.items, st.results);
+      var at = firstOpen(st.items, res);
+      if (at >= 0) {
+        var left = st.minutes * 60000 - (st.elapsed || 0);
+        resumePrompt(main, {
+          msg: 'とちゅうのところがあるよ（' + (at + 1) + '問目から）',
+          sub: 'おすすめ・' + st.minutes + '分　' + (left >= 0 ? 'のこり ' + mmss(left) : '時間をこえています'),
+          onContinue: function () { st.results = res; runOsusume(main, st); },
+          onRestart: function () { sessClear('osusume'); osuSetup(main); }
+        });
+        return;
+      }
+      sessClear('osusume');
+    }
+    osuSetup(main);
+  }
+
+  /* いまの きみの にがて・とくい（技能名を2〜3こずつ） */
+  function osuProfileBox() {
+    var pf = recoCall('profile', [], null);
+    var weak = [], soso = [], strong = [];
+    var sk = pf && pf.skills && typeof pf.skills === 'object' ? pf.skills : {};
+    Object.keys(sk).forEach(function (id) {
+      var x = sk[id] || {};
+      var o = { id: id, acc: typeof x.acc === 'number' ? x.acc : 0.5 };
+      if (x.status === 'weak') weak.push(o);
+      else if (x.status === 'soso') soso.push(o);
+      else if (x.status === 'strong') strong.push(o);
+    });
+    function byAcc(a, b) { return a.acc - b.acc; }
+    weak.sort(byAcc); soso.sort(byAcc); strong.sort(function (a, b) { return b.acc - a.acc; });
+    var nigate = weak.concat(soso).slice(0, 3);
+    strong = strong.slice(0, 3);
+    var box = h('div', 'osu-profile');
+    box.appendChild(h('h2', 'mm-h', 'いまの きみの にがて・とくい'));
+    function row(label, cls, list, none) {
+      var r = h('div', 'osu-prof-row ' + cls);
+      r.appendChild(h('span', 'osu-prof-label', label));
+      var chips = h('span', 'osu-prof-chips');
+      if (list.length) list.forEach(function (x) { chips.appendChild(h('span', 'osu-chip', skillLabel(x.id))); });
+      else chips.appendChild(h('span', 'osu-prof-none', none));
+      r.appendChild(chips);
+      return r;
+    }
+    box.appendChild(row('にがて', 'weak', nigate, 'まだ 見つかっていないよ'));
+    box.appendChild(row('とくい', 'strong', strong, 'これから 見つけよう'));
+    if (!nigate.length && !strong.length) box.appendChild(h('p', 'mm-note', 'まだ 記録が少ないよ。問題をとくほど、きみに合った問題になるよ。'));
+    return box;
+  }
+
+  function osuSetup(main) {
+    main.innerHTML = '';
+    var last = osuLast();
+    var minutes = OSU_TIMES.indexOf(last.minutes) >= 0 ? last.minutes : 5;
+    var weak = last.weak || 'normal', challenge = last.challenge || 'normal';
+    var card = h('section', 'mm-setup osu-setup');
+    card.appendChild(h('p', 'mm-lead', 'これまでの きみの記録から、きみに合った問題を 毎回 組み立てるよ。時間をえらんで「スタート」をおそう。'));
+    card.appendChild(osuProfileBox());
+    card.appendChild(h('h2', 'mm-h', '時間'));
+    var tm = h('div', 'mm-choices osu-times');
+    var tmBtns = OSU_TIMES.map(function (m) {
+      var b = button('', 'mm-choice osu-time', function () { minutes = m; mark(); });
+      b.appendChild(h('span', 'mm-choice-t', m + '分'));
+      b.dataset.min = m;
+      tm.appendChild(b);
+      return b;
+    });
+    card.appendChild(tm);
+    var mixBox = h('div', 'osu-mix');
+    function mixRow(title, note, get, set) {
+      var r = h('div', 'osu-mix-row');
+      var t = h('div', 'osu-mix-title');
+      t.appendChild(h('span', 'osu-mix-name', title));
+      t.appendChild(h('span', 'osu-mix-note', note));
+      r.appendChild(t);
+      var g = h('div', 'osu-mix-btns');
+      var bs = OSU_MIX.map(function (x) {
+        var b = button(x.label, 'osu-mix-btn', function () { set(x.id); mark(); });
+        b.dataset.id = x.id;
+        g.appendChild(b);
+        return b;
+      });
+      r.appendChild(g);
+      mixBox.appendChild(r);
+      return function () { bs.forEach(function (b) { var on = b.dataset.id === get(); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); }); };
+    }
+    var m1 = mixRow('にがて', 'にがてな問題の多さ', function () { return weak; }, function (v) { weak = v; });
+    var m2 = mixRow('ちょうせん', 'むずかしい問題の多さ', function () { return challenge; }, function (v) { challenge = v; });
+    card.appendChild(mixBox);
+    var foot = h('div', 'mm-foot');
+    foot.appendChild(button('スタート ▶', 'primary mm-start osu-start', function () { osuPreview(main, { minutes: minutes, weak: weak, challenge: challenge }); }));
+    card.appendChild(foot);
+    main.appendChild(card);
+    function mark() {
+      tmBtns.forEach(function (b) { var on = Number(b.dataset.min) === minutes; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+      m1(); m2();
+    }
+    mark();
+    window.scrollTo(0, 0);
+  }
+
+  /* 組み立てて、始める前に「今日のおすすめ」を一言で見せる */
+  function osuPreview(main, opt) {
+    var built = recoCall('build', [{ minutes: opt.minutes, weak: opt.weak, challenge: opt.challenge }], null);
+    var probs = built && Array.isArray(built.problems) ? built.problems.filter(function (p) { return p && typeof p === 'object' && p.type; }) : [];
+    if (!probs.length) { toast('問題を作れませんでした'); return; }
+    osuSetLast({ minutes: opt.minutes, weak: opt.weak, challenge: opt.challenge });
+    // 始めたときの「にがて」の技能（星「にがてだった技能で全問○」に使う）
+    var pf = recoCall('profile', [], null), weakSkills = [];
+    if (pf && pf.skills) Object.keys(pf.skills).forEach(function (id) { if (pf.skills[id] && pf.skills[id].status === 'weak') weakSkills.push(id); });
+    var stamp = Date.now().toString(36);
+    var st = {
+      minutes: opt.minutes, weak: opt.weak, challenge: opt.challenge, stamp: stamp,
+      summary: asStr(built.summary), focus: asList(built.focus).map(asStr),
+      weakSkills: weakSkills,
+      items: probs.map(function (p, i) { return { p: p, pid: 'os-' + stamp + '-' + i, tag: p.tag || '', skill: p.skill || '', role: p.role || '' }; }),
+      results: {}, meta: {}, missed: {}, mistakes: {}, elapsed: 0, timeUp: false
+    };
+    main.innerHTML = '';
+    var card = h('section', 'mm-setup osu-preview');
+    var hd = h('div', 'osu-today');
+    hd.appendChild(osusumeIcon('osu-today-icon'));
+    hd.appendChild(h('span', 'osu-today-label', '今日のおすすめ'));
+    card.appendChild(hd);
+    card.appendChild(h('p', 'osu-summary', st.summary || 'きみの記録に合わせて、いろいろな問題を出すよ。'));
+    card.appendChild(h('p', 'osu-preview-meta', st.minutes + '分・約' + st.items.length + '問（にがて ' + mixLabel(st.weak) + '・ちょうせん ' + mixLabel(st.challenge) + '）'));
+    var row = h('div', 'mm-foot osu-preview-row');
+    row.appendChild(button('えらびなおす', 'osu-back', function () { osuSetup(main); }));
+    row.appendChild(button('はじめる ▶', 'primary mm-start osu-go', function () {
+      sessSave('osusume', st);
+      runOsusume(main, st);
+    }));
+    card.appendChild(row);
+    main.appendChild(card);
+    window.scrollTo(0, 0);
+  }
+
+  function runOsusume(main, st) {
+    st.meta = st.meta || {}; st.missed = st.missed || {}; st.mistakes = st.mistakes || {};
+    var suggest = h('div', 'osu-suggest');
+    suggest.hidden = true;
+    var ctl = runTimed(main, st, {
+      sessKey: 'osusume', recKey: 'osusume', label: 'おすすめ・' + st.minutes + '分', cls: 'osu-status', before: suggest,
+      onAnswer: function (it, r) {
+        var m = st.meta[it.pid] || {};
+        if (typeof r.first === 'boolean') m.first = r.first;
+        if (typeof r.ms === 'number' && !('ms' in m)) m.ms = r.ms;
+        st.meta[it.pid] = m;
+        var firstOk = typeof r.first === 'boolean' ? r.first : !!r.correct;
+        // 最初の答えが×のとき（1問につき1回）、同じ技能のまちがいを数えて「みる」を案内する
+        if (firstOk || st.missed[it.pid]) return;
+        st.missed[it.pid] = 1;
+        var sk = it.skill || (it.p && it.p.skill);
+        if (!sk) return;
+        st.mistakes[sk] = (st.mistakes[sk] || 0) + 1;
+        var sg = recoCall('shouldSuggestMiru', [sk, st.mistakes[sk]], null);
+        if (sg && sg.lesson && lessonByNo(sg.lesson)) showSuggest(sk, sg.lesson, sg.label);
+      },
+      onFinish: function (took, n) { osuFinish(main, st, took, n); }
+    });
+    function showSuggest(sk, no, label) {
+      suggest.innerHTML = '';
+      var tx = h('span', 'osu-suggest-text', '「' + skillLabel(sk) + '」で 2回 まちがえたよ。');
+      suggest.appendChild(tx);
+      var b = button('', 'primary osu-suggest-btn', function () { openMiruOverlay(no, ctl, function () { suggest.hidden = true; }); });
+      withIcon(b, 'telescope', asStr(label) || '第' + no + '時の「みる」で確かめよう');
+      suggest.appendChild(b);
+      suggest.hidden = false;
+    }
+  }
+
+  /* その時の「みる」を重ねて開く。見ている間は時間を止める。とじると、つづきにもどる */
+  function openMiruOverlay(no, ctl, onClose) {
+    var lesson = lessonByNo(no);
+    if (!lesson) return;
+    if (ctl && ctl.pause) ctl.pause();
+    miruOpened(lesson.no);
+    var back = h('div', 'osu-miru-back');
+    var box = h('div', 'osu-miru');
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-modal', 'true');
+    box.setAttribute('aria-label', '第' + lesson.no + '時の「みる」');
+    var head = h('div', 'osu-miru-head');
+    var tt = h('div', 'osu-miru-title');
+    tt.appendChild(h('span', 'osu-miru-no', '第' + lesson.no + '時の「みる」'));
+    tt.appendChild(h('span', 'osu-miru-name', lesson.title || ''));
+    head.appendChild(tt);
+    head.appendChild(h('span', 'osu-miru-pause', '時間は 止まっているよ'));
+    var close = button('とじて つづける ▶', 'primary osu-miru-close', shut);
+    head.appendChild(close);
+    box.appendChild(head);
+    if (lesson.meate) {
+      var m = h('div', 'meate');
+      m.appendChild(h('span', 'meate-label', 'めあて'));
+      m.appendChild(h('span', 'meate-text', lesson.meate));
+      box.appendChild(m);
+    }
+    var holder = h('div', 'demo-holder osu-miru-body');
+    box.appendChild(holder);
+    var md = mountLessonDemos(holder, lesson);
+    back.appendChild(box);
+    document.body.appendChild(back);
+    document.documentElement.classList.add('osu-miru-open');
+    var done = false;
+    function onKey(e) { if (e.key === 'Escape') shut(); }
+    document.addEventListener('keydown', onKey);
+    function remove() {
+      if (done) return false;
+      done = true;
+      document.removeEventListener('keydown', onKey);
+      md.destroy();
+      back.remove();
+      document.documentElement.classList.remove('osu-miru-open');
+      return true;
+    }
+    function shut() {
+      if (!remove()) return;
+      if (ctl && ctl.resume) ctl.resume();
+      if (onClose) onClose();
+    }
+    cleanups.push(remove);
+    try { close.focus({ preventScroll: true }); } catch (e) {}
+  }
+
+  function osuFinish(main, st, took, n) {
+    var items = st.items, res = st.results || {}, meta = st.meta || {};
+    var ok = 0;
+    items.forEach(function (it) {
+      var r = res[it.pid];
+      if (!r) return;
+      if (r.correct) ok++;
+    });
+    var finished = n === items.length;
+    var acc = n ? ok / n : 0;
+    var perQ = n ? Math.round(took / n) : 0;
+    var prev = recoCall('lastResult', [], null);
+    // problems と results は同じ順（答えていない問題の結果は null）。advice の result（要約）に、出した問題すべてが入るように
+    var adv = recoCall('advice', [{ problems: items.map(function (it) { return it.p; }), results: items.map(function (it) {
+      var r = res[it.pid];
+      if (!r) return null;
+      var m = meta[it.pid] || {};
+      return { correct: !!r.correct, first: typeof m.first === 'boolean' ? m.first : !!r.correct, ms: typeof m.ms === 'number' ? m.ms : null, hints: r.hints || 0 };
+    }), prev: prev, minutes: st.minutes, focus: st.focus || [], total: items.length, took: took }], null);
+    // 前の回より、正答率も1問の時間もよくなった
+    var improved = !!(finished && n >= 3 && prev && typeof prev.acc === 'number' && typeof prev.perQ === 'number' && prev.perQ > 0 &&
+      acc >= prev.acc && (acc > prev.acc || acc === 1) && perQ < prev.perQ);
+    // にがてだった技能で、1回の中の問題が全問○
+    var weakSet = {};
+    (st.weakSkills && st.weakSkills.length ? st.weakSkills : []).forEach(function (s) { weakSet[s] = 1; });
+    if (!Object.keys(weakSet).length) items.forEach(function (it) { if (it.role === 'weak' && it.skill) weakSet[it.skill] = 1; });
+    var bySkill = {};
+    items.forEach(function (it) {
+      var sk = it.skill || (it.p && it.p.skill);
+      if (!sk || !weakSet[sk]) return;
+      var b = bySkill[sk] || (bySkill[sk] = { total: 0, ok: 0 });
+      b.total++;
+      if (res[it.pid] && res[it.pid].correct) b.ok++;
+    });
+    var allWeak = Object.keys(bySkill).some(function (k) { return bySkill[k].total > 0 && bySkill[k].ok === bySkill[k].total; });
+    // Recommend.advice が星の判定のもと（stars）を返すときは、そちらを使う
+    if (adv && adv.stars && typeof adv.stars === 'object') {
+      if (typeof adv.stars.allCorrectWeakSkill === 'boolean') allWeak = adv.stars.allCorrectWeakSkill;
+      if (typeof adv.stars.improved === 'boolean') improved = finished && adv.stars.improved;
+    }
+    var result = {
+      v: 1, at: new Date().toISOString(), minutes: st.minutes, weak: st.weak, challenge: st.challenge,
+      total: items.length, answered: n, correct: ok, acc: Math.round(acc * 1000) / 1000, perQ: perQ, took: took, finished: finished,
+      focus: st.focus || [], summary: st.summary || '',
+      problems: items.map(function (it) { return it.p; }),
+      results: items.map(function (it) {
+        var r = res[it.pid];
+        if (!r) return null;
+        var m = meta[it.pid] || {};
+        return { correct: !!r.correct, first: typeof m.first === 'boolean' ? m.first : !!r.correct, ms: typeof m.ms === 'number' ? m.ms : null, hints: r.hints || 0 };
+      })
+    };
+    // advice が要約（result）を返すときは、それをそのまま保存する
+    recoCall('saveResult', [adv && adv.result && typeof adv.result === 'object' ? adv.result : result], null);
+    var got = starLog('recommend', { finished: finished, minutes: st.minutes, total: items.length, answered: n, correct: ok,
+      allCorrectWeakSkill: allWeak, improved: improved, seconds: Math.round(took / 1000) });
+    osuResult(main, st, { n: n, ok: ok, took: took, adv: adv, got: got, finished: finished, prev: prev, acc: acc, perQ: perQ });
+  }
+
+  function osuAction(a) {
+    if (!a || typeof a !== 'object') return null;
+    var kind = asStr(a.kind), label = asStr(a.label) || ({ textbook: '教科書を見直そう', miru: '「みる」で確かめよう', lesson: 'れんしゅうをやり直そう', review: 'ふくしゅうをしよう' })[kind] || '';
+    if (!label) return null;
+    var href = asStr(a.href);
+    var tab = a.tab === 'miru' || a.tab === 'renshu' ? a.tab : (kind === 'lesson' ? 'renshu' : kind === 'miru' ? 'miru' : '');
+    if (tab && /^#\/lesson\/\d+$/.test(href)) href += '/' + tab;
+    var el;
+    if (href && /^#\//.test(href)) el = link('', 'btn osu-act osu-act-' + kind, href);
+    else el = h('span', 'osu-act osu-act-' + kind + ' osu-act-plain');
+    if (OSU_ACT_ICON[kind]) withIcon(el, OSU_ACT_ICON[kind], label); else el.textContent = label;
+    return el;
+  }
+
+  function osuResult(main, st, R) {
+    main.innerHTML = '';
+    var adv = R.adv && typeof R.adv === 'object' ? R.adv : {};
+    var box = h('section', 'mm-result osu-result');
+    box.appendChild(h('div', 'done-msg', R.finished ? 'おすすめモード おつかれさま！' : 'ここまで よくがんばったね！'));
+    var score = h('div', 'mm-score');
+    score.appendChild(h('span', 'mm-score-big', '○ ' + R.ok));
+    score.appendChild(h('span', 'mm-score-of', ' / ' + st.items.length + '問'));
+    box.appendChild(score);
+    var meta = h('div', 'mm-meta');
+    meta.appendChild(h('span', null, 'おすすめ・' + st.minutes + '分コース'));
+    meta.appendChild(h('span', null, 'かかった時間 ' + mmss(R.took)));
+    if (R.n) meta.appendChild(h('span', null, '1問 平均 ' + Math.max(1, Math.round(R.perQ / 1000)) + '秒'));
+    if (R.n < st.items.length) meta.appendChild(h('span', null, 'のこした問題 ' + (st.items.length - R.n) + '問'));
+    box.appendChild(meta);
+
+    var compare = asList(adv.compare).map(asStr).filter(Boolean);
+    if (compare.length) {
+      var cp = h('div', 'osu-compare');
+      compare.forEach(function (t) { cp.appendChild(h('div', 'osu-compare-item', t)); });
+      box.appendChild(cp);
+    }
+    var praise = asList(adv.praise).map(asStr).filter(Boolean);
+    if (praise.length) {
+      var pr = h('div', 'osu-praise');
+      pr.appendChild(h('h2', 'mm-h', 'よくできたね'));
+      praise.forEach(function (t) {
+        var p = h('div', 'osu-praise-item');
+        var ic = iconEl('star', 'osu-praise-icon');
+        if (ic) p.appendChild(ic);
+        p.appendChild(h('span', null, t));
+        pr.appendChild(p);
+      });
+      box.appendChild(pr);
+    }
+    var improve = asList(adv.improve).filter(function (x) { return x && typeof x === 'object'; });
+    if (improve.length) {
+      var im = h('div', 'osu-improve');
+      im.appendChild(h('h2', 'mm-h', 'つぎに やってみよう'));
+      improve.forEach(function (x) {
+        var card = h('div', 'osu-imp');
+        var t = h('div', 'osu-imp-text');
+        if (x.skill) t.appendChild(h('span', 'osu-chip', skillLabel(asStr(x.skill))));
+        t.appendChild(h('span', 'osu-imp-msg', asStr(x.text)));
+        card.appendChild(t);
+        var acts = h('div', 'osu-imp-acts');
+        asList(x.actions).forEach(function (a) { var e = osuAction(a); if (e) acts.appendChild(e); });
+        if (acts.firstChild) card.appendChild(acts);
+        im.appendChild(card);
+      });
+      box.appendChild(im);
+    }
+    if (!compare.length && !praise.length && !improve.length) {
+      box.appendChild(h('p', 'mm-note', R.n ? 'つぎの おすすめモードでも、きみに合わせた問題を出すよ。' : '問題をといたら、アドバイスが出るよ。'));
+    }
+    var next = asStr(adv.next);
+    if (next) {
+      var nx = h('div', 'osu-next');
+      var nic = iconEl('rocket', 'osu-next-icon');
+      if (nic) nx.appendChild(nic);
+      nx.appendChild(h('span', null, next));
+      box.appendChild(nx);
+    }
+
+    var gotBox = h('div', 'mm-got');
+    gotBox.appendChild(h('h2', 'mm-h', 'もらった星'));
+    var got = Array.isArray(R.got) ? R.got : [];
+    if (got.length) {
+      var ul = h('ul', 'mm-got-list');
+      got.forEach(function (g) { ul.appendChild(h('li', null, (g && (g.label || g.name || g.id)) || '')); });
+      gotBox.appendChild(ul);
+    } else {
+      gotBox.appendChild(h('p', 'mm-note', S.Stars ? 'こんかいは 新しい星はなかったよ。つぎもがんばろう！' : ''));
+    }
+    box.appendChild(gotBox);
+
+    var row = h('div', 'matome-actions');
+    row.appendChild(button('もう一回（同じせってい）', 'primary', function () { osuPreview(main, { minutes: st.minutes, weak: st.weak, challenge: st.challenge }); }));
+    row.appendChild(button('時間などをえらぶ', '', function () { osuSetup(main); }));
     row.appendChild(link('ホームへ', 'btn', '#/'));
     box.appendChild(row);
     main.appendChild(box);
@@ -15023,6 +16862,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     lessons().forEach(function (l) { rows.push({ key: 'lesson-' + l.no, label: '第' + l.no + '時 ' + (l.title || '') }); });
     topics().forEach(function (t) { rows.push({ key: 'review-' + t.id, label: 'ふくしゅう：' + t.title }); });
     rows.push({ key: 'matome', label: 'まとめモード' });
+    rows.push({ key: 'osusume', label: 'おすすめモード' });
     rows.push({ key: 'friend', label: 'ともだちの問題' });
     var known = rows.map(function (r) { return r.key; });
     (store() ? store().keys() : []).forEach(function (k) { if (known.indexOf(k) < 0) rows.push({ key: k, label: k }); });
@@ -15053,6 +16893,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
         back.remove();
         if (store()) store().resetAll();
         if (sess() && sess().clearAll) { try { sess().clearAll(); } catch (e) { console.error(e); } }
+        lsDel('shosu.recommend'); // おすすめモードの結果・最近出した問題・選んだ時間（追加5）
         if (cb.checked) resetPlanProgress();
         toast(cb.checked ? '記録と、計画・ふりかえりの記録を消しました' : '記録を消しました');
         route();
@@ -16081,7 +17922,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     var hash = location.hash.replace(/^#\/?/, '');
     var parts = hash.split('/');
     try {
-      if (parts[0] === 'lesson' && parts[1]) viewLesson(parts[1]);
+      if (parts[0] === 'lesson' && parts[1]) viewLesson(parts[1], parts[2]);
       else if (parts[0] === 'review' && parts[1]) viewReview(decodeURIComponent(parts[1]));
       else if (parts[0] === 'teacher' && parts[1] === 'goal') viewGoalEdit();
       else if (parts[0] === 'teacher') viewTeacher();
@@ -16091,6 +17932,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       else if (parts[0] === 'g' && parts[1]) viewGoalCode(hash.slice(2));
       else if (parts[0] === 'r' && parts[1]) viewReflCode(hash.slice(2));
       else if (parts[0] === 'matome') viewMatome();
+      else if (parts[0] === 'osusume') viewOsusume();
       else if (parts[0] === 'stars') viewStars();
       else if (parts[0] === 'practice-write') viewPracticeWrite();
       else if (parts[0] === 'make' || parts[0] === 'my' || parts[0] === 'edit') viewMaker(hash);

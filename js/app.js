@@ -439,10 +439,13 @@
           if (stopped) return;
           // 問題の tag（ふくしゅうの分類）・skill（細かい技能）も記録する（ふりかえりの候補・おすすめ用。追加4・5）
           var tg = (it.p && it.p.tag) || it.tag || '';
-          var sk = (it.p && it.p.skill) || it.skill || '';
+          var sk = (it.p && it.p.skill) || it.skill || skillOfProblem(it.p);
           var rec = { correct: r && r.correct, method: r && r.method, hints: r && r.hints };
           if (tg) rec.tag = tg;
           if (sk) rec.skill = sk;
+          if (it.p && it.p.type) rec.type = it.p.type;
+          var est = estimateSec(it.p, opts.level);
+          if (est) rec.est = est;
           if (r && 'ms' in r) rec.ms = r.ms;
           if (r && typeof r.first === 'boolean') rec.first = r.first;
           if (r && r.retried) rec.retried = true;
@@ -488,6 +491,21 @@
     return h('div', 'summary-score', items.length + '問中 ○ が ' + ok + '問' + (n < items.length ? '（とばした問題 ' + (items.length - n) + '問）' : ''));
   }
 
+  /* 問題の細かい技能と目安の時間（おすすめモードの分析用。追加5）。なければ undefined */
+  function skillOfProblem(p) {
+    if (!p || typeof p !== 'object') return undefined;
+    var fns = [S.Recommend && S.Recommend.skillOf, S.Generators && S.Generators.skillOf];
+    for (var i = 0; i < fns.length; i++) {
+      if (typeof fns[i] !== 'function') continue;
+      try { var v = fns[i](p); if (typeof v === 'string' && v) return v; } catch (e) { /* 判定できない */ }
+    }
+    return undefined;
+  }
+  function estimateSec(p, level) {
+    if (!p || !(S.Matome && typeof S.Matome.estimate === 'function')) return undefined;
+    try { var v = S.Matome.estimate(p, level || p.level || 'normal'); return typeof v === 'number' && isFinite(v) && v > 0 ? Math.round(v) : undefined; }
+    catch (e) { return undefined; }
+  }
   /* 「みる」を開いた記録（追加5：その子がどこまで進めているかの判断に使う）。同じ画面では1回だけ */
   var miruLogged = {};
   function miruOpened(no) {
@@ -1021,7 +1039,7 @@
 
     var start = firstOpen(items, st.results);
     var ctl = runSet(area, items, cfg.recKey, function () { finish(); }, {
-      results: st.results, start: start < 0 ? 0 : start,
+      results: st.results, start: start < 0 ? 0 : start, level: cfg.level,
       onAnswer: function (it, r, results, first) {
         st.results = cleanResults(items, results);
         if (cfg.onAnswer) { try { cfg.onAnswer(it, r, results, first); } catch (e) { console.error(e); } }
@@ -1066,7 +1084,7 @@
   function runMatome(main, st) {
     var items = st.items;
     runTimed(main, st, {
-      sessKey: 'matome', recKey: 'matome', label: levelLabel(st.level) + '・' + st.minutes + '分',
+      sessKey: 'matome', recKey: 'matome', label: levelLabel(st.level) + '・' + st.minutes + '分', level: st.level,
       onFinish: function (took, n) {
         var res = st.results;
         var ok = 0;
@@ -1164,7 +1182,17 @@
   }
   function skillLabel(id) { var sk = skillInfo(id); return sk && sk.label ? sk.label : tagLabel(id); }
   function mixLabel(id) { var l = 'ふつう'; OSU_MIX.forEach(function (x) { if (x.id === id) l = x.label; }); return l; }
-  function osuLast() { var v = sessLoad('osusume-last'); return v && typeof v === 'object' ? v : {}; }
+  // 前に選んだ時間・わりあい（Recommend.prefs があればそれを使う）
+  function osuLast() {
+    var p = recoCall('prefs', [], null);
+    if (p && typeof p === 'object') return p;
+    var v = sessLoad('osusume-last'); return v && typeof v === 'object' ? v : {};
+  }
+  function osuSetLast(o) {
+    var r = recoApi();
+    if (r && typeof r.setPrefs === 'function') { recoCall('setPrefs', [o], null); return; }
+    sessSave('osusume-last', o);
+  }
   function validOsusume(st) { return st && validItems(st.items) && typeof st.minutes === 'number'; }
   function lessonByNo(no) { var r = null; lessons().forEach(function (l) { if (String(l.no) === String(no)) r = l; }); return r; }
   function asStr(v) { return typeof v === 'string' ? v : (v == null ? '' : String(v)); }
@@ -1306,9 +1334,7 @@
     var built = recoCall('build', [{ minutes: opt.minutes, weak: opt.weak, challenge: opt.challenge }], null);
     var probs = built && Array.isArray(built.problems) ? built.problems.filter(function (p) { return p && typeof p === 'object' && p.type; }) : [];
     if (!probs.length) { toast('問題を作れませんでした'); return; }
-    var l = osuLast();
-    l.minutes = opt.minutes; l.weak = opt.weak; l.challenge = opt.challenge;
-    sessSave('osusume-last', l);
+    osuSetLast({ minutes: opt.minutes, weak: opt.weak, challenge: opt.challenge });
     // 始めたときの「にがて」の技能（星「にがてだった技能で全問○」に使う）
     var pf = recoCall('profile', [], null), weakSkills = [];
     if (pf && pf.skills) Object.keys(pf.skills).forEach(function (id) { if (pf.skills[id] && pf.skills[id].status === 'weak') weakSkills.push(id); });
@@ -1358,16 +1384,16 @@
         if (!sk) return;
         st.mistakes[sk] = (st.mistakes[sk] || 0) + 1;
         var sg = recoCall('shouldSuggestMiru', [sk, st.mistakes[sk]], null);
-        if (sg && sg.lesson && lessonByNo(sg.lesson)) showSuggest(sk, sg.lesson);
+        if (sg && sg.lesson && lessonByNo(sg.lesson)) showSuggest(sk, sg.lesson, sg.label);
       },
       onFinish: function (took, n) { osuFinish(main, st, took, n); }
     });
-    function showSuggest(sk, no) {
+    function showSuggest(sk, no, label) {
       suggest.innerHTML = '';
       var tx = h('span', 'osu-suggest-text', '「' + skillLabel(sk) + '」で 2回 まちがえたよ。');
       suggest.appendChild(tx);
       var b = button('', 'primary osu-suggest-btn', function () { openMiruOverlay(no, ctl, function () { suggest.hidden = true; }); });
-      withIcon(b, 'telescope', '第' + no + '時の「みる」で確かめよう');
+      withIcon(b, 'telescope', asStr(label) || '第' + no + '時の「みる」で確かめよう');
       suggest.appendChild(b);
       suggest.hidden = false;
     }
@@ -1429,20 +1455,22 @@
   function osuFinish(main, st, took, n) {
     var items = st.items, res = st.results || {}, meta = st.meta || {};
     var ok = 0;
-    var aProblems = [], aResults = [];
     items.forEach(function (it) {
       var r = res[it.pid];
       if (!r) return;
       if (r.correct) ok++;
-      var m = meta[it.pid] || {};
-      aProblems.push(it.p);
-      aResults.push({ correct: !!r.correct, first: typeof m.first === 'boolean' ? m.first : !!r.correct, ms: typeof m.ms === 'number' ? m.ms : null, hints: r.hints || 0 });
     });
     var finished = n === items.length;
     var acc = n ? ok / n : 0;
     var perQ = n ? Math.round(took / n) : 0;
     var prev = recoCall('lastResult', [], null);
-    var adv = recoCall('advice', [{ problems: aProblems, results: aResults, prev: prev, minutes: st.minutes, total: items.length, took: took }], null);
+    // problems と results は同じ順（答えていない問題の結果は null）。advice の result（要約）に、出した問題すべてが入るように
+    var adv = recoCall('advice', [{ problems: items.map(function (it) { return it.p; }), results: items.map(function (it) {
+      var r = res[it.pid];
+      if (!r) return null;
+      var m = meta[it.pid] || {};
+      return { correct: !!r.correct, first: typeof m.first === 'boolean' ? m.first : !!r.correct, ms: typeof m.ms === 'number' ? m.ms : null, hints: r.hints || 0 };
+    }), prev: prev, minutes: st.minutes, focus: st.focus || [], total: items.length, took: took }], null);
     // 前の回より、正答率も1問の時間もよくなった
     var improved = !!(finished && n >= 3 && prev && typeof prev.acc === 'number' && typeof prev.perQ === 'number' && prev.perQ > 0 &&
       acc >= prev.acc && (acc > prev.acc || acc === 1) && perQ < prev.perQ);
@@ -1476,7 +1504,8 @@
         return { correct: !!r.correct, first: typeof m.first === 'boolean' ? m.first : !!r.correct, ms: typeof m.ms === 'number' ? m.ms : null, hints: r.hints || 0 };
       })
     };
-    recoCall('saveResult', [result], null);
+    // advice が要約（result）を返すときは、それをそのまま保存する
+    recoCall('saveResult', [adv && adv.result && typeof adv.result === 'object' ? adv.result : result], null);
     var got = starLog('recommend', { finished: finished, minutes: st.minutes, total: items.length, answered: n, correct: ok,
       allCorrectWeakSkill: allWeak, improved: improved, seconds: Math.round(took / 1000) });
     osuResult(main, st, { n: n, ok: ok, took: took, adv: adv, got: got, finished: finished, prev: prev, acc: acc, perQ: perQ });
@@ -1680,6 +1709,7 @@
         back.remove();
         if (store()) store().resetAll();
         if (sess() && sess().clearAll) { try { sess().clearAll(); } catch (e) { console.error(e); } }
+        lsDel('shosu.recommend'); // おすすめモードの結果・最近出した問題・選んだ時間（追加5）
         if (cb.checked) resetPlanProgress();
         toast(cb.checked ? '記録と、計画・ふりかえりの記録を消しました' : '記録を消しました');
         route();

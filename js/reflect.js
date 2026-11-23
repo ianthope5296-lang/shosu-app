@@ -249,6 +249,7 @@
     if ((m = /^more-(\d+)$/.exec(id))) return '第' + m[1] + '時のもっとれんしゅう';
     if ((m = /^review-(.+)$/.exec(id))) return 'ふくしゅう「' + topicTitle(m[1]) + '」';
     if (/^matome/.test(id)) return 'まとめモード';
+    if (/^osusume/.test(id)) return 'おすすめモード';
     if (id === 'make') return 'もんだいづくり';
     if (id === 'friend') return 'ともだちの問題';
     return id;
