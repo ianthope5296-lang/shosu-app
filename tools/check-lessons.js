@@ -627,7 +627,46 @@ function main() {
     }
   });
 
+  // ---------- 細かい技能（おすすめモード。担当O） ----------
+  var skillIds = G.skillIds ? G.skillIds() : [], skillStats = {};
+  if (!skillIds.length) err('skills', 'Generators.skillIds がない');
+  Lessons.forEach(function (L) {
+    L.problems.forEach(function (p) {
+      if (p.type === 'gen') return;
+      var id = G.skillOf(p);
+      if (skillIds.indexOf(id) < 0) err(p.id || ('L' + L.no), '技能が決まらない: ' + id);
+      skillStats[id] = (skillStats[id] || 0) + 1;
+    });
+  });
+  skillIds.forEach(function (id, si) {
+    G.skillGens(id).forEach(function (name) {
+      if (ALL_GENS.indexOf(name) < 0) { err('skill ' + id, '生成器がない ' + name); return; }
+      LEVELS.forEach(function (lv) {
+        var rng = mulberry32(6100 + si * 7 + lv.length);
+        for (var i = 0; i < 40; i++) {
+          var where = 'skill ' + id + ' ' + name + '[' + lv + '] #' + i, p;
+          try { p = G.make(name, rng, { level: lv, skill: id }); } catch (e) { err(where, '例外: ' + e.message); break; }
+          if (G.skillOf(p) !== id) err(where, '技能がちがう: ' + G.skillOf(p));
+          if (!p.src || p.src.skill !== id) err(where, 'src.skill');
+          var real = (p.src && p.src.lv) || 'normal';
+          if (lv === 'easy' && real === 'hard') err(where, 'かんたんを選んで むずかしいができた');
+          if (lv === 'hard' && real === 'easy') err(where, 'むずかしいを選んで かんたんができた');
+          try { checkProblem(where, p); verifyGen(name, p, where, real); levelRules(name, p, where, real); }
+          catch (e) { err(where, '検証エラー: ' + e.message); }
+        }
+      });
+    });
+  });
+  // skill を指定しないときは今までと同じ問題（乱数の使い方も同じ）
+  ALL_GENS.forEach(function (name, gi) {
+    var r1 = mulberry32(5150 + gi), r2 = mulberry32(5150 + gi);
+    for (var i = 0; i < 30; i++) {
+      if (JSON.stringify(G.make(name, r1)) !== JSON.stringify(G.make(name, r2, { skill: '' }))) { err('gen ' + name, 'skill 省略で問題がちがう'); break; }
+    }
+  });
+
   // ---------- 結果 ----------
+  console.log('技能: ' + skillIds.length + 'こ（教科書の問題の技能: ' + skillIds.map(function (id) { return id + ' ' + (skillStats[id] || 0); }).join(', ') + '）');
   console.log('問題数: ' + total + '（' + Object.keys(byType).map(function (k) { return k + ' ' + byType[k]; }).join('、') + '）');
   Lessons.forEach(function (L) { console.log('  第' + L.no + '時 ' + L.title + ': ' + L.problems.length + '問'); });
   console.log('生成器: ' + CONTRACT_GENS.length + '種 × ' + N + '回（ちがう問題の数: ' +

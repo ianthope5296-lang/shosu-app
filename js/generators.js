@@ -2,6 +2,8 @@
  * Shosu.Generators.make(name, rng?, {level:'easy'|'normal'|'hard'}?) -> problem
  *   level を省略（または 'normal'）すると今までと同じ問題（教科書レベル）。
  * Shosu.Generators.names()
+ * Shosu.Generators.make(name, rng, {level, skill}) / skillOf(problem) / skillIds() / skillGens(skill)
+ *   細かい技能（おすすめモード用。担当O）。下の「細かい技能」を見よ。
  * 小数の計算は、浮動小数の誤差をさけるため整数（100倍・1000倍）で行い、文字列にする。
  * 生成した問題には src（再検証用の元データ）を付ける。
  */
@@ -1418,16 +1420,215 @@
     return wordProblem('wordSub', lv, sc, [fmt(a, 2), fmt(b, 2)], '-');
   }
 
+  // =====================================================================
+  // 細かい技能（おすすめモード用。担当O）
+  //   skillOf(problem) -> 技能id … 問題の中身（数・図・文）から判定する。教科書の問題（src なし）にも使える。
+  //   make(name, rng, {level, skill}) … その技能になる問題だけを作る（同じ生成器で作って、合うものを選ぶ）。
+  //     そのレベルで作れない技能（かんたんの「くり上がりあり」など）は、ふつう → もう1つのレベル の順で作る。
+  //     作った問題の src.skill に技能id、src.lv に実際のレベル（ふつうは無し）が入る。
+  //   skill を省略したときは、今までと同じ問題（乱数の使い方も同じ）。
+  // =====================================================================
+  var SKILL_GENS = {
+    'rep-001': ['masuRead'], 'rep-0001': ['masuRead'], 'kui': ['masuRead', 'compose', 'decompose'],
+    'unit-m': ['unitConvert'], 'unit-k': ['unitConvert'], 'numberline': ['numberlineRead'],
+    'place-name': ['decompose'], 'compose': ['compose', 'decompose'], 'count-units': ['countUnits'],
+    'cmp-two': ['compare'], 'cmp-digits': ['compare'], 'order': ['order'],
+    'times10': ['times10'], 'times100': ['times10'], 'div10': ['times10'],
+    'add-nocarry': ['hissanAdd'], 'add-carry': ['hissanAdd'], 'add-mis': ['hissanAdd'], 'add-trail0': ['hissanAdd'],
+    'sub-noborrow': ['hissanSub'], 'sub-borrow': ['hissanSub'], 'sub-multi': ['hissanSub'], 'sub-int': ['hissanSub'],
+    'laws': ['laws']
+  };
+  var ADD_RANK = ['add-nocarry', 'add-carry', 'add-trail0', 'add-mis'];
+  var SUB_RANK = ['sub-noborrow', 'sub-borrow', 'sub-multi', 'sub-int'];
+
+  function textOf(p) {
+    var t = typeof p.q === 'string' ? p.q : '';
+    (p.parts || []).forEach(function (x) { if (typeof x === 'string') t += x; });
+    return t;
+  }
+  function slotsOf(p) {
+    return (p.parts || []).filter(function (x) { return x && typeof x === 'object' && x.a != null; }).map(function (x) { return String(x.a); });
+  }
+  // 小数部分に「0の位」（左右に0でない数字がある0）があるか。1.02、7.305 など
+  function hasKui(str) {
+    str = String(str);
+    var m = /^(\d+)(?:\.(\d+))?$/.exec(str);
+    if (!m || !m[2]) return false;
+    var ip = m[1].replace(/^0+/, ''), fp = m[2];
+    for (var i = 0; i < fp.length; i++) {
+      if (fp[i] !== '0') continue;
+      var left = ip + fp.slice(0, i), right = fp.slice(i + 1);
+      if (/[1-9]/.test(left) && /[1-9]/.test(right)) return true;
+    }
+    return false;
+  }
+  // 2つの数の筆算の技能（a, b は小数の文字列）
+  function hissanSkill(op, a, b) {
+    var e = Math.max(decimals(a), decimals(b));
+    var A = parse(a, e), B = parse(b, e);
+    if (op === '+') {
+      if (decimals(a) !== decimals(b)) return 'add-mis';
+      if (e > 0 && (A + B) % 10 === 0) return 'add-trail0';
+      return carryCount(A, B) ? 'add-carry' : 'add-nocarry';
+    }
+    if (decimals(a) === 0 && decimals(b) > 0) return 'sub-int';
+    if (A < B) return 'sub-borrow';
+    var k = borrowCount(A, B);
+    return k === 0 ? 'sub-noborrow' : k === 1 ? 'sub-borrow' : 'sub-multi';
+  }
+  // いくつかの数を順に計算して、いちばんむずかしい技能を返す（3つの数のたし算・文章題）
+  function chainSkill(op, nums) {
+    var rank = op === '+' ? ADD_RANK : SUB_RANK, best = -1, acc = nums[0];
+    for (var i = 1; i < nums.length; i++) {
+      var sk = hissanSkill(op, acc, nums[i]);
+      best = Math.max(best, rank.indexOf(sk));
+      var e = Math.max(decimals(acc), decimals(nums[i]));
+      var v = op === '+' ? parse(acc, e) + parse(nums[i], e) : parse(acc, e) - parse(nums[i], e);
+      if (v < 0) break;
+      acc = fmt(v, e);
+    }
+    return rank[Math.max(0, best)];
+  }
+  var SMALL_UNIT = { cm: 100, mm: 1000, g: 1000, mL: 1000 };
+  // 文章の数（単位つき）を取り出す。大きい単位の数とまざっていれば、小さい単位（cm・g・mL）をそろえる
+  function wordNums(text) {
+    var re = /(\d+(?:\.\d+)?)(km|kg|mL|mm|cm|dL|m|g|L)?/g, m, out = [];
+    while ((m = re.exec(text))) out.push([m[1], m[2] || '']);
+    var hasBig = out.some(function (x) { return x[1] === 'm' || x[1] === 'kg' || x[1] === 'L'; });
+    return out.map(function (x) {
+      if (hasBig && SMALL_UNIT[x[1]]) return fmt(Math.round(parse(x[0], 3) / SMALL_UNIT[x[1]]), 3);
+      return x[0];
+    });
+  }
+  function exprNums(expr, op) { // src.expr '2.15-85/100' など
+    return String(expr).split(op).map(function (t) {
+      var m = /^([\d.]+)\/(\d+)$/.exec(t);
+      if (!m) return t;
+      return fmt(Math.round(parse(m[1], 3) / parseInt(m[2], 10)), 3);
+    });
+  }
+  function unitSkill(units) {
+    for (var i = 0; i < units.length; i++) if (/^(km|kg|mm|mL|g)$/.test(units[i])) return 'unit-k';
+    return 'unit-m';
+  }
+  function masuSkill(f) {
+    var v = fmt((f.L || 0) * 1000 + (f.d1 || 0) * 100 + (f.d2 || 0) * 10 + (f.level === 3 ? f.d3 || 0 : 0), 3);
+    if (hasKui(v)) return 'kui';
+    return f.level === 3 ? 'rep-0001' : 'rep-001';
+  }
+  function cmpSkill(q) {
+    var m = /([\d.]+) □ ([\d.]+)$/.exec(q || '');
+    if (!m) return 'cmp-digits';
+    return decimals(m[1]) === decimals(m[2]) ? 'cmp-two' : 'cmp-digits';
+  }
+  function jubaiSkill(t) {
+    if (/(100|1000)倍/.test(t)) return 'times100';
+    if (/1\/10/.test(t)) return 'div10';
+    return 'times10';
+  }
+  function composeSkill(p) {
+    var x = /^([\d.]+)は、/.exec(String((p.parts || [])[0] || ''));
+    var num = x ? x[1] : slotsOf(p)[0];
+    if (/^[\d.]+は、\d+と$/.test(p.parts && p.parts[0] || '')) return 'compose'; // 2.81は、2と□
+    return num && hasKui(num) ? 'kui' : 'compose';
+  }
+  function maxDecimals(t) {
+    var m = t.match(/\d+(?:\.\d+)?/g) || [];
+    return m.reduce(function (a, s) { return Math.max(a, decimals(s)); }, 0);
+  }
+
+  function skillOf(p) {
+    if (!p || typeof p !== 'object') return null;
+    var src = p.src || {}, gen = src.gen, t = textOf(p);
+    if (p.type === 'hissan' && p.a != null && p.b != null) {
+      try { return hissanSkill(p.op === '-' ? '-' : '+', String(p.a), String(p.b)); } catch (e) { return p.op === '-' ? 'sub-borrow' : 'add-carry'; }
+    }
+    switch (gen) {
+      case 'masuRead': return masuSkill(p.fig || src);
+      case 'unitConvert': return unitSkill((src.from || []).map(function (f) { return f[1]; }).concat([src.to]));
+      case 'numberlineRead': return 'numberline';
+      case 'compose': return composeSkill(p);
+      case 'decompose': return p.type === 'choice' || src.kind === 'digit' ? 'place-name' : composeSkill(p);
+      case 'countUnits': return 'count-units';
+      case 'compare': return cmpSkill(p.q);
+      case 'order': return 'order';
+      case 'times10': return jubaiSkill(t);
+      case 'laws': return 'laws';
+      case 'threeSum': try { return chainSkill('+', src.nums); } catch (e) { return 'add-carry'; }
+      case 'wordAdd': try { return chainSkill('+', exprNums(src.expr, '+')); } catch (e) { return 'add-carry'; }
+      case 'wordSub': try { return chainSkill('-', exprNums(src.expr, '-')); } catch (e) { return 'sub-borrow'; }
+    }
+    // 教科書の問題など（src なし）：tag と中身から
+    var tag = p.tag;
+    if (p.fig && p.fig.kind === 'masu') return masuSkill(p.fig);
+    if (p.fig && p.fig.kind === 'numberline' && (tag === 'hyoshikata' || tag === 'daisho' || !tag)) return 'numberline';
+    switch (tag) {
+      case 'hyoshikata': {
+        if (/こ集め/.test(t)) return maxDecimals(t) >= 3 ? 'rep-0001' : 'rep-001';
+        if (p.type === 'choice' && /読み方/.test(t)) return maxDecimals(t) >= 3 ? 'rep-0001' : 'rep-001';
+        var units = [], re = /\d(km|kg|mL|mm|cm|dL|m|g|L)/g, m;
+        while ((m = re.exec(t))) units.push(m[1]);
+        (p.parts || []).forEach(function (x) { if (typeof x === 'string' && /^(km|kg|mL|mm|cm|dL|m|g|L)$/.test(x)) units.push(x); });
+        if (/何(km|kg|mL|mm|cm|dL|m|g|L)/.test(t)) units.push(/何(km|kg|mL|mm|cm|dL|m|g|L)/.exec(t)[1]);
+        if (units.length) return unitSkill(units);
+        return 'rep-001';
+      }
+      case 'shikumi':
+        if (/こ集め/.test(t) || /倍です|1\/です/.test(t)) return 'count-units'; // 0.01を何こ集めた数・1は0.01の100倍
+        if (/の位/.test(t)) return 'place-name';
+        return composeSkill(p);
+      case 'daisho':
+        if (p.type === 'order') return 'order';
+        if (p.type === 'choice') return cmpSkill(p.q);
+        return 'order';
+      case 'jubai': return jubaiSkill(t);
+      case 'tashizan': case 'hikizan': {
+        var op = tag === 'tashizan' ? '+' : '-';
+        var ex = /(\d+(?:\.\d+)?)\s*[＋+]\s*(\d+(?:\.\d+)?)/.exec(t);
+        if (op === '+' && ex) { try { return hissanSkill('+', ex[1], ex[2]); } catch (e) { /* 下へ */ } }
+        var ns = wordNums(typeof p.q === 'string' ? p.q : t);
+        if (ns.length >= 2 && ns.length <= 3) { try { return chainSkill(op, ns); } catch (e) { /* 下へ */ } }
+        return op === '+' ? 'add-carry' : 'sub-borrow';
+      }
+      case 'kimari': return 'laws';
+    }
+    if (p.type === 'order') return 'order';
+    return null;
+  }
+
+  function makeSkill(name, r, lv, skill) {
+    var list = SKILL_GENS[skill];
+    if (!list) throw new Error('unknown skill: ' + skill);
+    if (list.indexOf(name) < 0) throw new Error('skill ' + skill + ' は ' + name + ' では作れません');
+    var order = lv === 'easy' ? ['easy', 'normal', 'hard'] : lv === 'hard' ? ['hard', 'normal', 'easy'] : ['normal', 'easy', 'hard'];
+    var last = null;
+    for (var k = 0; k < order.length; k++) {
+      var L = order[k];
+      for (var t = 0; t < 400; t++) {
+        var p = L !== 'normal' && LV[L][name] ? LV[L][name](r) : gens[name](r);
+        last = p;
+        if (skillOf(p) === skill) {
+          if (p.fig === undefined) delete p.fig;
+          p.src.skill = skill;
+          return p;
+        }
+      }
+    }
+    if (last && last.fig === undefined) delete last.fig;
+    return last;
+  }
+
   var NAMES = ['masuRead', 'unitConvert', 'compose', 'decompose', 'countUnits',
     'compare', 'order', 'times10', 'numberlineRead', 'hissanAdd', 'hissanSub', 'laws',
     'threeSum', 'wordAdd', 'wordSub'];
   var LEVELS = ['easy', 'normal', 'hard'];
 
-  // make(name, rng?, {level}?)  level 省略・'normal' は今までと同じ問題
+  // make(name, rng?, {level, skill}?)  level 省略・'normal' は今までと同じ問題。skill は上の技能id
   function make(name, rng, opts) {
     if (!gens[name]) throw new Error('unknown generator: ' + name);
     var r = typeof rng === 'function' ? rng : Math.random;
     var lv = opts && (opts.level === 'easy' || opts.level === 'hard') ? opts.level : null;
+    if (opts && opts.skill) return makeSkill(name, r, lv || 'normal', opts.skill);
     var p = lv && LV[lv][name] ? LV[lv][name](r) : gens[name](r, lv || undefined);
     if (p.fig === undefined) delete p.fig;
     return p;
@@ -1438,7 +1639,10 @@
     names: function () { return NAMES.slice(); },
     LEVELS: LEVELS,
     hissanHints: hissanHints,
-    util: { fmt: fmt, parse: parse, decimals: decimals, unitAnswer: unitAnswer, carryCount: carryCount, borrowCount: borrowCount }
+    skillOf: skillOf,
+    skillGens: function (skill) { return SKILL_GENS[skill] ? SKILL_GENS[skill].slice() : []; },
+    skillIds: function () { return Object.keys(SKILL_GENS); },
+    util: { fmt: fmt, parse: parse, decimals: decimals, unitAnswer: unitAnswer, carryCount: carryCount, borrowCount: borrowCount, hasKui: hasKui }
   };
   S.Generators = G;
   if (typeof module !== 'undefined' && module.exports) module.exports = G;
