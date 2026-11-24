@@ -5,7 +5,7 @@
 .pf-row { display: grid; grid-template-columns: 7.5em minmax(0, 1fr); gap: 0.6rem; align-items: start; }
 .pf-label { font-weight: bold; font-size: 1.1rem; padding-top: 0.55rem; color: var(--ink); }
 .pf-cls { display: flex; flex-wrap: wrap; gap: 0.45rem; border-radius: 12px; padding: 2px; }
-.btn.pf-cls-btn { min-width: 4.4em; min-height: 54px; font-size: 1.15rem; font-weight: bold; }
+.btn.pf-cls-btn { min-width: 0; width: 4.6em; padding: 0; min-height: 54px; font-size: 1.15rem; font-weight: bold; }
 .pf-no-wrap { display: flex; flex-direction: column; gap: 0.4rem; }
 .pf-no-show { font-size: 1.3rem; font-weight: bold; color: var(--primary); min-height: 1.6em; }
 .pf-no-show.pf-empty { font-size: 1rem; font-weight: normal; color: var(--ink-soft); }
@@ -29,7 +29,7 @@
 .pf-need { box-shadow: 0 0 0 3px #e8590c; background: #fff4e6; }
 .pf-name.pf-need { border-color: #e8590c; }
 .pf-compact { gap: 0.6rem; }
-.pf-compact .btn.pf-cls-btn { min-height: 46px; min-width: 3.8em; font-size: 1.05rem; }
+.pf-compact .btn.pf-cls-btn { min-height: 46px; width: 4.2em; font-size: 1.05rem; }
 .pf-compact .btn.pf-no-btn { min-height: 40px; font-size: 0.95rem; }
 .pf-compact .btn.pf-save { min-height: 52px; }
 @media (max-width: 760px) {

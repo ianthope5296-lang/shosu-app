@@ -774,6 +774,8 @@
     var p = planner();
     var g = p && p.goal ? tryCall(function () { return p.goal(); }, null) : null;
     var u = g && typeof g.formsUrl === 'string' ? g.formsUrl : '';
+    // ゴールに無いときは、この端末で先生が入れた Forms のURL（クラスのきろく）
+    if (!u && S.Classbook && typeof S.Classbook.formsUrl === 'function') u = tryCall(function () { return S.Classbook.formsUrl(); }, '') || '';
     var sh = S.Share;
     if (u && sh && sh.isFormsUrl && !sh.isFormsUrl(u)) return '';
     return u;
