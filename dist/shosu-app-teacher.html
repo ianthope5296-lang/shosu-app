@@ -2423,6 +2423,20 @@ html.osu-miru-open { overflow: hidden; }
 .cb-tc-input { flex: 1 1 22em; min-width: 0; }
 .tcard .cb-tc-url .btn + .btn { margin-left: 0; }
 
+/* データがあるときの取りこみ欄は小さく */
+.cb-howbox { margin: 0 0 0.6rem; font-size: 0.9rem; }
+.cb-howbox > summary { cursor: pointer; color: #3a3796; font-weight: bold; min-height: 32px; display: flex; align-items: center; }
+.cb-howbox .cb-how { margin: 0.2rem 0 0; }
+.cb-import-compact { padding-top: 0.7rem; padding-bottom: 0.7rem; }
+.cb-import-compact h2 { font-size: 1.05rem; margin-bottom: 0.1rem; }
+.cb-import-compact .cb-lead { font-size: 0.95rem; }
+.cb-import-compact .cb-drop { min-height: 0; flex-direction: row; flex-wrap: wrap; padding: 0.5rem 0.8rem; gap: 0.3rem 0.8rem; }
+.cb-import-compact .cb-drop-sub { display: none; }
+.cb-import-compact .cb-paste { flex-direction: row; align-items: stretch; flex-wrap: wrap; }
+.cb-import-compact .cb-paste-title { display: none; }
+.cb-import-compact .cb-ta { min-height: 52px; height: 52px; flex: 1 1 14em; width: auto; }
+.cb-import-compact .cb-paste .btn { align-self: center; }
+
 </style>
 </head>
 <body>
@@ -15562,6 +15576,8 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     var p = planner();
     var g = p && p.goal ? tryCall(function () { return p.goal(); }, null) : null;
     var u = g && typeof g.formsUrl === 'string' ? g.formsUrl : '';
+    // ゴールに無いときは、この端末で先生が入れた Forms のURL（クラスのきろく）
+    if (!u && S.Classbook && typeof S.Classbook.formsUrl === 'function') u = tryCall(function () { return S.Classbook.formsUrl(); }, '') || '';
     var sh = S.Share;
     if (u && sh && sh.isFormsUrl && !sh.isFormsUrl(u)) return '';
     return u;
@@ -17926,10 +17942,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
 
     /* ---------- 一覧 ---------- */
     function renderList(db) {
-      var nav = h('div', 'cb-nav');
-      nav.appendChild(link('◀ 先生メニュー', 'btn small cb-navbtn', '#/teacher'));
-      rootEl.appendChild(nav);
-      rootEl.appendChild(importPanel());
+      rootEl.appendChild(importPanel(Object.keys(db.students).length + db.noProfile.length > 0));
 
       var classes = classList(db);
       if (!state.cls || (state.cls !== 'none' && classes.indexOf(state.cls) < 0 && !db.classes[state.cls])) state.cls = classes[0] || null;
@@ -17981,8 +17994,8 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       rootEl.appendChild(settingsPanel());
     }
 
-    function importPanel() {
-      var sec = h('section', 'cb-panel cb-import');
+    function importPanel(compact) {
+      var sec = h('section', 'cb-panel cb-import' + (compact ? ' cb-import-compact' : ''));
       sec.appendChild(h('h2', null, 'コードを取りこむ'));
       sec.appendChild(h('p', 'cb-lead', 'Forms の回答を Excel でダウンロードして、そのファイルをここに入れてください。'));
       var how = h('ol', 'cb-how');
@@ -17990,7 +18003,12 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
         'Forms の「回答」→「Excel で開く」（またはダウンロード）で、回答のファイル（.xlsx）を保存します。',
         'そのファイルを下のわくにドロップするか、「ファイルをえらぶ」で入れます。何こでも、まとめて入れられます（.xlsx・.csv・.txt・.zip）。'
       ].forEach(function (t) { how.appendChild(h('li', null, t)); });
-      sec.appendChild(how);
+      if (compact) {
+        var det = h('details', 'cb-howbox');
+        det.appendChild(h('summary', null, '使い方（Forms で集めるとき）'));
+        det.appendChild(how);
+        sec.appendChild(det);
+      } else sec.appendChild(how);
       var grid = h('div', 'cb-import-grid');
       var drop = h('div', 'cb-drop');
       drop.setAttribute('tabindex', '0');
@@ -18023,7 +18041,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       var pasteBox = h('div', 'cb-paste');
       pasteBox.appendChild(h('div', 'cb-paste-title', 'または、文章をはりつける'));
       var ta = h('textarea', 'cb-ta');
-      ta.placeholder = 'Teams のチャットや、Excel の列をコピーして、ここにはりつけ（Ctrl + V）';
+      ta.placeholder = compact ? 'チャットや Excel の列をはりつけ（Ctrl + V）' : 'Teams のチャットや、Excel の列をコピーして、ここにはりつけ（Ctrl + V）';
       ta.setAttribute('aria-label', 'コードをはりつける');
       pasteBox.appendChild(ta);
       var goB = button('取りこむ', 'primary', function () {
@@ -18576,7 +18594,9 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
           save(d);
           render();
         }
-        if (cc.edited) confirmDialog('先生が直した文があります。別の言い方にすると、直した文は案に置きかわります。よろしいですか？', '別の言い方にする', next);
+        if (tmr) { clearTimeout(tmr); persist(); }
+        var cur = load().students[k];
+        if (cur && cur.comment[len]) confirmDialog('先生が直した文があります。別の言い方にすると、直した文は案に置きかわります。よろしいですか？', '別の言い方にする', next);
         else next();
       }));
       sec.appendChild(bar);
