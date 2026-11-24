@@ -401,6 +401,18 @@
     try { return S.Session && S.Session.deviceId ? S.Session.deviceId() : null; } catch (e) { return null; }
   }
 
+  /* ---------- 作った人の名前（じぶんのこと。追加6：手書きをやめて文字に） ---------- */
+  function profName() {
+    try { var p = S.Profile && S.Profile.get ? S.Profile.get() : null; return p && p.name ? p.name : ''; } catch (e) { return ''; }
+  }
+  // 名前の表示：文字（authorName）があれば文字、古い問題の手書き（author）は絵で
+  function authorNode(up, o) {
+    o = o || {};
+    if (up && typeof up.authorName === 'string' && up.authorName) return h('span', 'mk-author-text' + (o.cls ? ' ' + o.cls : ''), up.authorName);
+    if (up && inkHasStrokes(up.author)) return drawInk(up.author, { width: o.width || 150, height: o.height || 44, trim: true, lineWidth: 6 });
+    return h('span', 'mk-author-text mk-author-none', '（名前なし）');
+  }
+
   /* ---------- 作りかけ（ページ内で覚えておく） ---------- */
   var draft = null; // {kind, up, editId}
 
@@ -466,7 +478,7 @@
     } else if (up.kind === 'numberline') {
       if (!up.arrows || !up.arrows.length) bad('arrows', '数直線の目もりをタップして、↑をおいてね。');
     }
-    if (!inkHasStrokes(up.author)) bad('author', '名前を書いてね。');
+    if (!profName() && !inkHasStrokes(up.author)) bad('author', '「じぶんのこと」で名前を入れてね。');
     return out;
   }
 
@@ -704,11 +716,31 @@
       var bottom = h('div', 'mk-bottom');
       pads.hint = InkPad({ w: INK.hint.w, h: INK.hint.h, ink: up.hint, label: 'ヒント', note: '（なくてもいいよ）', cls: 'mk-pad-hint', placeholder: 'こまったときのヒントを書けるよ', lineWidth: 4.5 });
       pads.hint.onChange(function () { up.hint = pads.hint.isEmpty() ? null : pads.hint.ink(); changed(); });
-      pads.author = InkPad({ w: INK.author.w, h: INK.author.h, ink: up.author, label: '作った人の名前', note: '（かならず）', cls: 'mk-pad-name', placeholder: '名前を書いてね', compact: true, lineWidth: 4 });
-      pads.author.onChange(function () { up.author = pads.author.isEmpty() ? null : pads.author.ink(); pads.author.flag(false); changed(); });
-      cleanups.push(pads.hint.destroy, pads.author.destroy);
+      cleanups.push(pads.hint.destroy);
       var hb = h('section', 'mk-card mk-hint-card'); hb.appendChild(pads.hint.el);
-      var nb = h('section', 'mk-card mk-name-card'); nb.appendChild(pads.author.el);
+      // 作った人：じぶんのこと（Profile）の名前を文字で
+      var nb = h('section', 'mk-card mk-name-card mk-name-text-card');
+      function editName() {
+        if (!(S.Profile && S.Profile.openDialog)) return;
+        S.Profile.openDialog({ note: '作った問題に、名前が文字で出るよ。', onSave: function () { drawNameCard(); changed(); } });
+      }
+      function drawNameCard() {
+        nb.innerHTML = '';
+        nb.classList.remove('mk-need');
+        nb.appendChild(h('div', 'mk-pad-label', '作った人'));
+        var nm = profName();
+        var row = h('div', 'mk-name-row');
+        if (nm) {
+          row.appendChild(h('span', 'mk-author-text mk-author-big', nm));
+          row.appendChild(button('かえる', 'small', editName));
+        } else {
+          row.appendChild(h('span', 'mk-author-note', 'まだ名前がないよ'));
+          row.appendChild(button('じぶんのことを入れる', 'primary', editName));
+        }
+        nb.appendChild(row);
+      }
+      drawNameCard();
+      pads.author = { el: nb, flag: function (on) { nb.classList.toggle('mk-need', !!on); if (on && !profName()) editName(); } };
       bottom.appendChild(hb); bottom.appendChild(nb);
       main.appendChild(bottom);
 
@@ -733,7 +765,7 @@
         // とちゅうの問題でも長さを測れるように、足りないところは仮の値で埋める（長さは絵でほぼ決まる）
         var test = clone(finalUp(up));
         var dot = function (w, hh) { return { w: w, h: hh, strokes: [[{ x: 10, y: 10 }, { x: 20, y: 20 }]] }; };
-        if (!inkHasStrokes(test.author)) test.author = dot(INK.author.w, INK.author.h);
+        if (!test.authorName && !inkHasStrokes(test.author)) test.authorName = 'なまえ';
         if (test.kind === 'fill' && !inkHasStrokes(test.q)) test.q = dot(INK.q.w, INK.q.h);
         ['a', 'b', 'answer'].forEach(function (k) { if (k in test && !N.valid(test[k])) test[k] = '1'; });
         if (test.kind === 'hissan' && N.cmp(test.a, test.b) < 0) { var t0 = test.a; test.a = test.b; test.b = t0; }
@@ -936,7 +968,9 @@
 
     /* 保存・送信用に整える */
     function finalUp(up) {
-      var o = { v: 1, kind: up.kind, author: up.author, hint: inkHasStrokes(up.hint) ? up.hint : null };
+      var nm = profName();
+      var o = { v: 1, kind: up.kind, author: nm ? null : (up.author || null), hint: inkHasStrokes(up.hint) ? up.hint : null };
+      if (nm) o.authorName = nm; // 作った人（文字。追加6）。名前がまだないときだけ、前の手書きの名前を使う
       var aid = deviceId();
       if (aid) o.aid = aid; // 作った端末（ともだちの問題で「作った人」を区別する）
       if (up.kind === 'hissan') { o.op = up.op === '-' ? '-' : '+'; o.a = up.a; o.b = up.b; }
@@ -1055,7 +1089,7 @@
       var who = h('div', 'mk-done-who');
       who.appendChild(h('span', 'mk-sub', '作った人'));
       var nameImg = h('span', 'mk-name-img');
-      nameImg.appendChild(drawInk(up.author, { width: 260, height: 78, trim: true, lineWidth: 6 }));
+      nameImg.appendChild(authorNode(up, { width: 260, height: 78, cls: 'mk-author-big' }));
       who.appendChild(nameImg);
       card.appendChild(who);
 
@@ -1123,7 +1157,7 @@
         row.style.setProperty('--kc', info.color);
         row.appendChild(h('span', 'mk-badge', info.label));
         var nm = h('span', 'mk-row-name');
-        if (up.author) nm.appendChild(drawInk(up.author, { width: 150, height: 44, trim: true, lineWidth: 6 }));
+        if (up.authorName || up.author) nm.appendChild(authorNode(up, { width: 150, height: 44 }));
         row.appendChild(nm);
         var mid = h('span', 'mk-row-mid');
         mid.appendChild(h('span', 'mk-row-ans', '答え：' + answerText(up)));

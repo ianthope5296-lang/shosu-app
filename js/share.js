@@ -12,6 +12,11 @@
  *   '1' = 問題（UserProblem、今までどおり）  'g' = ゴール（Goal）  'r' = ふりかえり（Reflection）
  *   ゴール・ふりかえりの本体も同じ形（[インクの有無ビット][JSONの長さ][JSON][インク…] を deflate-raw）。
  *   リンクは '#/q/' '#/g/' '#/r/'。
+ *
+ * 追加6：'k' = 学習のきろく（{profile, summary}）、リンクは '#/k/'。
+ *   問題は「作った人」を文字（authorName、30字まで）でも持てる（そのときは手書きの名前はなくてよい）。
+ *   ふりかえりは profile:{cls,no,name} と summary（学習データのまとめ）を運べる。
+ *   ゴールは formsUrl（Microsoft Forms などの https のURL、任意）を運べる。
  */
 (function (root) {
   'use strict';
@@ -21,7 +26,9 @@
   var VCHAR = '1';
   var GOAL_CHAR = 'g';
   var REFL_CHAR = 'r';
-  var KIND_OF_CHAR = { '1': 'problem', g: 'goal', r: 'reflection' };
+  var REC_CHAR = 'k';
+  var KIND_OF_CHAR = { '1': 'problem', g: 'goal', r: 'reflection', k: 'record' };
+  var NAME_MAX = 30;          // 作った人の名前・プロフィールの名前（文字）
   var MAX_LEN = 6000;
   var GRID = 1023;            // 量子化の目の数（長い辺）
   var EPS_RATIO = 0.002;      // 間引きの許容誤差（長い辺に対して。800px なら 1.6px）
@@ -279,7 +286,9 @@
     if (!up || typeof up !== 'object') return no('問題がありません');
     if (up.v !== VERSION) return no('形式の版が正しくありません');
     if (KINDS.indexOf(up.kind) < 0) return no('問題の種類が正しくありません');
-    var e = checkInk(up.author, '名前', true) || checkInk(up.hint, 'ヒント', false);
+    var hasName = up.authorName != null;
+    if (hasName && !isText(up.authorName, NAME_MAX)) return no('作った人の名前は1〜' + NAME_MAX + '文字です');
+    var e = checkInk(up.author, '名前', !hasName) || checkInk(up.hint, 'ヒント', false);
     if (e) return no(e);
     switch (up.kind) {
       case 'hissan':
@@ -336,6 +345,7 @@
       case 'numberline': o.min = up.min; o.max = up.max; o.step = up.step; o.labelEvery = up.labelEvery; o.arrows = up.arrows.slice(); break;
     }
     if (isAid(up.aid)) o.aid = up.aid; // 作った端末のID（任意）
+    if (typeof up.authorName === 'string' && up.authorName.trim()) o.authorName = up.authorName.trim(); // 作った人（文字。追加6）
     return o;
   }
   function isAid(a) { return typeof a === 'string' && /^[A-Za-z0-9]{8,16}$/.test(a); }
@@ -349,7 +359,7 @@
   async function encode(up) {
     var r = validate(up);
     if (!r.ok) throw err('INVALID', r.error);
-    var inks = [up.author, hasStrokes(up.hint) ? up.hint : null, up.kind === 'fill' ? up.q : null];
+    var inks = [hasStrokes(up.author) ? up.author : null, hasStrokes(up.hint) ? up.hint : null, up.kind === 'fill' ? up.q : null];
     var mask = 0;
     inks.forEach(function (ink, i) { if (ink) mask |= 1 << i; });
     var json = new TextEncoder().encode(JSON.stringify(fieldsOf(up)));
@@ -371,7 +381,7 @@
 
   function cleanToken(t) {
     if (typeof t !== 'string') throw err('BAD_TOKEN', 'トークンがありません');
-    var m = /(?:#|%23)\/[qgr]\//i.exec(t);
+    var m = /(?:#|%23)\/[qgrk]\//i.exec(t);
     if (m) t = t.slice(m.index + m[0].length);
     t = t.replace(/[\s​-‍﻿]/g, '');
     return t;
@@ -382,7 +392,7 @@
     if (t.length < 1 + CHECK_LEN + 2) throw err('BAD_TOKEN', 'リンクが短すぎます');
     if (t.length > MAX_LEN + 64) throw err('TOO_LONG', 'リンクが長すぎます');
     if (t.charAt(0) !== VCHAR) {
-      if (t.charAt(0) === GOAL_CHAR || t.charAt(0) === REFL_CHAR) throw err('WRONG_KIND', '問題のコードではありません');
+      if (KIND_OF_CHAR[t.charAt(0)]) throw err('WRONG_KIND', '問題のコードではありません');
       if (/^[0-9]$/.test(t.charAt(0))) throw err('BAD_VERSION', '新しい版のアプリで作られた問題です');
       throw err('BAD_TOKEN', 'リンクの形が正しくありません');
     }
@@ -391,7 +401,7 @@
     var raw = await inflate(b64dec(body.slice(1)));
     var rd = new Reader(raw);
     var mask = rd.u();
-    if (mask > 7 || !(mask & 1)) throw err('BAD_DATA', 'データがこわれています');
+    if (mask > 7) throw err('BAD_DATA', 'データがこわれています');
     var jlen = rd.u();
     var f;
     try { f = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(rd.take(jlen))); }
@@ -401,7 +411,8 @@
     if (KINDS.indexOf(f.kind) < 0) throw err('INVALID', '問題の種類が正しくありません');
     if (f.kind === 'fill' && !(mask & 4)) throw err('INVALID', '問題文がありません');
     if (f.kind !== 'fill' && (mask & 4)) throw err('BAD_DATA', 'データがこわれています');
-    var author = readInk(rd);
+    if (!(mask & 1) && typeof f.authorName !== 'string') throw err('BAD_DATA', 'データがこわれています');
+    var author = mask & 1 ? readInk(rd) : null;
     var hint = mask & 2 ? readInk(rd) : null;
     var q = mask & 4 ? readInk(rd) : null;
     if (rd.p !== raw.length) throw err('BAD_DATA', 'データのあとに余分なものがあります');
@@ -412,6 +423,7 @@
     if (up.kind === 'numberline') up.arrows = Array.isArray(f.arrows) ? f.arrows.slice() : null;
     if (up.kind === 'fill') up.q = q;
     if (isAid(f.aid)) up.aid = f.aid;
+    if (own(f, 'authorName')) up.authorName = f.authorName;
     up.author = author;
     up.hint = hint;
     var r = validate(up);
@@ -437,7 +449,7 @@
   function extractTokens(text) {
     if (typeof text !== 'string' || !text) return [];
     var out = [], seen = {};
-    var re = /(?:#|%23)\/[qgr]\//gi, m;
+    var re = /(?:#|%23)\/[qgrk]\//gi, m;
     while ((m = re.exec(text))) {
       var i = m.index + m[0].length;
       var chars = [], gapAfter = [];
@@ -521,7 +533,8 @@
     p.tag = 'friend';
     if (!p.qInk) p.qInk = null;
     p.hintInk = up.hint || null;
-    p.authorInk = up.author || null;
+    p.authorInk = hasStrokes(up.author) ? up.author : null;
+    p.authorName = typeof up.authorName === 'string' && up.authorName ? up.authorName : null;
     return p;
   }
   function answerText(up) {
@@ -610,8 +623,22 @@
     return { t: t, f: f, inks: inks };
   }
 
+  /* ---------- Forms のURL（追加6） ---------- */
+  // https のみ。Microsoft Forms（と Google フォーム）のURLだけを通す（子どもの端末で開くので）
+  var FORMS_HOSTS = ['forms.office.com', 'forms.microsoft.com', 'forms.cloud.microsoft', 'forms.office365.us', 'forms.osi.office365.us', 'forms.gle', 'docs.google.com'];
+  function isFormsUrl(u) {
+    if (typeof u !== 'string' || u.length > 400 || badChars(u) || /\s/.test(u)) return false;
+    var m = /^https:\/\/([A-Za-z0-9.-]+)(?::443)?(\/[^\s"'<>\\]*)?$/.exec(u);
+    if (!m) return false;
+    var host = m[1].toLowerCase(), path = m[2] || '/';
+    var ok = FORMS_HOSTS.some(function (hh) { return host === hh || (hh !== 'docs.google.com' && hh !== 'forms.gle' && host.slice(-hh.length - 1) === '.' + hh); });
+    if (!ok) return false;
+    if (host === 'docs.google.com' && path.indexOf('/forms/') !== 0) return false;
+    return true;
+  }
+
   /* ---------- ゴール ---------- */
-  // Goal = { v:1, id, name, date, classes:[{date, minutes, lesson?, note?}], created }
+  // Goal = { v:1, id, name, date, classes:[{date, minutes, lesson?, note?}], created, formsUrl? }
   function validateGoal(g) {
     function no(msg) { return { ok: false, error: msg }; }
     if (!g || typeof g !== 'object' || Array.isArray(g)) return no('ゴールがありません');
@@ -620,6 +647,7 @@
     if (!isText(g.name, GLIMIT.name)) return no('ゴールの名前は1〜' + GLIMIT.name + '文字です');
     if (!isDate(g.date)) return no('ゴールの日にちが正しくありません');
     if (g.created != null && !isIso(g.created)) return no('作った日時が正しくありません');
+    if (g.formsUrl != null && g.formsUrl !== '' && !isFormsUrl(g.formsUrl)) return no('FormsのURLが正しくありません（https://forms.office.com/ などのURL）');
     var cls = g.classes == null ? [] : g.classes;
     if (!Array.isArray(cls)) return no('授業の予定が正しくありません');
     if (cls.length > GLIMIT.classes) return no('授業の予定が多すぎます');
@@ -647,6 +675,7 @@
     });
     o.classes.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
     if (g.created != null) o.created = g.created;
+    if (isFormsUrl(g.formsUrl)) o.formsUrl = g.formsUrl;
     return o;
   }
   async function encodeGoal(g) {
@@ -669,6 +698,7 @@
   // Reflection = { v:1, date, name:Ink|null, meate:{choices,ink}, y:{auto:[text], extra:[text]},
   //               w:{eval:'double'|'single'|'triangle', choices:[text], ink}, t:{choices:[text], ink, items:[itemId]}, aid, saved:'ISO' }
   //   aid が正しい形でないときは、こばまずに入れないだけ（端末のIDは任意）。
+  //   追加6：profile:{cls,no,name}（任意）, summary:LearnSummary（任意。数字中心の小さなJSON）
   function textList(a, maxN, maxLen, what) {
     if (a == null) return null;
     if (!Array.isArray(a)) return what + 'が正しくありません';
@@ -699,8 +729,43 @@
     if (e) return no(e);
     if (w.eval != null && EVALS.indexOf(w.eval) < 0) return no('自己評価が正しくありません');
     if (r.saved != null && !isIso(r.saved)) return no('書いた日時が正しくありません');
+    if (r.profile != null && !isProfile(r.profile)) return no('組・番号・名前が正しくありません');
+    if (r.summary != null) { var se = checkSummary(r.summary); if (se) return no(se); }
     return { ok: true, error: null };
   }
+
+  /* ---------- プロフィール・学習データのまとめ（追加6） ---------- */
+  function isProfile(p) {
+    return !!p && typeof p === 'object' && !Array.isArray(p) && intIn(p.cls, 1, 9) && intIn(p.no, 1, 45) && isText(p.name, NAME_MAX) && !/[<>]/.test(p.name);
+  }
+  function normProfile(p) { return { cls: p.cls, no: p.no, name: p.name.trim() }; }
+  // summary は形をしばりすぎない（担当R・Sがあとから項目を足せるように）。ただし JSON の小さな値だけ
+  var SLIMIT = { depth: 5, nodes: 1500, str: 60, keyLen: 40, arr: 40, json: 12000 };
+  function checkSummary(sm) {
+    if (!sm || typeof sm !== 'object' || Array.isArray(sm)) return '学習のまとめがありません';
+    if (sm.v !== 1) return '学習のまとめの版が正しくありません';
+    var nodes = 0, bad = null;
+    (function walk(x, d) {
+      if (bad) return;
+      if (++nodes > SLIMIT.nodes) { bad = '学習のまとめが大きすぎます'; return; }
+      if (x === null || typeof x === 'boolean') return;
+      if (typeof x === 'number') { if (!isFinite(x)) bad = '学習のまとめの数が正しくありません'; return; }
+      if (typeof x === 'string') { if (x.length > SLIMIT.str || badChars(x)) bad = '学習のまとめの文字が正しくありません'; return; }
+      if (d >= SLIMIT.depth) { bad = '学習のまとめの形が深すぎます'; return; }
+      if (Array.isArray(x)) { if (x.length > SLIMIT.arr) { bad = '学習のまとめが大きすぎます'; return; } x.forEach(function (y) { walk(y, d + 1); }); return; }
+      if (typeof x !== 'object') { bad = '学習のまとめの形が正しくありません'; return; }
+      Object.keys(x).forEach(function (k) {
+        if (k.length > SLIMIT.keyLen || badChars(k) || k === '__proto__' || k === 'constructor' || k === 'prototype') { bad = '学習のまとめの形が正しくありません'; return; }
+        walk(x[k], d + 1);
+      });
+    })(sm, 0);
+    if (bad) return bad;
+    if (sm.profile != null && !isProfile(sm.profile)) return '学習のまとめの組・番号・名前が正しくありません';
+    if (sm.at != null && !isIso(sm.at)) return '学習のまとめの日時が正しくありません';
+    try { if (JSON.stringify(sm).length > SLIMIT.json) return '学習のまとめが大きすぎます'; } catch (e) { return '学習のまとめの形が正しくありません'; }
+    return null;
+  }
+  function copyJSON(x) { return JSON.parse(JSON.stringify(x)); }
   function inkOrNull(ink) { return hasStrokes(ink) ? ink : null; }
   function reflFields(r) {
     var m = part(r.meate), y = part(r.y), w = part(r.w), t = part(r.t);
@@ -712,15 +777,34 @@
     if (Array.isArray(t.items) && t.items.length) o.t.items = t.items.slice();
     if (isAid(r.aid)) o.aid = r.aid;
     if (typeof r.saved === 'string' && isIso(r.saved)) o.saved = r.saved;
+    if (isProfile(r.profile)) o.profile = normProfile(r.profile);
+    if (r.summary != null && !checkSummary(r.summary)) o.summary = copyJSON(r.summary);
+    if (r.cut) o.cut = 1;   // 長すぎたので手書きを落とした印
     return o;
   }
   async function encodeReflection(r) {
     var v = validateReflection(r);
     if (!v.ok) throw err('INVALID', v.error);
     var inks = [inkOrNull(r.name), inkOrNull(part(r.meate).ink), inkOrNull(part(r.w).ink), inkOrNull(part(r.t).ink)];
-    var fields = reflFields(r), token = '';
-    for (var i = 0; i < REFL_EPS.length; i++) {
+    var fields = reflFields(r), token = '', i;
+    // 1. 手書きの間引きをだんだん強く
+    for (i = 0; i < REFL_EPS.length; i++) {
       token = await packToken(REFL_CHAR, fields, inks, REFL_EPS[i]);
+      if (token.length <= MAX_LEN) return token;
+    }
+    // 2. それでも長いとき（学習のまとめが入っているなど）：W・T の手書きを落とす（summary は残す）
+    if (inks[2] || inks[3]) {
+      fields.cut = 1;
+      var inks2 = [inks[0], inks[1], null, null];
+      for (i = 0; i < REFL_EPS.length; i++) {
+        token = await packToken(REFL_CHAR, fields, inks2, REFL_EPS[i]);
+        if (token.length <= MAX_LEN) return token;
+      }
+    }
+    // 3. 名前・めあての手書きも落とす
+    if (inks[0] || inks[1]) {
+      fields.cut = 1;
+      token = await packToken(REFL_CHAR, fields, [null, null, null, null], EPS_RATIO);
       if (token.length <= MAX_LEN) return token;
     }
     throw tooLong(token.length);
@@ -740,6 +824,34 @@
     return r;
   }
 
+  /* ---------- 学習のきろく（'k'。追加6） ---------- */
+  // Record = { v:1, profile:{cls,no,name}, summary:LearnSummary }
+  function validateRecord(rec) {
+    function no(msg) { return { ok: false, error: msg }; }
+    if (!rec || typeof rec !== 'object' || Array.isArray(rec)) return no('学習のきろくがありません');
+    if (rec.v != null && rec.v !== 1) return no('形式の版が正しくありません');
+    if (!isProfile(rec.profile)) return no('組・番号・名前が正しくありません');
+    var se = checkSummary(rec.summary);
+    if (se) return no(se);
+    return { ok: true, error: null };
+  }
+  async function encodeRecord(rec) {
+    var v = validateRecord(rec);
+    if (!v.ok) throw err('INVALID', v.error);
+    var token = await packToken(REC_CHAR, { v: 1, profile: normProfile(rec.profile), summary: copyJSON(rec.summary) }, [], EPS_RATIO);
+    if (token.length > MAX_LEN) throw tooLong(token.length);
+    return token;
+  }
+  async function decodeRecord(token) {
+    var u = await unpackToken(token, REC_CHAR, 0, '学習のきろく');
+    if (u.f.v !== 1) throw err('BAD_VERSION', '形式の版が正しくありません');
+    var v = validateRecord(u.f);
+    if (!v.ok) throw err('INVALID', v.error);
+    var rec = { v: 1, profile: normProfile(u.f.profile), summary: copyJSON(u.f.summary) };
+    Object.defineProperty(rec, '_token', { value: u.t, enumerable: false });
+    return rec;
+  }
+
   /* ---------- 種類の見分け・コピー用の文 ---------- */
   function kindOf(token) {
     var t;
@@ -753,7 +865,8 @@
   var CODE_INFO = {
     problem: { path: '#/q/', word: 'しょうすうもんだい' },
     goal: { path: '#/g/', word: 'しょうすうゴール' },
-    reflection: { path: '#/r/', word: 'しょうすうふりかえり' }
+    reflection: { path: '#/r/', word: 'しょうすうふりかえり' },
+    record: { path: '#/k/', word: 'しょうすうきろく' }
   };
   // コピーしてチャットに貼る文。http(s) なら URL、file:// なら「しょうすう○○ #/x/…」
   function codeText(token) {
@@ -787,6 +900,13 @@
     validateReflection: validateReflection,
     kindOf: kindOf,
     codeText: codeText,
+    // 追加6
+    encodeRecord: encodeRecord,
+    decodeRecord: decodeRecord,
+    validateRecord: validateRecord,
+    validateSummary: function (sm) { var e = checkSummary(sm); return { ok: !e, error: e }; },
+    isFormsUrl: isFormsUrl,
+    NAME_MAX: NAME_MAX,
     // テスト・内部用
     _: { toMilli: toMilli, fromMilli: fromMilli, checksum: checksum, b64enc: b64enc, b64dec: b64dec, deflate: deflate, inflate: inflate }
   };

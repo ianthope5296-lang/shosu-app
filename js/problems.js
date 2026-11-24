@@ -129,7 +129,12 @@
     root.appendChild(markEl);
     // 子どもが作った問題：つくった人の名前・問題文の手書きの絵
     var availW = Math.max(280, Math.min(900, (container.clientWidth || 900) - 130));
-    if (hasInk(problem.authorInk)) {
+    if (problem.authorName && typeof problem.authorName === 'string') {   // 追加6：名前は文字で
+      var an = h('div', 'p-author');
+      an.appendChild(h('span', 'p-author-label', 'つくった人：'));
+      an.appendChild(h('span', 'p-author-name', problem.authorName));
+      root.appendChild(an);
+    } else if (hasInk(problem.authorInk)) {
       var au = h('div', 'p-author');
       au.appendChild(h('span', 'p-author-label', 'つくった人：'));
       au.appendChild(inkCanvas(problem.authorInk, { height: 40, width: 320, trim: true, lineWidth: 6, label: 'つくった人の名前' }));

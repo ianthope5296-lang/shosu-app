@@ -195,6 +195,9 @@
       out.classes.push(o);
     });
     out.classes.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+    // 追加6：Forms のURL（Share.isFormsUrl で確かめる。Share が無いときは https だけ）
+    var fu = g.formsUrl, sh = S.Share;
+    if (typeof fu === 'string' && fu && (sh && sh.isFormsUrl ? sh.isFormsUrl(fu) : /^https:\/\/[^\s"'<>]+$/.test(fu) && fu.length <= 400)) out.formsUrl = fu;
     return out;
   }
   var presetChecked = false;

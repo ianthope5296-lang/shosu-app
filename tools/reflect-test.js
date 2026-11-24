@@ -261,6 +261,32 @@ eq(R.boxList().length, 0, 'ぜんぶけす');
 ls.setItem('shosu.reflectBox', '[1,{"r":null},{"r":{"date":"2026-11-20"}}]');
 eq(R.boxList().length, 1, 'こわれたボックスの中身を直す');
 
+/* ---------- 8b. 追加6：じぶんのこと（Profile）・送るときの summary ---------- */
+require(path.join(root, 'js/profile.js'));
+require(path.join(root, 'js/summary.js'));
+var P = S.Profile;
+eq(P.get(), null, 'プロフィールはまだない');
+eq(P.set({ cls: 2, no: 7, name: '  山田　花子 ' }), { cls: 2, no: 7, name: '山田 花子' }, 'プロフィールの保存（空白を整える）');
+eq(P.label(), '4年2組 7番 山田 花子', 'label');
+eq(P.set({ cls: 10, no: 1, name: 'a' }), null, '組が10は保存しない');
+eq(P.set({ cls: 1, no: 46, name: 'a' }), null, '番号46は保存しない');
+eq(P.set({ cls: 1, no: 1, name: '' }), null, '名前が空は保存しない');
+eq(P.get().no, 7, 'まちがった値では上書きしない');
+var cp = R._.cleanReflection({ v: 1, date: TODAY, profile: { cls: 2, no: 7, name: '山田 花子' }, w: { eval: 'single' } });
+eq(cp.profile, { cls: 2, no: 7, name: '山田 花子' }, 'ふりかえりに profile が残る');
+eq(R._.cleanReflection({ v: 1, date: TODAY, profile: { cls: 0, no: 7, name: 'x' } }).profile, undefined, 'まちがった profile は入れない');
+var fs = R.forSend({ v: 1, date: TODAY, name: ink, meate: { choices: [], ink: null }, y: { auto: [], extra: [], off: ['x'] }, w: { eval: 'single', choices: [], ink: null }, t: { choices: [], ink: null, items: [] } });
+eq(fs.profile, { cls: 2, no: 7, name: '山田 花子' }, '送るときは今のプロフィール');
+eq(fs.name, null, 'プロフィールがあれば手書きの名前は送らない');
+ok(fs.summary && fs.summary.v === 1 && fs.summary.lessons.length === 10, '送るときに summary が入る');
+ok(!('off' in fs.y), 'off は送らない');
+var bk1 = R.boxAdd([{ v: 1, date: TODAY, profile: { cls: 2, no: 7, name: '山田 花子' }, w: { eval: 'single' } }]);
+eq(bk1.added, 1, 'aid のないふりかえりも、組・番号で入る');
+eq(R.boxAdd([{ v: 1, date: TODAY, profile: { cls: 2, no: 7, name: '山田 花子' }, w: { eval: 'double' }, saved: new Date().toISOString() }]).updated, 1, '同じ組・番号・日は新しいほうに');
+R.boxClear();
+eq(typeof R.deliver, 'function', 'deliver がある');
+eq(R.formsUrl(), '', 'ゴールがなければ Forms のURLはない');
+
 /* ---------- 9. Share のスタブで、送る・とりこむの形（エンコードの往復） ---------- */
 S.Share = {
   encodeReflection: function (r) { return Promise.resolve('R' + Buffer.from(JSON.stringify(r)).toString('base64')); },

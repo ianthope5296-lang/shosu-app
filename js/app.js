@@ -244,6 +244,7 @@
     app.appendChild(bar);
 
     var main = h('main', 'home');
+    main.appendChild(homeProfileSection());
     main.appendChild(homePlanSection());
     var sec = h('section', 'home-lessons');
     var head = h('div', 'sec-head');
@@ -1628,6 +1629,8 @@
     var main = h('main', 'teacher');
     var s = settings();
 
+    var cbSec = classbookSection();
+    if (cbSec) main.appendChild(cbSec);
     main.appendChild(teacherGoalCard());
     main.appendChild(teacherRboxCard());
 
@@ -1802,7 +1805,16 @@
   }
 
   /* ともだちの問題の「作った人」：作った端末のID（up.aid）。aid の無い古いリンクは名前の絵から作る */
-  function friendAuthorKey(up) { return up && up.aid ? 'd' + up.aid : authorKey(up && up.author); }
+  function friendAuthorKey(up) {
+    if (up && up.aid) return 'd' + up.aid;
+    if (up && typeof up.authorName === 'string' && up.authorName) return 'n' + up.authorName;   // 追加6：名前が文字の問題
+    return authorKey(up && up.author);
+  }
+  /* 作った人の表示：文字（authorName）があれば文字、古い問題の手書きは絵で（追加6） */
+  function authorNameNode(up, o) {
+    if (up && typeof up.authorName === 'string' && up.authorName) return h('span', 'author-name-text', up.authorName);
+    return inkNode(up && up.author, o);
+  }
   /* 作った人の名前（手書き）から短い文字列を作る（aid の無い古いリンク用の代わり）。
      Share.encode と同じ間引き・丸め（長い辺を1023目）をした後の座標で計算するので、
      作ったときの絵・リンクから開いた絵・ボックスに入れた絵のどれでも同じ値になる。 */
@@ -1961,7 +1973,7 @@
   }
 
   /* #/open：もらったコード（問題・ゴール・ふりかえり）をはりつけて開く。種類は自動で見分ける */
-  var KIND_ROUTE = { problem: '#/q/', goal: '#/g/', reflection: '#/r/' };
+  var KIND_ROUTE = { problem: '#/q/', goal: '#/g/', reflection: '#/r/', record: '#/k/' };
   function viewOpen() {
     app.appendChild(topbar('もらったコードをひらく'));
     var main = h('main', 'box');
@@ -1985,7 +1997,7 @@
         if (k && KIND_ROUTE[k]) { kind = k; tok = toks[i]; }
       }
       if (!kind) {
-        msg.textContent = /(?:#|%23)\/[qgr]\//i.test(ta.value || '') ? 'とちゅうで切れているみたい。もう一度コピーしてね。' : 'リンクやコードが見つからなかったよ。';
+        msg.textContent = /(?:#|%23)\/[qgrk]\//i.test(ta.value || '') ? 'とちゅうで切れているみたい。もう一度コピーしてね。' : 'リンクやコードが見つからなかったよ。';
         msg.className = 'box-msg warn';
         return;
       }
@@ -2082,7 +2094,7 @@
         var li = h('li', 'box-item');
         li.appendChild(h('span', 'box-no', String(i + 1)));
         var nm = h('span', 'box-name');
-        nm.appendChild(inkNode(up.author, { height: 40, width: 200, trim: true, lineWidth: 6, label: 'つくった人の名前' }));
+        nm.appendChild(authorNameNode(up, { height: 40, width: 200, trim: true, lineWidth: 6, label: 'つくった人の名前' }));
         li.appendChild(nm);
         li.appendChild(h('span', 'box-kind', KIND_LABEL[up.kind] || ''));
         li.appendChild(h('span', 'box-desc', describe(up)));
@@ -2323,7 +2335,8 @@
       var main = h('main', 'rcode');
       var card = h('section', 'tcard rcode-card');
       var hd = h('div', 'rcode-head');
-      if (r.name && r.name.strokes && r.name.strokes.length) hd.appendChild(inkNode(r.name, { height: 56, trim: true, lineWidth: 4, label: '名前（手書き）' }));
+      if (r.profile && r.profile.name) hd.appendChild(h('span', 'rcode-pname', r.profile.cls + '組 ' + r.profile.no + '番 ' + r.profile.name));
+      else if (r.name && r.name.strokes && r.name.strokes.length) hd.appendChild(inkNode(r.name, { height: 56, trim: true, lineWidth: 4, label: '名前（手書き）' }));
       else hd.appendChild(h('span', 'rcode-noname', '（名前なし）'));
       hd.appendChild(h('span', 'rcode-date', dateJa(r.date, true)));
       if (r.w && r.w.eval) hd.appendChild(evalMark(r.w.eval));
@@ -2332,6 +2345,8 @@
       card.appendChild(reflBlock('Y　やったこと', [].concat((r.y && r.y.auto) || [], (r.y && r.y.extra) || []), null));
       card.appendChild(reflBlock('W　わかったこと・できたこと', r.w && r.w.choices, r.w && r.w.ink));
       card.appendChild(reflBlock('T　次にやりたいこと', r.t && r.t.choices, r.t && r.t.ink));
+      if (r.cut) card.appendChild(h('p', 'tnote', '（コードが長くなりすぎたので、手書きの一部をはぶいて送られています）'));
+      if (r.summary) card.appendChild(summaryBlock(r.summary));
       main.appendChild(card);
       var row = h('div', 'goal-row');
       var msg = h('span', 'box-msg');
@@ -2347,6 +2362,8 @@
         addB.disabled = true;
       });
       row.appendChild(addB);
+      var cbB = classbookAddButton(token, msg);
+      if (cbB) row.appendChild(cbB);
       row.appendChild(link('ふりかえりボックスを開く ▶', 'btn', '#/rbox'));
       row.appendChild(msg);
       main.appendChild(row);
@@ -2391,6 +2408,16 @@
     date.value = cur && cur.date >= today ? cur.date : addDaysStr(today, 7);
     f2.appendChild(date);
     sec.appendChild(f2);
+    // 追加6：Microsoft Forms のURL（任意）。子どもが「先生に送る」を押すと、コードがコピーされて Forms が開く
+    var f3 = h('label', 'ge-field ge-forms');
+    f3.appendChild(h('span', 'ge-label', 'Forms のURL（入れなくてもよい）'));
+    var forms = h('input', 'ge-input ge-forms-input');
+    forms.type = 'url'; forms.maxLength = 400; forms.placeholder = 'https://forms.office.com/r/…';
+    forms.autocomplete = 'off'; forms.spellcheck = false;
+    forms.value = cur && cur.formsUrl ? cur.formsUrl : '';
+    f3.appendChild(forms);
+    sec.appendChild(f3);
+    sec.appendChild(h('p', 'tnote', '質問が1つ（「コードをはりつけてください」）だけの Microsoft Forms を作り、そのURLを入れます。子どもが「先生に送る」を押すと、コードがコピーされて Forms が開きます。回答は Excel で開いて「クラスのきろく」に取りこめます。ゴールのコード・ゴール入りのアプリにも入ります。'));
     main.appendChild(sec);
 
     var sec2 = h('section', 'tcard');
@@ -2521,6 +2548,8 @@
           return c;
         }),
         created: new Date().toISOString() };
+      var fu = (forms.value || '').trim();
+      if (fu) goal.formsUrl = fu;
       var sh = shareApi();
       var v = sh && sh.validateGoal ? sh.validateGoal(goal) : { ok: !!(nm && g), error: '名前と日にちを入れてください' };
       if (!v.ok) { msg.textContent = v.error; msg.className = 'box-msg warn'; return; }
@@ -2628,6 +2657,7 @@
     if (g) {
       sec.appendChild(h('p', 'tgoal-name', goalLine(g)));
       sec.appendChild(h('p', 'tnote', classesLine(g)));
+      sec.appendChild(h('p', 'tnote', g.formsUrl ? '提出：Forms（' + g.formsUrl + '）' : '提出：Teams のチャット（Forms のURLは未設定）'));
     } else {
       sec.appendChild(h('p', 'tnote', 'まだゴールがありません。「ゴールを決める」で、テストなどの日にちと、それまでの授業の予定を入れてください。'));
     }
@@ -2733,6 +2763,196 @@
     return wrap;
   }
 
+  /* ---------- 追加6：じぶんのこと（組・出席番号・名前）・学習のきろく・クラスのきろく ---------- */
+  function profileApi() { return S.Profile && S.Profile.get ? S.Profile : null; }
+  function myProfile() { var pa = profileApi(); if (!pa) return null; try { return pa.get(); } catch (e) { return null; } }
+  function profileLabel(p) { var pa = profileApi(); return p ? (pa && pa.label ? pa.label(p) : p.cls + '組 ' + p.no + '番 ' + p.name) : ''; }
+
+  /* ホームのいちばん上：じぶんのこと（はじめては大きな案内）・学習のきろくを先生に送る */
+  function homeProfileSection() {
+    var p = myProfile();
+    var sec = h('section', 'home-me' + (p ? '' : ' home-me-first'));
+    if (!profileApi()) return sec;
+    if (!p) {
+      var a = link('', 'me-first', '#/me');
+      a.appendChild(iconEl('pen', 'me-first-icon') || h('span', 'me-first-icon'));
+      var t = h('span', 'me-first-text');
+      t.appendChild(h('span', 'me-first-title', 'さいしょに じぶんのことを入れよう'));
+      t.appendChild(h('span', 'me-first-sub', '組・出席番号・名前を入れてね。ふりかえりや、作った問題に名前が出るよ'));
+      a.appendChild(t);
+      a.appendChild(arrows(h('span', 'me-first-go', 'いれる ▶')));
+      sec.appendChild(a);
+      return sec;
+    }
+    var bar = h('div', 'me-bar');
+    var who = h('div', 'me-who');
+    who.appendChild(h('span', 'me-who-label', 'じぶんのこと'));
+    who.appendChild(h('span', 'me-who-name', profileLabel(p)));
+    who.appendChild(link('変更', 'btn small me-edit', '#/me'));
+    bar.appendChild(who);
+    var msg = h('span', 'box-msg me-msg');
+    msg.setAttribute('role', 'status');
+    var box = h('div', 'me-codebox');
+    box.hidden = true;
+    var sendB = withIcon(button('', 'me-send', function () { sendRecord(sendB, msg, box); }), 'letter', '学習のきろくを先生に送る');
+    bar.appendChild(sendB);
+    sec.appendChild(bar);
+    sec.appendChild(msg);
+    sec.appendChild(box);
+    return sec;
+  }
+  /* 「学習のきろくを先生に送る」：じぶんのこと＋学習データのまとめをコードにして、コピー（Forms があれば開く） */
+  function sendRecord(btn, msg, box) {
+    var sh = shareApi(), p = myProfile();
+    function warn(t) { msg.textContent = t; msg.className = 'box-msg me-msg warn'; }
+    if (!p) { location.hash = '#/me'; return; }
+    if (!(sh && sh.encodeRecord)) { warn('送る機能は、まだじゅんび中です。'); return; }
+    var sm = null;
+    try { sm = S.Summary && S.Summary.build ? S.Summary.build() : null; } catch (e) { console.error('Summary.build', e); }
+    if (!sm) { warn('学習のきろくを作れませんでした。'); return; }
+    btn.disabled = true;
+    Promise.resolve().then(function () { return sh.encodeRecord({ profile: p, summary: sm }); }).then(function (tok) {
+      btn.disabled = false;
+      var text = sh.codeText ? sh.codeText(tok) : tok;
+      var rf = reflectApi();
+      if (rf && rf.deliver) return rf.deliver(text, { msg: msg, codeBox: box, msgClass: 'box-msg me-msg' });
+      copyText(text, box, 'コードをコピーしたよ。Teams の先生へのチャットに はりつけてね。');
+    }).catch(function (e) {
+      btn.disabled = false;
+      console.warn('encodeRecord', e && e.message);
+      warn('コードを作れませんでした。');
+    });
+  }
+  /* #/me：じぶんのこと */
+  function viewMe(sub) {
+    app.appendChild(topbar('じぶんのこと'));
+    var main = h('main', 'me-page');
+    app.appendChild(main);
+    var pa = profileApi();
+    if (!(pa && pa.mountForm)) { main.appendChild(h('div', 'empty-note', 'この画面は、じゅんび中です。')); return; }
+    var card = h('section', 'tcard me-card');
+    card.appendChild(h('h2', null, myProfile() ? 'じぶんのことを なおす' : 'じぶんのことを入れよう'));
+    card.appendChild(h('p', 'tnote', '組・出席番号・名前を入れてね。ふりかえりや、作った問題の「作った人」に、この名前が出るよ。先生に送るコードにも入るよ。'));
+    main.appendChild(card);
+    var hd = pa.mountForm(card, { focusName: false, saveLabel: 'これでOK', onSave: function () {
+      toast('じぶんのことを ほぞんしたよ');
+      setTimeout(function () { location.hash = sub === 'reflect' ? '#/reflect' : '#/'; }, 300);
+    }, onCancel: myProfile() ? function () { location.hash = '#/'; } : null });
+    cleanups.push(function () { if (hd && hd.destroy) hd.destroy(); });
+  }
+
+  /* 学習のまとめを先生用に小さく見せる */
+  function pct(x) { return x == null ? '—' : Math.round(x * 100) + '%'; }
+  function summaryBlock(sm) {
+    var b = h('div', 'rcode-block sum-block');
+    b.appendChild(h('h3', null, '学習のまとめ' + (sm.at ? '（' + dateJa(String(sm.at).slice(0, 10)) + 'まで）' : '')));
+    var g = h('div', 'sum-grid');
+    function cell(label, val) { var c = h('div', 'sum-cell'); c.appendChild(h('span', 'sum-label', label)); c.appendChild(h('span', 'sum-val', val)); g.appendChild(c); }
+    var tried = 0, total = 0, corr = 0;
+    (sm.lessons || []).forEach(function (l) { if (l && l.tried) tried++; total += (l && l.tried) || 0; corr += (l && l.correct) || 0; });
+    cell('学習した日数', (sm.days || 0) + '日');
+    cell('合計時間（目安）', (sm.min || 0) + '分');
+    cell('取り組んだ時', tried + ' / ' + ((sm.lessons || []).length || 10));
+    cell('教科書の問題', corr + ' / ' + total + '問○');
+    var m = sm.matome || {}, o = sm.osusume || {};
+    cell('まとめモード', (m.n || 0) + '回・' + pct(m.rate));
+    cell('おすすめモード', (o.n || 0) + '回・' + pct(o.rate));
+    cell('ふりかえり', ((sm.reflect && sm.reflect.n) || 0) + '回');
+    cell('星', ((sm.stars && sm.stars.n) || 0) + 'こ' + (sm.stars && sm.stars.title ? '（' + sm.stars.title + '）' : ''));
+    b.appendChild(g);
+    var lr = h('div', 'sum-lessons');
+    (sm.lessons || []).forEach(function (l) {
+      if (!l) return;
+      var c = h('div', 'sum-lesson' + (l.tried ? '' : ' none'));
+      c.appendChild(h('span', 'sum-lno', '第' + l.no + '時'));
+      c.appendChild(h('span', 'sum-lval', l.tried ? l.correct + '/' + l.total : '—'));
+      lr.appendChild(c);
+    });
+    b.appendChild(lr);
+    return b;
+  }
+  function classbookApi() { return S.Classbook || null; }
+  /* 「クラスのきろくに入れる」（Classbook.importText があるときだけ） */
+  function classbookAddButton(token, msg) {
+    var cb = classbookApi(), sh = shareApi();
+    if (!(cb && typeof cb.importText === 'function')) return null;
+    var b = button('クラスのきろくに入れる', 'primary', function () {
+      var res = null;
+      try { res = cb.importText(sh && sh.codeText ? sh.codeText(token) : token); } catch (e) { console.error('Classbook.importText', e); }
+      Promise.resolve(res).then(function (r) {
+        if (!r) { msg.textContent = '入れられませんでした。'; msg.className = 'box-msg warn'; return; }
+        msg.textContent = 'クラスのきろくに入れました。';
+        msg.className = 'box-msg';
+        b.disabled = true;
+      }, function () { msg.textContent = '入れられませんでした。'; msg.className = 'box-msg warn'; });
+    });
+    return b;
+  }
+  /* #/k/<token>：学習のきろくのコード（先生用） */
+  function viewRecordCode(token) {
+    var gen = routeGen;
+    app.appendChild(h('div', 'q-loading', '学習のきろくのコードをひらいています…'));
+    var sh = shareApi();
+    var p = sh && sh.decodeRecord ? Promise.resolve().then(function () { return sh.decodeRecord(token); }) : Promise.reject(new Error('Share がありません'));
+    p.then(function (rec) {
+      if (gen !== routeGen) return;
+      app.innerHTML = '';
+      app.appendChild(topbar('学習のきろくのコード', { sub: '先生用' }));
+      var main = h('main', 'rcode kcode');
+      var card = h('section', 'tcard rcode-card');
+      var hd = h('div', 'rcode-head');
+      hd.appendChild(h('span', 'rcode-pname', rec.profile.cls + '組 ' + rec.profile.no + '番 ' + rec.profile.name));
+      card.appendChild(hd);
+      card.appendChild(summaryBlock(rec.summary || {}));
+      main.appendChild(card);
+      var row = h('div', 'goal-row');
+      var msg = h('span', 'box-msg');
+      msg.setAttribute('role', 'status');
+      var cbB = classbookAddButton(token, msg);
+      if (cbB) row.appendChild(cbB);
+      else row.appendChild(h('span', 'tnote', '先生メニューの「クラスのきろく」に、このコードをはりつけて取りこめます。'));
+      if (classbookApi() && classbookApi().mount) row.appendChild(link('クラスのきろくを開く ▶', 'btn', '#/classbook'));
+      row.appendChild(msg);
+      main.appendChild(row);
+      app.appendChild(main);
+    }, function (e) {
+      if (gen !== routeGen) return;
+      console.warn('学習のきろくのコードを開けませんでした', e && e.message);
+      app.innerHTML = '';
+      codeError('学習のきろくのコード', 'この学習のきろくのコードは開けませんでした');
+    });
+  }
+  /* 先生メニューの「クラスのきろく」（Classbook.teacherSection があれば） */
+  function classbookSection() {
+    var cb = classbookApi();
+    if (!(cb && typeof cb.teacherSection === 'function')) return null;
+    try {
+      var el = cb.teacherSection();
+      return el && el.nodeType === 1 ? el : null;
+    } catch (e) { console.error('Classbook.teacherSection', e); return null; }
+  }
+  /* #/classbook、#/classbook/<cls>/<no> */
+  function viewClassbook(cls, no) {
+    var c = parseInt(cls, 10), n = parseInt(no, 10);
+    var opts = {};
+    if (c >= 1 && c <= 9) opts.cls = c;
+    if (opts.cls && n >= 1 && n <= 45) opts.no = n;
+    var back = link('◀ 先生メニュー', 'btn back', '#/teacher');
+    app.appendChild(topbar('クラスのきろく', { sub: '先生用', right: back }));
+    var main = h('main', 'classbook-host');
+    app.appendChild(main);
+    var cb = classbookApi();
+    if (!(cb && typeof cb.mount === 'function')) {
+      main.appendChild(h('div', 'empty-note', 'この画面は、じゅんび中です。'));
+      main.appendChild(link('先生メニューへ', 'btn primary', '#/teacher'));
+      return;
+    }
+    var hd = null;
+    try { hd = cb.mount(main, opts); }
+    catch (e) { console.error('Classbook.mount', e); main.appendChild(h('div', 'empty-note', '画面を表示できませんでした。')); }
+    cleanups.push(function () { if (hd && hd.destroy) { try { hd.destroy(); } catch (e) { console.error(e); } } });
+  }
+
   /* ---------- ルーティング ---------- */
   function route() {
     routeGen++;
@@ -2751,6 +2971,9 @@
       else if (parts[0] === 'rbox') viewRbox();
       else if (parts[0] === 'g' && parts[1]) viewGoalCode(hash.slice(2));
       else if (parts[0] === 'r' && parts[1]) viewReflCode(hash.slice(2));
+      else if (parts[0] === 'k' && parts[1]) viewRecordCode(hash.slice(2));
+      else if (parts[0] === 'me') viewMe(parts[1]);
+      else if (parts[0] === 'classbook') viewClassbook(parts[1], parts[2]);
       else if (parts[0] === 'matome') viewMatome();
       else if (parts[0] === 'osusume') viewOsusume();
       else if (parts[0] === 'stars') viewStars();

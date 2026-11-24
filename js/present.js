@@ -237,7 +237,12 @@
     var authorInk = h('span', 'pr-author-ink');
     authorBox.appendChild(authorInk);
     var aInk = p.authorInk || up.author;
-    if (hasStrokes(aInk)) {
+    var aName = p.authorName || (typeof up.authorName === 'string' ? up.authorName : '');
+    if (aName) {   // 追加6：名前は文字で
+      authorInk.className = 'pr-author-name';
+      authorInk.textContent = aName;
+      top.appendChild(authorBox);
+    } else if (hasStrokes(aInk)) {
       top.appendChild(authorBox);
       fitters.push(function () {
         var hh = Math.max(36, Math.min(64, Math.round(window.innerHeight * 0.065)));

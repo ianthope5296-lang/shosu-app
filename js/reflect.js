@@ -8,10 +8,13 @@
  * Reflect.nextSuggestions(beforeDate?) -> [text]   直近の T（手書きがあれば「前回書いたこと（手書き）」も）
  * Reflect.lastT(beforeDate?) -> {date, choices, ink, items}|null
  * Reflect.mountYWT(el, date) -> {destroy()}  Reflect.mountBox(el) -> {destroy()}
- * Reflect.profileName() / setProfileName(ink)  localStorage 'shosu.reflect.name'
+ * Reflect.profileName() / setProfileName(ink)  localStorage 'shosu.reflect.name'（前の手書きの名前。追加6からは Profile の名前（文字）を使う）
+ * Reflect.deliver(text, {msg, codeBox}) … 「先生に送る」：コピーして、ゴールに Forms のURLがあれば Forms を開く（追加6）
  *
  * Reflection = { v:1, date, name:Ink|null, meate:{choices,ink}, y:{auto:[text], extra:[text]},
- *                w:{eval:'double'|'single'|'triangle', choices:[text], ink}, t:{choices:[text], ink, items:[itemId]}, aid, saved:'ISO' }
+ *                w:{eval:'double'|'single'|'triangle', choices:[text], ink}, t:{choices:[text], ink, items:[itemId]}, aid, saved:'ISO',
+ *                profile:{cls,no,name}（追加6。名前は文字） }
+ *   送るときだけ summary（Summary.build()）を足す（端末には保存しない）。
  * classic script。Node でも require できる（DOM を使う部分は呼ばなければ動かない）。絵文字は使わない。
  */
 (function (root) {
@@ -102,8 +105,18 @@
       aid: str(r.aid, 32)
     };
     if (typeof r.saved === 'string' && !isNaN(Date.parse(r.saved))) out.saved = r.saved;
+    var pf = cleanProfile(r.profile);
+    if (pf) out.profile = pf;
     return out;
   }
+  function cleanProfile(p) {
+    if (!isObj(p)) return null;
+    if (S.Profile && S.Profile.clean) return S.Profile.clean(p);
+    var c = Number(p.cls), n = Number(p.no), nm = str(p.name, 30).trim();
+    return c >= 1 && c <= 9 && n >= 1 && n <= 45 && Math.floor(c) === c && Math.floor(n) === n && nm ? { cls: c, no: n, name: nm } : null;
+  }
+  function myProfile() { return S.Profile && S.Profile.get ? tryCall(function () { return S.Profile.get(); }, null) : null; }
+  function profileText(p) { return p ? (S.Profile && S.Profile.label ? S.Profile.label(p) : p.cls + '組 ' + p.no + '番 ' + p.name) : ''; }
 
   /* ---------- ふりかえりの保存 ---------- */
   function readList() {
@@ -747,6 +760,81 @@
   }
 
   /* ---------- mountYWT ---------- */
+  /* ---------- 先生に送る（追加6） ---------- */
+  // 送るときに、じぶんのことと学習データのまとめを足す
+  function forSend(r) {
+    var o = JSON.parse(JSON.stringify(r));
+    var p = myProfile() || cleanProfile(r.profile);
+    if (p) { o.profile = p; o.name = null; }
+    if (S.Summary && S.Summary.build) { var sm = tryCall(function () { return S.Summary.build(); }, null); if (sm) o.summary = sm; }
+    delete o.y.off;
+    return o;
+  }
+  function formsUrl() {
+    var p = planner();
+    var g = p && p.goal ? tryCall(function () { return p.goal(); }, null) : null;
+    var u = g && typeof g.formsUrl === 'string' ? g.formsUrl : '';
+    var sh = S.Share;
+    if (u && sh && sh.isFormsUrl && !sh.isFormsUrl(u)) return '';
+    return u;
+  }
+  // text をコピーして、Forms のURLがあれば Forms を開く。なければ「Teams にはってね」。
+  // ui = { msg:要素, codeBox:要素, msgClass:'rf-msg' など }。戻り値 Promise<{copied, opened, forms}>
+  function deliver(text, ui) {
+    ui = ui || {};
+    var mc = ui.msgClass || 'rf-msg';
+    var fu = formsUrl();
+    function say(t, cls) { if (ui.msg) { ui.msg.textContent = t; ui.msg.className = mc + (cls ? ' ' + cls : ''); } }
+    function formsLink(label) {
+      var a = h('a', 'btn primary rf-forms-link', label || 'Forms をひらく');
+      a.href = fu; a.target = '_blank'; a.rel = 'noopener';
+      return a;
+    }
+    function openForms() {
+      var w = null;
+      try { w = root.open(fu, '_blank'); } catch (e) { w = null; }
+      if (w) { try { w.opener = null; } catch (e) {} }
+      return !!w;
+    }
+    function fallback() {
+      var box = ui.codeBox;
+      say(fu ? '下のコードをコピー（Ctrl＋C）して、Forms にはりつけて送信してね。' : '下のコードをコピーして、Teams の先生へのチャットに はりつけてね。', 'good');
+      if (box) {
+        box.innerHTML = '';
+        box.hidden = false;
+        box.appendChild(h('div', 'rf-code-msg', fu ? 'うまくコピーできなかったよ。下のコードがえらばれているので、Ctrl＋C でコピーしてから、Forms をひらいて はりつけてね。'
+          : 'うまくコピーできなかったよ。下のコードがえらばれているので、Ctrl＋C でコピーして、Teams にはりつけてね。'));
+        var ta = h('textarea', 'rf-code-ta');
+        ta.value = text; ta.readOnly = true; ta.rows = 3;
+        ta.addEventListener('focus', function () { ta.select(); });
+        box.appendChild(ta);
+        if (fu) box.appendChild(formsLink());
+        setTimeout(function () { try { ta.focus(); ta.select(); } catch (e) {} }, 30);
+      }
+      return { copied: false, opened: false, forms: !!fu };
+    }
+    var cb = root.navigator && root.navigator.clipboard;
+    if (!(cb && cb.writeText)) return Promise.resolve(fallback());
+    return cb.writeText(text).then(function () {
+      var box = ui.codeBox;
+      if (box) { box.innerHTML = ''; box.hidden = true; }
+      if (fu) {
+        var opened = openForms();
+        say('コードをコピーしたよ。Forms が開くよ。はりつけて（Ctrl＋V）送信してね。', 'good');
+        toast('コピーしたよ。Forms にはりつけて送信してね。');
+        if (box) {
+          box.hidden = false;
+          box.appendChild(h('div', 'rf-code-msg', opened ? 'Forms がひらかないときは、ここをおしてね。' : 'Forms がひらかなかったよ。ここをおして ひらいてね。'));
+          box.appendChild(formsLink());
+        }
+        return { copied: true, opened: opened, forms: true };
+      }
+      say('コードをコピーしたよ。Teams の先生へのチャットに はりつけてね。', 'good');
+      toast('コピーしたよ。Teams にはりつけてね。');
+      return { copied: true, opened: false, forms: false };
+    }, fallback);
+  }
+
   function mountYWT(el, date) {
     date = isDate(date) ? date : dateKey();
     var pads = [];
@@ -766,20 +854,22 @@
     var nameBox = h('div', 'rf-name');
     top.appendChild(nameBox);
     wrap.appendChild(top);
-    var nameInk = profileName(), namePad = null;
+    // 名前：じぶんのこと（Profile）の名前を文字で出す（追加6。手書きはやめた）
+    var prof = myProfile();
+    function editProfile() {
+      if (!(S.Profile && S.Profile.openDialog)) return;
+      S.Profile.openDialog({ note: 'ふりかえりと、先生に送るコードに入るよ。', onSave: function (p) { prof = p; drawName(); clearWarn(); } });
+    }
     function drawName() {
       nameBox.innerHTML = '';
-      if (nameInk && !namePad) {
+      nameBox.classList.toggle('rf-name-need', !prof);
+      if (prof) {
         nameBox.appendChild(h('span', 'rf-name-label', 'なまえ'));
-        nameBox.appendChild(drawInk(nameInk, { width: 150, height: 44, trim: true, lineWidth: 6, label: 'なまえ' }));
-        nameBox.appendChild(button('かきなおす', 'small rf-name-edit', function () { namePad = InkPad({ w: 500, h: 110, placeholder: 'なまえを書こう', lineWidth: 6, cls: 'rf-pad-name' }); pads.push(namePad); drawName(); }));
-        nameBox.classList.remove('rf-name-first');
+        nameBox.appendChild(h('span', 'rf-name-text', profileText(prof)));
+        nameBox.appendChild(button('かえる', 'small rf-name-edit', editProfile));
       } else {
-        if (!namePad) { namePad = InkPad({ w: 500, h: 110, placeholder: 'なまえを書こう', lineWidth: 6, cls: 'rf-pad-name' }); pads.push(namePad); }
-        nameBox.classList.add('rf-name-first');
-        nameBox.appendChild(h('div', 'rf-name-label', nameInk ? 'なまえを書きなおそう' : 'なまえ（1回だけ）'));
-        nameBox.appendChild(namePad.el);
-        namePad.onChange(function () { namePad.flag(false); clearWarn(); });
+        nameBox.appendChild(h('span', 'rf-name-label', 'なまえ'));
+        nameBox.appendChild(button('じぶんのことを入れる', 'primary rf-name-edit', editProfile));
       }
     }
     drawName();
@@ -893,13 +983,13 @@
     wrap.appendChild(codeBox);
     var saved = prev;
 
-    function clearWarn() { if (msg && /warn/.test(msg.className)) { msg.textContent = ''; msg.className = 'rf-msg'; } }
+    function clearWarn() { nameBox.classList.remove('rf-need'); if (msg && /warn/.test(msg.className)) { msg.textContent = ''; msg.className = 'rf-msg'; } }
     function build() {
       var tChoices = Object.keys(tSel);
       var items = [];
       tChoices.forEach(function (c) { if (tSel[c]) uniqPush(items, tSel[c]); });
       return {
-        v: 1, date: date, name: nameInk,
+        v: 1, date: date, name: prof ? null : profileName(), profile: prof || undefined,
         meate: { choices: meate.choices.slice(), ink: meate.ink || null },
         y: { auto: autoChips.filter(function (c) { return c.on(); }).map(function (c) { return c.text; }),
           extra: exChips.filter(function (c) { return c.on(); }).map(function (c) { return c.text; }),
@@ -910,9 +1000,9 @@
       };
     }
     function doSave() {
-      if (namePad && !namePad.isEmpty()) { nameInk = namePad.ink(); setProfileName(nameInk); namePad.destroy(); namePad = null; drawName(); }
+      prof = myProfile() || prof;
       var need = [];
-      if (!nameInk) { need.push('なまえ'); if (namePad) namePad.flag(true); }
+      if (!prof) { need.push('なまえ（じぶんのこと）'); nameBox.classList.add('rf-need'); }
       if (!evalv) { need.push('ひょうか'); evRow.classList.add('rf-need'); }
       if (need.length) { msg.textContent = need.join('と') + 'を わすれずに！'; msg.className = 'rf-msg warn'; return; }
       var r = build();
@@ -932,34 +1022,14 @@
       if (!saved) return;
       if (!sh || typeof sh.encodeReflection !== 'function') { msg.textContent = '送る機能は、まだじゅんび中です。'; msg.className = 'rf-msg warn'; return; }
       sendB.disabled = true;
-      Promise.resolve().then(function () { return sh.encodeReflection(saved); }).then(function (token) {
+      var r = forSend(saved);
+      Promise.resolve().then(function () { return sh.encodeReflection(r); }).then(function (token) {
         var text = typeof sh.codeText === 'function' ? sh.codeText(token) : token;
-        function fallback() {
-          msg.textContent = '下のコードをコピーして、Teams の先生へのチャットに はりつけてね。';
-          msg.className = 'rf-msg good';
-          codeBox.innerHTML = '';
-          codeBox.hidden = false;
-          codeBox.appendChild(h('div', 'rf-code-msg', 'うまくコピーできなかったよ。下のコードがえらばれているので、Ctrl＋C でコピーして、Teams にはりつけてね。'));
-          var ta = h('textarea', 'rf-code-ta');
-          ta.value = text; ta.readOnly = true; ta.rows = 3;
-          ta.addEventListener('focus', function () { ta.select(); });
-          codeBox.appendChild(ta);
-          setTimeout(function () { ta.focus(); ta.select(); }, 30);
-        }
         sendB.disabled = false;
-        var cb = root.navigator && root.navigator.clipboard;
-        if (cb && cb.writeText) {
-          return cb.writeText(text).then(function () {
-            codeBox.hidden = true;
-            msg.textContent = 'コードをコピーしたよ。Teams の先生へのチャットに はりつけてね。';
-            msg.className = 'rf-msg good';
-            toast('コピーしたよ。Teams にはりつけてね。');
-          }, fallback);
-        }
-        fallback();
+        return deliver(text, { msg: msg, codeBox: codeBox, msgClass: 'rf-msg' });
       }).catch(function (e) {
         sendB.disabled = false;
-        msg.textContent = /TOO_LONG/i.test(String(e && e.message)) ? '手書きが長すぎるみたい。少しみじかく書きなおしてね。' : 'コードを作れませんでした。';
+        msg.textContent = /TOO_LONG/i.test(String(e && (e.code || e.message))) ? '手書きが長すぎるみたい。少しみじかく書きなおしてね。' : 'コードを作れませんでした。';
         msg.className = 'rf-msg warn';
       });
     }
@@ -977,7 +1047,7 @@
     return out;
   }
   function inkSig(ink) { if (!ink) return ''; var n = 0, s = 0; ink.strokes.forEach(function (st) { n += st.length; st.forEach(function (p) { s = (s * 31 + p.x * 7 + p.y) % 1000003; }); }); return n + '.' + s; }
-  function boxKey(r) { return (r.aid || ('n' + inkSig(r.name))) + '|' + r.date; }
+  function boxKey(r) { return (r.aid || (r.profile ? 'p' + r.profile.cls + '-' + r.profile.no : 'n' + inkSig(r.name))) + '|' + r.date; }
   function newer(a, b) { // a が b より新しいか（saved がなければ、あとから来たほうを新しいとする）
     if (a.saved && b.saved) return Date.parse(a.saved) >= Date.parse(b.saved);
     return true;
@@ -1089,7 +1159,8 @@
       shown.forEach(function (x) {
         var r = x.r, tr = h('tr');
         var c1 = h('td', 'rf-c-name');
-        if (r.name) c1.appendChild(inkThumb(r.name, { width: 130, height: 40, label: 'なまえ' })); else c1.appendChild(h('span', 'rf-muted', '（なし）'));
+        if (r.profile) { c1.appendChild(h('div', 'rf-c-pname', r.profile.name)); c1.appendChild(h('div', 'rf-c-pno', r.profile.cls + '組 ' + r.profile.no + '番')); }
+        else if (r.name) c1.appendChild(inkThumb(r.name, { width: 130, height: 40, label: 'なまえ' })); else c1.appendChild(h('span', 'rf-muted', '（なし）'));
         tr.appendChild(c1);
         tr.appendChild(h('td', 'rf-c-date', fmtDate(r.date)));
         var c3 = h('td', 'rf-c-meate'); c3.appendChild(meateNode(r.meate, true)); tr.appendChild(c3);
@@ -1128,6 +1199,8 @@
     save: save, list: list, get: get,
     nextSuggestions: nextSuggestions, lastT: lastT,
     profileName: profileName, setProfileName: setProfileName,
+    deliver: hasDOM ? deliver : function () { return Promise.resolve({ copied: false, opened: false, forms: false }); },
+    formsUrl: formsUrl, forSend: forSend,
     mountYWT: hasDOM ? mountYWT : function () { return { destroy: function () {} }; },
     mountBox: hasDOM ? mountBox : function () { return { destroy: function () {} }; },
     boxList: boxList, boxAdd: boxAdd, boxRemove: boxRemove, boxClear: boxClear,

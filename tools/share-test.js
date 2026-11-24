@@ -619,14 +619,27 @@ function noInk(up) {
     assert.strictEqual(r.w.ink.strokes.length, big.w.ink.strokes.length, '画数は変わらない');
     console.log('      ふりかえり（手書きたくさん）: ' + t.length + ' 文字');
   });
+  function dots(n) {        // 2点だけの短い線をばらばらに（間引けない）
+    var st = [];
+    for (var i = 0; i < n; i++) { var x = rr(0, 790), y = rr(0, 290); st.push([{ x: x, y: y }, { x: x + rr(3, 9), y: y + rr(3, 9) }]); }
+    return { w: 800, h: 300, strokes: st };
+  }
+  await test('ふりかえり：間引いても長すぎるときは W・T の手書きを落とす（文は残す・cut の印）', async function () {
+    var huge = reflOf({ w: { eval: 'single', choices: ['できた'], ink: dots(500) }, t: { choices: ['つぎ'], ink: dots(500) },
+      meate: { choices: [], ink: textInk(800, 200, 1, 10) } });
+    var t = await Share.encodeReflection(huge);
+    assert.ok(t.length <= Share.MAX_LEN);
+    var r = await Share.decodeReflection(t);
+    assert.strictEqual(r.w.ink, null); assert.strictEqual(r.t.ink, null);
+    assert.ok(r.meate.ink && r.name, 'めあて・名前の手書きは残る');
+    assert.deepStrictEqual(r.w.choices, ['できた']);
+    assert.strictEqual(r.cut, 1);
+  });
   await test('ふりかえり：どうしても長すぎるときは TOO_LONG', async function () {
-    function dots(n) {        // 2点だけの短い線をばらばらに（間引けない）
-      var st = [];
-      for (var i = 0; i < n; i++) { var x = rr(0, 790), y = rr(0, 290); st.push([{ x: x, y: y }, { x: x + rr(3, 9), y: y + rr(3, 9) }]); }
-      return { w: 800, h: 300, strokes: st };
-    }
-    var huge = reflOf({ w: { eval: 'single', choices: [], ink: dots(500) }, t: { choices: [], ink: dots(500) },
-      meate: { choices: [], ink: dots(500) } });
+    function rnds(n) { var s = ''; for (var i = 0; i < n; i++) s += String.fromCharCode(0x4e00 + ri(0, 20000)); return s; }
+    function many(k, len) { var a = []; for (var i = 0; i < k; i++) a.push(rnds(len)); return a; }
+    var huge = reflOf({ meate: { choices: many(10, 120), ink: dots(500) }, y: { auto: many(20, 120), extra: many(12, 60) },
+      w: { eval: 'single', choices: many(10, 120), ink: dots(500) }, t: { choices: many(10, 120), ink: dots(500) } });
     var e = await rejects(Share.encodeReflection(huge), 'TOO_LONG', 'huge');
     assert.ok(e.length > Share.MAX_LEN);
   });
@@ -690,6 +703,134 @@ function noInk(up) {
     assert.ok(r.w.ink && r.w.ink.strokes.length === 1);
     assert.strictEqual(r.name, null);
   });
+
+  console.log('■ 追加6：作った人の名前（文字）・プロフィール・学習のまとめ・学習のきろく・Forms');
+  await test('問題：authorName（文字）だけで作れる・往復・toProblem に authorName', async function () {
+    var up = base('hissan', { op: '+', a: '1.2', b: '3.45', author: null, authorName: '山田 花子' });
+    assert.ok(Share.validate(up).ok);
+    var t = await Share.encode(up);
+    var back = await Share.decode(t);
+    assert.strictEqual(back.authorName, '山田 花子');
+    assert.strictEqual(back.author, null);
+    var p = Share.toProblem(back);
+    assert.strictEqual(p.authorName, '山田 花子');
+    assert.strictEqual(p.authorInk, null);
+    console.log('      筆算＋名前（文字）: ' + t.length + ' 文字');
+  });
+  await test('問題：古い手書きの名前の問題もそのまま開ける（authorName なし）', async function () {
+    var back = await Share.decode(tA);
+    assert.ok(back.author && back.author.strokes.length);
+    assert.ok(!('authorName' in back));
+    assert.strictEqual(Share.toProblem(back).authorName, null);
+  });
+  await test('問題：authorName と手書きの両方があってもよい', async function () {
+    var back = await Share.decode(await Share.encode(base('compare', { a: '0.4', b: '0.41', authorName: 'たろう' })));
+    assert.strictEqual(back.authorName, 'たろう');
+    assert.ok(back.author && back.author.strokes.length);
+  });
+  for (const b of [['名前が長すぎ', 'あ'.repeat(31)], ['名前が空', '  '], ['名前に改行', 'a\nb'], ['名前が数', 12]]) {
+    await test('問題拒否（authorName）: ' + b[0], async function () {
+      var up = base('hissan', { op: '+', a: '1.2', b: '3.4', author: null, authorName: b[1] });
+      assert.strictEqual(Share.validate(up).ok, false);
+      await rejects(Share.encode(up), 'INVALID', b[0]);
+    });
+  }
+  await test('問題 decode 拒否：名前の手書きも文字もない', async function () {
+    await rejects(forgeK('1', { v: 1, kind: 'compare', a: '1', b: '2' }, [], 0).then(Share.decode), null, 'noname');
+  });
+
+  var PROF = { cls: 3, no: 12, name: '山田 花子' };
+  function sampleSummary() {
+    var sk = {};
+    ['rep-001', 'unit-m', 'numberline', 'kui', 'rep-0001', 'unit-k', 'place-name', 'compose', 'count-units', 'cmp-two', 'cmp-digits', 'order',
+      'times10', 'times100', 'div10', 'add-nocarry', 'add-carry', 'add-mis', 'add-trail0', 'sub-noborrow', 'sub-borrow', 'sub-multi', 'sub-int', 'laws']
+      .forEach(function (id, i) { sk[id] = { st: ['weak', 'soso', 'strong', 'unknown'][i % 4], acc: Math.round(rnd() * 100) / 100, sp: i % 4 === 3 ? null : Math.round(rr(0.5, 2) * 100) / 100, n: ri(0, 20), h: 0.1 }; });
+    var ls = [];
+    for (var i = 1; i <= 10; i++) ls.push({ no: i, tried: ri(0, 19), total: 19, correct: ri(0, 19), firstRate: Math.round(rnd() * 100) / 100, avgSec: ri(10, 90) });
+    return { v: 1, at: '2026-11-24T05:00:00.000Z', profile: PROF, lessons: ls, skills: sk,
+      matome: { n: 3, q: 40, c: 33, rate: 0.83, fin: 2, lv: { easy: 1, normal: 1, hard: 1 } },
+      osusume: { n: 2, q: 20, c: 17, rate: 0.85, fin: 2, min: 20 }, review: { n: 4, q: 20, c: 18, rate: 0.9 }, more: { n: 3, q: 15, c: 12, rate: 0.8 },
+      make: { n: 3, kinds: { hissan: 2, fill: 1 } }, friend: { n: 4, c: 3 }, plan: { days: 5, ok: 3 },
+      reflect: { n: 6, ev: { double: 2, single: 3, triangle: 1 }, extra: 4, prevT: 2, w: 5, judged: 5, match: 4 },
+      stars: { n: 30, sp: 4, title: 'ほしのたびびと' }, habit: { q: 200, hint: 0.12, miss: 30, fixed: 25, think: { q: 30, c: 24 } },
+      days: 9, min: 180, last: '2026-11-24' };
+  }
+  var tReflS = null, tRec = null;
+  await test('ふりかえり：profile と summary を運ぶ（手書き4つと一緒でも上限内）', async function () {
+    var sm = sampleSummary();
+    tReflS = await Share.encodeReflection(reflOf({ name: null, profile: PROF, summary: sm }));
+    assert.ok(tReflS.length <= Share.MAX_LEN, 'len ' + tReflS.length);
+    var r = await Share.decodeReflection(tReflS);
+    assert.deepStrictEqual(r.profile, PROF);
+    assert.deepStrictEqual(r.summary, sm);
+    assert.ok(r.w.ink && r.t.ink, '手書きも残る');
+    console.log('      ふりかえり（手書き3つ＋まとめ）: ' + tReflS.length + ' 文字 / まとめのJSON ' + JSON.stringify(sm).length + ' 文字');
+  });
+  await test('ふりかえり：まとめ＋手書きたくさん → W・T の手書きを落としても summary は残る', async function () {
+    var r0 = reflOf({ profile: PROF, summary: sampleSummary(), w: { eval: 'single', choices: [], ink: dots(450) }, t: { choices: [], ink: dots(450) } });
+    var t = await Share.encodeReflection(r0);
+    assert.ok(t.length <= Share.MAX_LEN);
+    var r = await Share.decodeReflection(t);
+    assert.ok(r.summary && r.summary.lessons.length === 10);
+    assert.strictEqual(r.cut, 1);
+  });
+  for (const b of [['組が0', { profile: { cls: 0, no: 1, name: 'a' } }], ['番号が46', { profile: { cls: 1, no: 46, name: 'a' } }],
+    ['名前が長すぎ', { profile: { cls: 1, no: 1, name: 'あ'.repeat(31) } }], ['名前が空', { profile: { cls: 1, no: 1, name: '' } }],
+    ['名前に <', { profile: { cls: 1, no: 1, name: '<b>' } }],
+    ['まとめが配列', { summary: [1] }], ['まとめの版', { summary: { v: 2 } }], ['まとめの文字が長すぎ', { summary: { v: 1, x: 'あ'.repeat(61) } }],
+    ['まとめが深すぎ', { summary: { v: 1, a: { b: { c: { d: { e: { f: 1 } } } } } } }], ['まとめに NaN', { summary: { v: 1, a: NaN } }],
+    ['まとめの配列が長すぎ', { summary: { v: 1, a: new Array(41).fill(0) } }], ['まとめに関数', { summary: { v: 1, a: function () {} } }]
+  ]) {
+    await test('ふりかえり拒否（追加6）: ' + b[0], async function () {
+      var r = reflOf(b[1]);
+      assert.strictEqual(Share.validateReflection(r).ok, false);
+      await rejects(Share.encodeReflection(r), 'INVALID', b[0]);
+    });
+  }
+  await test('学習のきろく：往復・kindOf は record・codeText は #/k/', async function () {
+    var sm = sampleSummary();
+    tRec = await Share.encodeRecord({ profile: PROF, summary: sm });
+    assert.strictEqual(tRec.charAt(0), 'k');
+    assert.ok(tRec.length <= Share.MAX_LEN);
+    var rec = await Share.decodeRecord(tRec);
+    assert.deepStrictEqual(rec.profile, PROF);
+    assert.deepStrictEqual(rec.summary, sm);
+    assert.strictEqual(Share.kindOf(tRec), 'record');
+    assert.strictEqual(Share.codeText(tRec), 'しょうすうきろく #/k/' + tRec);
+    assert.deepStrictEqual(Share.extractTokens('先生へ ' + Share.codeText(tRec) + ' です'), [tRec]);
+    assert.strictEqual((await Share.decodeRecord('https://x.jp/a/#/k/' + tRec)).profile.no, 12);
+    console.log('      学習のきろく: ' + tRec.length + ' 文字');
+  });
+  await test('学習のきろく：ちがう種類は WRONG_KIND・こわれたものは拒否', async function () {
+    await rejects(Share.decodeRecord(tRefl), 'WRONG_KIND', 'decodeRecord(refl)');
+    await rejects(Share.decode(tRec), 'WRONG_KIND', 'decode(record)');
+    await rejects(Share.decodeReflection(tRec), 'WRONG_KIND', 'decodeReflection(record)');
+    await rejects(Share.decodeGoal(tRec), 'WRONG_KIND', 'decodeGoal(record)');
+    await rejects(Share.decodeRecord(tRec.slice(0, -2)), null, '切れた');
+    await rejects(forgeK('k', { v: 1, profile: { cls: 1, no: 99, name: 'a' }, summary: { v: 1 } }).then(Share.decodeRecord), 'INVALID', '番号が不正');
+    await rejects(forgeK('k', { v: 1, profile: PROF }).then(Share.decodeRecord), 'INVALID', 'まとめなし');
+    await rejects(forgeK('k', { v: 1, profile: PROF, summary: { v: 1 } }, okInk, 1).then(Share.decodeRecord), null, 'インクつき');
+    await rejects(Share.encodeRecord({ profile: null, summary: sampleSummary() }), 'INVALID', 'プロフィールなし');
+  });
+  await test('ゴール：formsUrl（https の Forms のURL）を運ぶ', async function () {
+    var u = 'https://forms.office.com/Pages/ResponsePage.aspx?id=AbC-123_x';
+    assert.ok(Share.validateGoal(goalOf({ formsUrl: u })).ok);
+    var g = await Share.decodeGoal(await Share.encodeGoal(goalOf({ formsUrl: u })));
+    assert.strictEqual(g.formsUrl, u);
+    ['https://forms.microsoft.com/r/abc', 'https://forms.cloud.microsoft/r/abc', 'https://docs.google.com/forms/d/e/x/viewform', 'https://forms.gle/abc']
+      .forEach(function (x) { assert.ok(Share.isFormsUrl(x), x); });
+    var g2 = await Share.decodeGoal(await Share.encodeGoal(goalOf({ formsUrl: '' })));
+    assert.ok(!('formsUrl' in g2), '空なら入れない');
+  });
+  for (const b of [['http', 'http://forms.office.com/r/abc'], ['ほかのサイト', 'https://example.com/forms'], ['にせのホスト', 'https://forms.office.com.evil.jp/r'],
+    ['javascript', 'javascript:alert(1)'], ['空白', 'https://forms.office.com/r/a b'], ['Google のフォーム以外', 'https://docs.google.com/document/d/x'],
+    ['長すぎ', 'https://forms.office.com/' + 'a'.repeat(400)], ['数', 12]]) {
+    await test('ゴール拒否（formsUrl）: ' + b[0], async function () {
+      var g = goalOf({ formsUrl: b[1] });
+      assert.strictEqual(Share.validateGoal(g).ok, false);
+      await rejects(Share.encodeGoal(g), 'INVALID', b[0]);
+    });
+  }
 
   console.log('■ 種類の見分け（kindOf・extractTokens・codeText）');
   await test('kindOf：3しゅるいを見分ける', async function () {
