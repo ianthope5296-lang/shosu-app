@@ -828,7 +828,10 @@
   function skillLabel(id) {
     var R = S.Recommend, sk = null;
     if (R && Array.isArray(R.SKILLS)) R.SKILLS.forEach(function (x) { if (x && x.id === id) sk = x; });
-    return sk && sk.label ? sk.label : id;
+    if (sk && sk.label) return sk.label;
+    var A = assessApi(), lab = null;
+    if (A && Array.isArray(A.SKILLS)) A.SKILLS.forEach(function (x) { if (Array.isArray(x) && x[0] === id) lab = x[2]; else if (x && x.id === id) lab = x.label; });
+    return lab || id;
   }
   function parseHash() {
     var hs = (root.location && root.location.hash || '').replace(/^#\/?/, '').split('/');
@@ -877,10 +880,7 @@
 
     /* ---------- 一覧 ---------- */
     function renderList(db) {
-      var nav = h('div', 'cb-nav');
-      nav.appendChild(link('◀ 先生メニュー', 'btn small cb-navbtn', '#/teacher'));
-      rootEl.appendChild(nav);
-      rootEl.appendChild(importPanel());
+      rootEl.appendChild(importPanel(Object.keys(db.students).length + db.noProfile.length > 0));
 
       var classes = classList(db);
       if (!state.cls || (state.cls !== 'none' && classes.indexOf(state.cls) < 0 && !db.classes[state.cls])) state.cls = classes[0] || null;
@@ -932,8 +932,8 @@
       rootEl.appendChild(settingsPanel());
     }
 
-    function importPanel() {
-      var sec = h('section', 'cb-panel cb-import');
+    function importPanel(compact) {
+      var sec = h('section', 'cb-panel cb-import' + (compact ? ' cb-import-compact' : ''));
       sec.appendChild(h('h2', null, 'コードを取りこむ'));
       sec.appendChild(h('p', 'cb-lead', 'Forms の回答を Excel でダウンロードして、そのファイルをここに入れてください。'));
       var how = h('ol', 'cb-how');
@@ -941,7 +941,12 @@
         'Forms の「回答」→「Excel で開く」（またはダウンロード）で、回答のファイル（.xlsx）を保存します。',
         'そのファイルを下のわくにドロップするか、「ファイルをえらぶ」で入れます。何こでも、まとめて入れられます（.xlsx・.csv・.txt・.zip）。'
       ].forEach(function (t) { how.appendChild(h('li', null, t)); });
-      sec.appendChild(how);
+      if (compact) {
+        var det = h('details', 'cb-howbox');
+        det.appendChild(h('summary', null, '使い方（Forms で集めるとき）'));
+        det.appendChild(how);
+        sec.appendChild(det);
+      } else sec.appendChild(how);
       var grid = h('div', 'cb-import-grid');
       var drop = h('div', 'cb-drop');
       drop.setAttribute('tabindex', '0');
@@ -974,7 +979,7 @@
       var pasteBox = h('div', 'cb-paste');
       pasteBox.appendChild(h('div', 'cb-paste-title', 'または、文章をはりつける'));
       var ta = h('textarea', 'cb-ta');
-      ta.placeholder = 'Teams のチャットや、Excel の列をコピーして、ここにはりつけ（Ctrl + V）';
+      ta.placeholder = compact ? 'チャットや Excel の列をはりつけ（Ctrl + V）' : 'Teams のチャットや、Excel の列をコピーして、ここにはりつけ（Ctrl + V）';
       ta.setAttribute('aria-label', 'コードをはりつける');
       pasteBox.appendChild(ta);
       var goB = button('取りこむ', 'primary', function () {
@@ -1244,7 +1249,7 @@
       mrow.appendChild(ml);
       form.appendChild(mrow);
       sec.appendChild(form);
-      var row2 = h('div', 'cb-row');
+      var row2 = h('div', 'cb-actions');
       var msg = h('span', 'cb-msg');
       row2.appendChild(button('この基準にする', 'primary', function () {
         var s = clone(cur) || {}, ok = true;
@@ -1527,7 +1532,9 @@
           save(d);
           render();
         }
-        if (cc.edited) confirmDialog('先生が直した文があります。別の言い方にすると、直した文は案に置きかわります。よろしいですか？', '別の言い方にする', next);
+        if (tmr) { clearTimeout(tmr); persist(); }
+        var cur = load().students[k];
+        if (cur && cur.comment[len]) confirmDialog('先生が直した文があります。別の言い方にすると、直した文は案に置きかわります。よろしいですか？', '別の言い方にする', next);
         else next();
       }));
       sec.appendChild(bar);
@@ -1558,8 +1565,10 @@
       sec.appendChild(h('p', 'cb-caution', 'この案は記録から作った下書きです。先生が確かめてから使ってください。'));
       var edited = cc.edited;
       function upd() {
-        var n = Array.from(ta.value.replace(/\s/g, '')).length;
-        var want = len === 'long' ? [100, 150] : [60, 80];
+        var A = assessApi(), n;
+        try { n = A && typeof A.count === 'function' ? A.count(ta.value) : null; } catch (e) { n = null; }
+        if (typeof n !== 'number') n = Array.from(ta.value.replace(/\s/g, '')).length;
+        var want = A && A.RANGE && Array.isArray(A.RANGE[len]) ? A.RANGE[len] : (len === 'long' ? [100, 150] : [60, 80]);
         count.textContent = n + '字（目安 ' + want[0] + '〜' + want[1] + '字）';
         count.className = 'cb-com-count' + (n && (n < want[0] || n > want[1]) ? ' out' : '');
         stat.textContent = edited ? '先生が直した文（この端末に保存ずみ）' : (cc.draft ? 'アプリの案' : '案を作れませんでした。ここに書くこともできます');

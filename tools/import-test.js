@@ -215,6 +215,8 @@ async function test(name, fn) {
 function db() { return Classbook._.load(); }
 function reset() { storage.clear(); storage.quota = 5e6; }
 
+if (require.main !== module) { module.exports = { makeXlsx: makeXlsx, makeZip: makeZip, sjis: sjis }; return; }
+
 (async function () {
   console.log('classbook: 取りこみ');
 
@@ -455,6 +457,39 @@ function reset() { storage.clear(); storage.quota = 5e6; }
     var u = Classbook._.unpackInk(p);
     assert.strictEqual(u.strokes.length, 3);
     assert.ok(u.strokes[0][0].x >= 0 && u.strokes[0][0].x <= 320);
+  });
+
+  console.log('classbook: 本物の assess.js');
+  await test('本物の assess.js：一覧の数字・評価の案・支援・所見・CSV がそろう', async function () {
+    reset();
+    var stub = S.Assess;
+    delete require.cache[require.resolve(path.join(__dirname, '..', 'js', 'assess.js'))];
+    var RealAssess = require(path.join(__dirname, '..', 'js', 'assess.js'));
+    S.Assess = RealAssess;
+    try {
+      // js/summary.js の形（lessons:{tried,total,correct,firstRate,avgSec}, days, min, review:{n,q,c,rate} …）
+      function sm(no, good) {
+        var ls = [];
+        for (var i = 1; i <= 10; i++) ls.push(i <= (good ? 9 : 4) ? { no: i, tried: 8, total: 8, correct: good ? 8 : 5, firstRate: good ? 0.95 : 0.55, avgSec: 35 } : { no: i, tried: 0, total: 8, correct: 0, firstRate: null, avgSec: null });
+        return { v: 1, at: '2026-11-2' + no + 'T10:00:00Z', profile: { cls: 3, no: no, name: '子' + no }, lessons: ls, days: good ? 8 : 3, min: good ? 160 : 50,
+          skills: { 'sub-borrow': { st: good ? 'strong' : 'weak', acc: good ? 0.95 : 0.4, sp: 1, n: 8, h: 0.1 } }, review: { n: 2, q: 10, c: good ? 9 : 5, rate: good ? 0.9 : 0.5 },
+          plan: { days: good ? 6 : 1, ok: good ? 5 : 0 }, reflect: { n: good ? 6 : 1, ev: { double: 3, single: 2, triangle: 1 } }, stars: { n: 30, sp: 4, title: '小数スター' } };
+      }
+      await Classbook.importText([1, 2, 4].map(function (no) { return codeText(StubShare.make('k', { profile: { cls: 3, no: no, name: '子' + no }, summary: sm(no, no !== 2) })); }).join('\n'));
+      var st = db().students['3-1'], m = Classbook._.metrics(st);
+      assert.strictEqual(m.lessons, 9); assert.strictEqual(m.days, 8); assert.strictEqual(m.minutes, 160);
+      assert.ok(m.acc > 0.9, String(m.acc));
+      var ev = RealAssess.evaluate({ profile: st.profile, summary: st.summary, reflections: [] });
+      assert.ok(['A', 'B', 'C'].indexOf(ev.know.grade) >= 0);
+      var rows = parseCsv(Classbook.exportCsv(3, { download: false }).slice(1));
+      assert.strictEqual(rows.length, 5);
+      assert.strictEqual(rows[3][3], 'まだ');
+      assert.ok(/^[ABC]$/.test(rows[1][6]) && /^[ABC]$/.test(rows[2][6]), rows[1][6] + rows[2][6]);
+      assert.ok(rows[1][12].length > 10, '支援');
+      assert.ok(rows[1][13].length >= 100, '長い所見: ' + rows[1][13]);
+      var cc = Classbook._.classComments(db(), 3, 'short');
+      assert.ok(cc['3-1'].text && cc['3-1'].text !== cc['3-4'].text, '同じ組で同じ文にならない');
+    } finally { S.Assess = stub; }
   });
 
   console.log('classbook: 本物の share.js');
