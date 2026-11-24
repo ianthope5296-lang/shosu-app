@@ -753,6 +753,17 @@ main.practice .pw-tips { background: var(--bg); }
 .ge-note { flex: 1; min-width: 12em; }
 .plan-host { min-height: 50vh; }
 
+/* スマートフォンなど、せまい画面 */
+@media (max-width: 600px) {
+  .topbar { flex-wrap: wrap; row-gap: 6px; }
+  .topbar .topbar-title { order: 3; flex: 1 1 100%; min-width: 0; font-size: 1rem; white-space: normal; }
+  .topbar .topbar-title * { white-space: normal; }
+  .topbar .topbar-stars { margin-left: auto; }
+  main { padding-left: 8px; padding-right: 8px; }
+  .tabs { gap: 6px; max-width: 100%; }
+  .tabs .tab { flex: 1 1 0; min-width: 0; }
+}
+
 </style>
 <style>/* css/demos.css */
 /* demos.css : 「みる」教材と図のスタイル（sd- で始まるクラス） */
