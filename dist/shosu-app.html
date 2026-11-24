@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<!-- 小数アプリ（1ファイル版） 作成日 2026-11-23 -->
+<!-- 小数アプリ（1ファイル版） 作成日 2026-11-24 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>小数コスモス 〜小数の星を集める旅〜</title>
@@ -17739,6 +17739,10 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
   // いま開いている1ファイル版の HTML（#app などの表示は空にする）
   function htmlFromDocument() {
     var root = document.documentElement.cloneNode(true);
+    // 先生用のファイルから作るときも、子ども用（ホームから始まる）にする
+    Array.prototype.slice.call(root.querySelectorAll('#teacher-start')).forEach(function (n) { n.parentNode.removeChild(n); });
+    var tt = root.querySelector('title');
+    if (tt) tt.textContent = tt.textContent.replace('（先生用）', '');
     root.classList.remove('big-text');
     if (!root.getAttribute('class')) root.removeAttribute('class');
     var body = root.querySelector('body');

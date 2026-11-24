@@ -41,6 +41,12 @@ const outDir = path.join(root, 'dist');
 fs.mkdirSync(outDir, { recursive: true });
 const out = path.join(outDir, 'shosu-app.html');
 fs.writeFileSync(out, html);
+// 先生用：ひらくと先生メニューから始まる（中身は同じ。記録も同じ端末なら共通）
+const teacher = html
+  .replace('<head>', '<head>\n<script id="teacher-start">/* 先生用 */ if(!location.hash||location.hash===\'#\'||location.hash===\'#/\'){location.hash=\'#/teacher\';}</script>')
+  .replace('<title>', '<title>（先生用）');
+fs.writeFileSync(path.join(outDir, 'shosu-app-teacher.html'), teacher);
+console.log('wrote dist/shosu-app-teacher.html');
 const left = (html.match(/<script src=|<link rel="stylesheet" href=/g) || []).length;
 if (missing.length) console.warn('skipped (not found):', missing.join(', '));
 console.log('wrote', path.relative(root, out), Math.round(fs.statSync(out).size / 1024) + 'KB', left ? 'WARNING: external refs left ' + left : '');

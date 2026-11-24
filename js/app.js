@@ -2555,6 +2555,10 @@
   // いま開いている1ファイル版の HTML（#app などの表示は空にする）
   function htmlFromDocument() {
     var root = document.documentElement.cloneNode(true);
+    // 先生用のファイルから作るときも、子ども用（ホームから始まる）にする
+    Array.prototype.slice.call(root.querySelectorAll('#teacher-start')).forEach(function (n) { n.parentNode.removeChild(n); });
+    var tt = root.querySelector('title');
+    if (tt) tt.textContent = tt.textContent.replace('（先生用）', '');
     root.classList.remove('big-text');
     if (!root.getAttribute('class')) root.removeAttribute('class');
     var body = root.querySelector('body');
