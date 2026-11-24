@@ -314,3 +314,48 @@ Recommend.saveResult(result) / lastResult()     // localStorage 'shosu.recommend
 
 ## 星（P）
 Stars.log('recommend', {finished, minutes, total, correct, allCorrectWeakSkill:bool, improved:bool})。ふつうの星67こ。小数ギャラクシーは★ぜんぶ（67）。
+
+---
+
+# 追加6：じぶんのこと・クラスのきろく（PLAN.md「追加機能6」）
+
+## ファイル担当
+| 担当 | ファイル |
+|---|---|
+| Q 子ども側 | js/profile.js（新規）, js/summary.js（新規）, js/share.js, tools/share-test.js, js/reflect.js, js/maker.js, js/app.js（「じぶんのこと」画面・最初の入力・ホームの「学習のきろくを先生に送る」）, tools/summary-test.js（新規） |
+| R 評価と文 | js/assess.js（新規）, tools/assess-test.js（新規） |
+| S 先生の画面 | js/classbook.js（新規）, css/classbook.css（新規）, tools/import-test.js（新規）。先生メニューへの入口と Forms のURL欄は classbook.js が `Classbook.teacherSection()` で部品を返し、app.js への1行の差しこみは担当Q がまとめて行う |
+| 共通 | index.html・sw.js・tools/build-single.js は担当Q が更新（profile, summary, assess, classbook と css を追加） |
+
+## Shosu.Profile（Q）
+```js
+Profile.get() -> {cls:1..9, no:1..45, name:'山田花子'} | null     // localStorage 'shosu.profile'
+Profile.set(p)   Profile.label() -> '4年1組 12番 山田花子'
+```
+## Shosu.Summary（Q）
+```js
+Summary.build() -> LearnSummary   // PLAN C の内容。小さく（数字中心）。v:1, at, profile, lessons[10], skills{id:{st,acc,sp,n}}, matome, osusume, review, more, make, friend, plan, reflect, stars
+```
+## Share（Q）
+- Reflection に `profile:{cls,no,name}` と `summary:LearnSummary` を足して運ぶ（コード長は MAX_LEN 内。足りなければ summary を優先して reflection の手書きを間引く）。
+- 学習のきろくだけのコード：`Share.encodeRecord({profile, summary})` / `decodeRecord`、kindOf→'record'、'#/k/'。
+- Goal に `formsUrl`（https://forms.office.com/ など https のみ、任意）を通す。
+- 「先生に送る」：コードをコピー → Planner.goal().formsUrl があれば window.open(formsUrl)。なければ今までどおり。
+## Shosu.Assess（R）
+```js
+Assess.DEFAULTS = { know:{A:0.9,B:0.7}, think:{A:0.8,B:0.55}, attitude:{A:0.75,B:0.5}, minLessons:6 }
+Assess.settings() / setSettings(s)   // localStorage 'shosu.assessSettings'
+Assess.evaluate(student) -> { know:{grade:'A'|'B'|'C'|null, score, reasons:[text], enough:bool}, think:{…}, attitude:{…} }
+Assess.support(student) -> [{kind:'skill'|'habit'|'extend', text}]
+Assess.comment(student, {length:'short'|'long', variant:n, cls:[同じ組の他の子の所見] }) -> text
+// student = { profile, summary:LearnSummary, reflections:[Reflection...] }
+```
+## Shosu.Classbook（S）
+```js
+Classbook.mount(el, {cls?}) -> {destroy()}          // #/classbook（組タブ・一覧）、#/classbook/<cls>/<no>（詳しい画面）
+Classbook.importText(text) -> {students, added, updated, bad}
+Classbook.importFiles(FileList|File[]) -> Promise<同上>   // .xlsx .csv .txt .zip、複数可
+Classbook.exportCsv(cls) -> 文字列（BOMつき）とダウンロード
+Classbook.teacherSection() -> HTMLElement            // 先生メニューに入れる部品（入口・FormsのURL欄）
+// 保存：'shosu.classbook' = { students:{ '<cls>-<no>': {profile, summary, reflections:[], override:{know,think,attitude}, comment:{short,long,edited}} } }
+```
