@@ -3,6 +3,7 @@
  *   node tools/import-test.js
  * Forms 風の xlsx（無圧縮・deflate）、csv、Shift_JIS の txt、zip の中の xlsx、重複・上書き、
  * 同じ日のふりかえり、こわれたコード、組・番号なし、CSV のエスケープ、容量いっぱいのときを確かめる。
+ * ファイルに保存・読みこみ（まとめる・置きかえる・組の選択・基準・こわれたファイル・直した日時）も確かめる。
  * コードの読み書きは、テスト用の小さな Share（下の StubShare）で行う。js/share.js が
  * 学習のきろく（encodeRecord）に対応していれば、本物でも1回ためす。
  */
@@ -457,6 +458,215 @@ if (require.main !== module) { module.exports = { makeXlsx: makeXlsx, makeZip: m
     var u = Classbook._.unpackInk(p);
     assert.strictEqual(u.strokes.length, 3);
     assert.ok(u.strokes[0][0].x >= 0 && u.strokes[0][0].x <= 320);
+  });
+
+  console.log('classbook: ファイルで受けわたし（先生どうし）');
+  // 先生の直しを入れる（画面で直したときと同じ形）
+  function edit(k, fn) { var d = db(); fn(d.students[k], d); Classbook._.save(d); }
+  function meta(at, by) { return { at: at, by: by || '' }; }
+  // 先生A の端末
+  async function stateA() {
+    reset();
+    await Classbook.importText([
+      codeText(recTok(1, 3, '山田花子', '2026-11-22T10:00:00Z', 0.97)),
+      codeText(reflTok(1, 5, '鈴木一郎', '2026-11-21', '2026-11-21T15:00:00Z', '2026-11-21T15:00:00Z', 0.7, { t: { choices: ['Aの新しいふりかえり'] } })),
+      codeText(reflTok(1, 5, '鈴木一郎', '2026-11-23', null, '2026-11-21T15:00:00Z', 0.7, { t: { choices: ['Aの日時なし'] } })),
+      codeText(recTok(1, 7, '田中', '2026-11-22T10:00:00Z', 0.8)),
+      codeText(recTok(2, 1, '佐藤', '2026-11-22T10:00:00Z', 0.8))
+    ].join('\n'));
+    edit('1-3', function (st, d) {
+      st.override = { know: 'A', think: 'C', attitude: 'B' };
+      st.overrideMeta = { know: meta('2026-11-24T10:00:00Z', '山田'), think: meta('2026-11-20T10:00:00Z', '山田'), attitude: null };
+      st.comment.long = 'Aの所見'; st.comment.edited = true; st.comment.at = '2026-11-24T09:00:00Z'; st.comment.by = '山田';
+      d.classes[1] = { size: 30 };
+    });
+    edit('1-5', function (st) { st.comment.short = 'A古い所見'; st.comment.edited = true; });   // 前の版（日時なし）
+    Classbook.setTeacherName('山田');
+    return Classbook.exportBook('all', { download: false });
+  }
+  // 先生B の端末
+  async function stateB() {
+    reset();
+    await Classbook.importText([
+      codeText(recTok(1, 3, '山田花子', '2026-11-20T10:00:00Z', 0.5)),
+      codeText(reflTok(1, 5, '鈴木一郎', '2026-11-21', '2026-11-21T09:00:00Z', '2026-11-22T10:00:00Z', 0.66, { t: { choices: ['Bの古いふりかえり'] } })),
+      codeText(reflTok(1, 5, '鈴木一郎', '2026-11-22', '2026-11-22T10:00:00Z', '2026-11-22T10:00:00Z', 0.66, { t: { choices: ['Bだけの日'] } })),
+      codeText(reflTok(1, 5, '鈴木一郎', '2026-11-23', '2026-11-23T10:00:00Z', '2026-11-22T10:00:00Z', 0.66, { t: { choices: ['Bの日時あり'] } })),
+      codeText(recTok(1, 9, '高橋', '2026-11-22T10:00:00Z', 0.6)),
+      codeText(recTok(2, 2, '伊藤', '2026-11-22T10:00:00Z', 0.6))
+    ].join('\n'));
+    edit('1-3', function (st, d) {
+      st.override = { know: 'B', think: 'A', attitude: 'C' };
+      st.overrideMeta = { know: meta('2026-11-23T10:00:00Z', '鈴木'), think: meta('2026-11-23T10:00:00Z', '鈴木'), attitude: null };
+      st.comment.long = 'Bの所見'; st.comment.edited = true; st.comment.at = '2026-11-24T11:00:00Z'; st.comment.by = '鈴木';
+      d.classes[1] = { size: 28 };
+    });
+    Classbook.setTeacherName('鈴木');
+  }
+
+  await test('ファイルに保存：形・名前・中身（先生の直し・日時・人数・基準）', async function () {
+    var f = await stateA();
+    assert.ok(/^小数コスモス_クラスのきろく_4年全部の組_\d{4}-\d{2}-\d{2}\.json$/.test(f.name), f.name);
+    assert.ok(/^小数コスモス_クラスのきろく_4年1組_\d{4}-\d{2}-\d{2}\.json$/.test(Classbook._.bookName(1)));
+    var j = JSON.parse(f.text);
+    assert.strictEqual(j.app, 'shosu-cosmos'); assert.strictEqual(j.kind, 'classbook'); assert.strictEqual(j.v, 1);
+    assert.ok(Date.parse(j.exportedAt) > 0);
+    assert.strictEqual(j.teacher, '山田');
+    assert.deepStrictEqual(j.classes, [{ cls: 1, size: 30 }, { cls: 2, size: 0 }]);
+    assert.deepStrictEqual(Object.keys(j.students).sort(), ['1-3', '1-5', '1-7', '2-1']);
+    assert.strictEqual(j.students['1-3'].override.know, 'A');
+    assert.strictEqual(j.students['1-3'].overrideMeta.know.by, '山田');
+    assert.strictEqual(j.students['1-3'].comment.long, 'Aの所見');
+    assert.ok(Array.isArray(j.noProfile));
+    assert.strictEqual(j.assessSettings.know.A, 0.9);
+    var one = Classbook.exportBook(2, { download: false }).book;
+    assert.deepStrictEqual(Object.keys(one.students), ['2-1']);
+    assert.deepStrictEqual(one.classes, [{ cls: 2, size: 0 }]);
+  });
+
+  await test('まとめる：新しいほうが残る（summary・ふりかえり・評価・所見・人数、日時なしは古い扱い）', async function () {
+    var f = await stateA();
+    await stateB();
+    var r = Classbook.importBook(f.text, { mode: 'merge' });
+    assert.strictEqual(r.ok, true);
+    var d = db(), s3 = d.students['1-3'], s5 = d.students['1-5'];
+    assert.strictEqual(s3.summary.acc, 0.97, 'summary は at が新しいA');
+    assert.strictEqual(s5.summary.at, '2026-11-22T10:00:00Z', 'summary は at が新しいB');
+    assert.strictEqual(s3.override.know, 'A', '知：A のほうが新しい');
+    assert.strictEqual(s3.overrideMeta.know.by, '山田');
+    assert.strictEqual(s3.override.think, 'A', '思：B（こちら）のほうが新しい');
+    assert.strictEqual(s3.overrideMeta.think.by, '鈴木');
+    assert.strictEqual(s3.override.attitude, 'C', '態：両方日時なし → こちらを残す');
+    assert.strictEqual(s3.comment.long, 'Bの所見', '所見：こちらのほうが新しい');
+    assert.strictEqual(s5.comment.short, 'A古い所見', 'こちらが直していなければ、日時なしでもファイルのもの');
+    var rd = {};
+    s5.reflections.forEach(function (x) { rd[x.date] = x.t.choices[0]; });
+    assert.deepStrictEqual(rd, { '2026-11-21': 'Aの新しいふりかえり', '2026-11-22': 'Bだけの日', '2026-11-23': 'Bの日時あり' });
+    assert.ok(d.students['1-7'] && d.students['1-9'] && d.students['2-1'] && d.students['2-2'], 'どちらかだけの子は残る・入る');
+    assert.strictEqual(d.classes[1].size, 30, '人数は大きいほう');
+    var c1 = r.perClass.filter(function (c) { return c.cls === 1; })[0];
+    assert.deepStrictEqual([c1.n, c1.added, c1.updated], [3, 1, 2]);
+    assert.strictEqual(r.took, 2, '知・1-5の所見'); assert.strictEqual(r.kept, 3, '思・態・1-3の所見');
+    assert.ok(/1組 3人（新しく1人、更新2人）/.test(r.message), r.message);
+    assert.ok(/先生の直し 5件を取りこみ（3件はこちらの方が新しいので残しました）/.test(r.message), r.message);
+    // もう一度読みこんでも変わらない
+    var r2 = Classbook.importBook(f.text, { mode: 'merge' });
+    assert.strictEqual(r2.updated, 0); assert.strictEqual(r2.took, 0);
+    assert.ok(/変わらず3人/.test(r2.message), r2.message);
+  });
+
+  await test('まとめる：同じ評価なら日時だけ新しいほうに。案にもどした（null・日時あり）も新しければ伝わる', async function () {
+    reset();
+    await Classbook.importText(codeText(recTok(3, 1, 'x', '2026-11-22T10:00:00Z', 0.8)));
+    edit('3-1', function (st) { st.override.know = 'B'; st.overrideMeta.know = meta('2026-11-24T12:00:00Z', '新'); st.override.think = 'A'; st.overrideMeta.think = meta('2026-11-24T12:00:00Z'); st.override.think = null; });
+    var f = Classbook.exportBook(3, { download: false });
+    edit('3-1', function (st) { st.overrideMeta.know = meta('2026-11-20T12:00:00Z', '古'); st.override.think = 'C'; st.overrideMeta.think = meta('2026-11-21T12:00:00Z'); });
+    var r = Classbook.importBook(f.text);
+    var st = db().students['3-1'];
+    assert.strictEqual(st.override.know, 'B'); assert.strictEqual(st.overrideMeta.know.by, '新');
+    assert.strictEqual(st.override.think, null, '新しい「案にもどす」が伝わる');
+    assert.strictEqual(r.took, 1);
+  });
+
+  await test('置きかえる：えらんだ組だけをファイルの内容にする', async function () {
+    var f = await stateA();
+    await stateB();
+    var r = Classbook.importBook(f.text, { mode: 'replace', classes: [1] });
+    var d = db();
+    assert.deepStrictEqual(Object.keys(d.students).sort(), ['1-3', '1-5', '1-7', '2-2'], '1組はファイルどおり、2組はそのまま');
+    assert.strictEqual(d.students['1-3'].override.think, 'C', 'こちらの新しい直しも置きかわる');
+    assert.strictEqual(d.students['1-3'].comment.long, 'Aの所見');
+    assert.strictEqual(d.students['1-5'].reflections.length, 2);
+    assert.strictEqual(d.classes[1].size, 30);
+    assert.ok(/1組 3人（置きかえました）/.test(r.message), r.message);
+  });
+
+  await test('組をえらぶ：えらばなかった組は変わらない', async function () {
+    var f = await stateA();
+    await stateB();
+    var before = JSON.stringify(Classbook._.studentsOf(db(), 1));
+    var r = Classbook.importBook(f.text, { mode: 'merge', classes: [2] });
+    assert.strictEqual(JSON.stringify(Classbook._.studentsOf(db(), 1)), before);
+    assert.ok(db().students['2-1']);
+    assert.deepStrictEqual(r.perClass.map(function (c) { return c.cls; }), [2]);
+    assert.ok(/^2組 1人（新しく1人、更新0人）/.test(r.message), r.message);
+    assert.deepStrictEqual(Classbook._.bookClasses(Classbook.parseBook(f.text)).map(function (c) { return [c.cls, c.n, c.size]; }), [[1, 3, 30], [2, 1, 0]]);
+  });
+
+  await test('基準の設定：はじめは読みこまない。えらんだときだけ読みこむ', async function () {
+    var f = await stateA();
+    var j = JSON.parse(f.text);
+    j.assessSettings = { know: { A: 0.95, B: 0.75 }, think: { A: 0.8, B: 0.55 }, attitude: { A: 0.75, B: 0.5 }, minLessons: 5 };
+    await stateB();
+    var got = null, orig = S.Assess.setSettings;
+    S.Assess.setSettings = function (s) { got = s; };
+    try {
+      var r1 = Classbook.importBook(JSON.stringify(j), { mode: 'merge' });
+      assert.strictEqual(got, null); assert.strictEqual(r1.settings, false);
+      var r2 = Classbook.importBook(JSON.stringify(j), { mode: 'merge', settings: true });
+      assert.strictEqual(got.know.A, 0.95); assert.strictEqual(got.minLessons, 5);
+      assert.strictEqual(r2.settings, true);
+      assert.ok(/基準の設定も読みこみました/.test(r2.message));
+    } finally { S.Assess.setSettings = orig; }
+  });
+
+  await test('別のアプリのファイル・こわれたファイルは「このファイルは読みこめませんでした」', async function () {
+    reset();
+    ['{こわれた', '', 'null', '[]', JSON.stringify({ app: 'other', kind: 'classbook', v: 1, students: {} }),
+      JSON.stringify({ app: 'shosu-cosmos', kind: 'goal', v: 1, students: {} }), JSON.stringify({ app: 'shosu-cosmos', kind: 'classbook', v: 2, students: {} }),
+      JSON.stringify({ app: 'shosu-cosmos', kind: 'classbook', v: 1 })].forEach(function (t) {
+      assert.strictEqual(Classbook.parseBook(t), null, t);
+      var r = Classbook.importBook(t);
+      assert.strictEqual(r.ok, false);
+      assert.strictEqual(r.message, 'このファイルは読みこめませんでした。');
+    });
+    // おかしな子（キーと組・番号が合わない・番号が範囲外）は飛ばす
+    var b = Classbook.parseBook(JSON.stringify({ app: 'shosu-cosmos', kind: 'classbook', v: 1, classes: [{ cls: 1, size: 99 }],
+      students: { '1-2': { profile: { cls: 1, no: 3, name: 'x' } }, '1-50': { profile: { cls: 1, no: 50 } }, '1-4': { profile: { cls: 1, no: 4, name: 'よい' }, override: { know: 'Z' } } } }));
+    assert.deepStrictEqual(Object.keys(b.students), ['1-4']);
+    assert.strictEqual(b.students['1-4'].override.know, null);
+    var rf = await Classbook.importFiles([{ name: 'ほか.json', data: new Uint8Array(Buffer.from('{"app":"other"}')) }]);
+    assert.strictEqual(rf.message, 'このファイルは読みこめませんでした。', rf.message);
+    assert.strictEqual(Object.keys(db().students).length, 0);
+  });
+
+  await test('取りこみ欄に入れた .json（BOMつき・名前が .txt でも）を自動で見分けて、まとめる', async function () {
+    var f = await stateA();
+    await stateB();
+    var bytes = new Uint8Array(Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(f.text, 'utf8')]));
+    var r = await Classbook.importFiles([{ name: 'きろく.txt', data: bytes }]);
+    assert.ok(/1組 3人（新しく1人、更新2人）/.test(r.message), r.message);
+    assert.strictEqual(db().students['1-3'].override.know, 'A');
+    var r2 = await Classbook.importText(f.text);   // はりつけても
+    assert.ok(/変わらず/.test(r2.message), r2.message);
+  });
+
+  await test('前のデータ（直した日時なし）も読める。直した日時の表示', async function () {
+    reset();
+    storage.setItem(Classbook._.KEY, JSON.stringify({ v: 1, students: { '1-1': { profile: { cls: 1, no: 1, name: '前' }, summary: null, reflections: [],
+      override: { know: 'A', think: null, attitude: null }, comment: { short: '', long: '前の所見', edited: true, variant: 0, len: 'long' } } }, noProfile: [], classes: { 1: { size: 20 } } }));
+    var st = db().students['1-1'];
+    assert.strictEqual(st.override.know, 'A');
+    assert.deepStrictEqual(st.overrideMeta, { know: null, think: null, attitude: null });
+    assert.strictEqual(st.comment.at, ''); assert.strictEqual(st.comment.long, '前の所見');
+    assert.strictEqual(Classbook._.editedLine(null), '');
+    assert.strictEqual(Classbook._.editedLine({ at: '2026-11-24T12:00:00', by: '山田' }), '11月24日に直しました（山田先生）');
+    assert.strictEqual(Classbook._.editedLine({ at: '2026-11-24T12:00:00', by: '山田先生' }), '11月24日に直しました（山田先生）');
+    assert.strictEqual(Classbook._.editedLine({ at: '2026-11-03T12:00:00', by: '' }), '11月3日に直しました');
+    Classbook.setTeacherName('  佐藤  ');
+    assert.strictEqual(Classbook.teacherName(), '佐藤');
+    var m = Classbook._.editMeta();
+    assert.strictEqual(m.by, '佐藤'); assert.ok(Date.parse(m.at) > 0);
+  });
+
+  await test('容量いっぱいでも落ちない（ファイルの読みこみ）', async function () {
+    var f = await stateA();
+    reset();
+    storage.quota = 50;
+    var r = Classbook.importBook(f.text, { mode: 'merge' });
+    assert.strictEqual(r.saved, false);
+    assert.ok(/保存できませんでした/.test(r.message), r.message);
+    storage.quota = 5e6;
   });
 
   console.log('classbook: 本物の assess.js');

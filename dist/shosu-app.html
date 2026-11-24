@@ -2436,6 +2436,39 @@ html.osu-miru-open { overflow: hidden; }
 .cb-import-compact .cb-ta { min-height: 52px; height: 52px; flex: 1 1 14em; width: auto; }
 .cb-import-compact .cb-paste .btn { align-self: center; }
 
+/* 直した日時（担当T） */
+.cb-axis-when { margin-left: 0.8em; font-weight: normal; color: var(--ink-soft); }
+.cb-axis-back { margin-top: 0.3rem; font-size: 0.85rem; color: var(--ink-soft); }
+.cb-com-when { font-size: 0.85rem; color: #7a5200; }
+.cb-com-when:empty { display: none; }
+
+/* 先生どうしで受けわたす（ファイルに保存・ファイルを読みこむ） */
+.cb-share { padding-top: 0.8rem; padding-bottom: 0.8rem; }
+.cb-share-top { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1.2rem; }
+.cb-share-text { flex: 1 1 28em; min-width: 0; }
+.cb-share-text h2 { font-size: 1.05rem; margin-bottom: 0.1rem; }
+.cb-share-text .cb-note { margin: 0; }
+.cb-share-btns { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.cb-share-btns .btn { min-height: 44px; }
+.cb-modal { max-width: 600px; max-height: 92vh; overflow: auto; }
+.cb-modal-title { margin: 0 0 0.6rem; font-size: 1.25rem; }
+.cb-modal-warn { margin: 0.6rem 0; font-size: 0.9rem; line-height: 1.55; color: #7a4a00; background: var(--warn-bg); border-radius: 8px; padding: 0.4rem 0.7rem; }
+.cb-opt-head { font-weight: bold; margin: 0.7rem 0 0.3rem; color: #3a3796; }
+.cb-opts { display: flex; flex-direction: column; gap: 0.35rem; }
+.cb-opts-row { flex-direction: row; flex-wrap: wrap; }
+.cb-opt { display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.4rem 0.6rem; border: 2px solid var(--line); border-radius: 10px; cursor: pointer; min-height: 44px; }
+.cb-opt:has(input:checked) { border-color: #5245c4; background: #f5f3ff; }
+.cb-opt.off { opacity: 0.55; cursor: default; }
+.cb-opt input { width: 1.25rem; height: 1.25rem; flex: none; margin: 0.15rem 0 0; }
+.cb-opt-text { display: flex; flex-direction: column; }
+.cb-opt-label { font-weight: bold; }
+.cb-opt-sub { font-size: 0.84rem; color: var(--ink-soft); line-height: 1.45; }
+.cb-opt-set { margin-top: 0.7rem; }
+.cb-modal .modal-row { margin-top: 0.9rem; flex-wrap: wrap; }
+.cb-tc-name { margin-top: 0.9rem; }
+.cb-tc-nameinput { flex: 0 1 14em; }
+.tcard .cb-tc-namenote { margin: 0.3rem 0 0; font-size: 0.85rem; }
+
 </style>
 </head>
 <body>
@@ -17067,6 +17100,10 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
  *   Classbook.exportCsv(cls, {download?}) -> CSVの文字列（BOMつき UTF-8）。画面があればダウンロードもする
  *   Classbook.teacherSection()   -> HTMLElement      先生メニューに入れる部品（入口・Forms のURL欄）
  *   Classbook.formsUrl()         -> 先生が入れた Forms のURL（なければ ''）
+ *   Classbook.exportBook(which, {download?}) -> {name, text, book}   which は 'all' か組。ファイルに保存（.json）
+ *   Classbook.parseBook(text)    -> 形をそろえた中身 | null（別のアプリ・こわれたファイル）
+ *   Classbook.importBook(textOrBook, {mode:'merge'|'replace', classes?, settings?}) -> {ok, students, took, kept, perClass, message, …}
+ *   Classbook.teacherName() / setTeacherName(n)   localStorage 'shosu.teacherName'（任意）
  *
  * 取りこむコード：Share.extractTokens → kindOf が 'reflection'（profile・summary 入り）と 'record'。
  *   profile {cls, no, name} で '<cls>-<no>' に振り分ける。summary は at が新しいもので上書き、
@@ -17077,6 +17114,13 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
  *                                    comment:{short, long, edited, variant, len}} },
  *     noProfile:[Reflection], classes:{ '<cls>': {size} }, formsUrl:'' }
  *   comment.short / comment.long は先生が直した文（直していなければ ''）。edited はどちらかを直したら true。
+ *   直した日時と先生の名前：overrideMeta:{know:{at,by}|null,…}、comment.at / comment.by（前のデータには無い＝null・''）。
+ *
+ * ファイル（先生どうしの受けわたし）：{app:'shosu-cosmos', kind:'classbook', v:1, exportedAt, teacher,
+ *   classes:[{cls,size}], students:{…上と同じ1人分…}, noProfile:[…]（全部の組のときだけ）, assessSettings}
+ *   まとめる：summary は at が新しいほう、ふりかえりは日付ごと（同じ日は saved が新しいほう）、評価は観点ごと・所見は
+ *   まとめて「直した日時」が新しいほう（日時が無い側は古い扱い、両方無ければこちら）。こちらが直していなければファイルのもの。
+ *   組の人数は大きいほう。置きかえる：えらんだ組をファイルの内容にする。
  *   手書きは縮小用の座標だけ（{w,h,s:[[x,y,x,y,…]]}）。いっぱいのときは古いふりかえりの手書きから落とす。
  *
  * classic script。Node でも、取りこみ・CSV の部分は動く（tools/import-test.js）。
@@ -17142,6 +17186,34 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     return true;
   }
   function emptyDb() { return { v: 1, students: {}, noProfile: [], classes: {}, formsUrl: '' }; }
+  // 1人分の形をそろえる（保存・ファイルの読みこみで共通）。キーと組・番号が合わなければ null
+  function cleanStudent(k, st) {
+    var p = isObj(st) ? cleanProfile(st.profile) : null;
+    if (!p || k !== p.cls + '-' + p.no) return null;
+    return {
+      profile: p,
+      profileAt: typeof st.profileAt === 'string' && tms(st.profileAt) != null ? st.profileAt : '',
+      summary: isObj(st.summary) ? st.summary : null,
+      reflections: (Array.isArray(st.reflections) ? st.reflections : []).map(cleanRefl).filter(Boolean)
+        .sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; }),
+      override: cleanOverride(st.override),
+      overrideMeta: cleanOverrideMeta(st.overrideMeta),
+      comment: cleanComment(st.comment),
+      updated: typeof st.updated === 'string' ? st.updated : ''
+    };
+  }
+  function cleanClasses(src, into) {
+    if (Array.isArray(src)) {
+      src.forEach(function (x) { var n = isObj(x) ? intIn(x.cls, 1, MAXCLS) : null; if (n) into[n] = { size: intIn(x.size, 1, MAXNO) || 0 }; });
+    } else if (isObj(src)) {
+      Object.keys(src).forEach(function (c) {
+        var n = intIn(c, 1, MAXCLS), x = src[c];
+        if (!n || !isObj(x)) return;
+        into[n] = { size: intIn(x.size, 1, MAXNO) || 0 };
+      });
+    }
+    return into;
+  }
   function load() {
     var d = null;
     try { d = JSON.parse(lsGet(KEY) || 'null'); } catch (e) { d = null; }
@@ -17149,27 +17221,12 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     if (!isObj(d)) return db;
     if (isObj(d.students)) {
       Object.keys(d.students).forEach(function (k) {
-        var st = d.students[k], p = isObj(st) ? cleanProfile(st.profile) : null;
-        if (!p || k !== p.cls + '-' + p.no) return;
-        db.students[k] = {
-          profile: p,
-          profileAt: typeof st.profileAt === 'string' ? st.profileAt : '',
-          summary: isObj(st.summary) ? st.summary : null,
-          reflections: (Array.isArray(st.reflections) ? st.reflections : []).map(cleanRefl).filter(Boolean),
-          override: cleanOverride(st.override),
-          comment: cleanComment(st.comment),
-          updated: typeof st.updated === 'string' ? st.updated : ''
-        };
+        var st = cleanStudent(k, d.students[k]);
+        if (st) db.students[k] = st;
       });
     }
     if (Array.isArray(d.noProfile)) db.noProfile = d.noProfile.map(cleanRefl).filter(Boolean);
-    if (isObj(d.classes)) {
-      Object.keys(d.classes).forEach(function (c) {
-        var n = intIn(c, 1, MAXCLS), x = d.classes[c];
-        if (!n || !isObj(x)) return;
-        db.classes[n] = { size: intIn(x.size, 1, MAXNO) || 0 };
-      });
-    }
+    cleanClasses(d.classes, db.classes);
     if (typeof d.formsUrl === 'string' && validUrl(d.formsUrl)) db.formsUrl = d.formsUrl;
     return db;
   }
@@ -17205,10 +17262,23 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     if (isObj(o)) AXES.forEach(function (a) { if (GRADES.indexOf(o[a.id]) >= 0) out[a.id] = o[a.id]; });
     return out;
   }
+  // 直した日時と先生の名前 {at:ISO, by:''}。前のデータ（日時なし）は null
+  function cleanMeta(m) {
+    if (!isObj(m) || tms(m.at) == null) return null;
+    return { at: str(m.at, 40), by: str(m.by, 20).trim() };
+  }
+  function cleanOverrideMeta(o) {
+    var out = { know: null, think: null, attitude: null };
+    if (isObj(o)) AXES.forEach(function (a) { out[a.id] = cleanMeta(o[a.id]); });
+    return out;
+  }
   function cleanComment(c) {
     c = isObj(c) ? c : {};
     var o = { short: strMl(c.short, 600), long: strMl(c.long, 1000), variant: intIn(c.variant, 0, 9999) || 0, len: c.len === 'short' ? 'short' : 'long' };
     o.edited = !!(o.short || o.long);
+    var m = cleanMeta(c);
+    o.at = m ? m.at : '';
+    o.by = m ? m.by : '';
     return o;
   }
   // 手書き → 縮小用の座標だけ {w, h, s:[[x,y,x,y,…]]}
@@ -17316,7 +17386,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       }
       var k = p.cls + '-' + p.no, st = db.students[k], isNew = !st, changed = false;
       if (!st) {
-        st = db.students[k] = { profile: p, profileAt: '', summary: null, reflections: [], override: cleanOverride(null), comment: cleanComment(null), updated: now };
+        st = db.students[k] = { profile: p, profileAt: '', summary: null, reflections: [], override: cleanOverride(null), overrideMeta: cleanOverrideMeta(null), comment: cleanComment(null), updated: now };
       }
       var sum = isObj(it.summary) ? it.summary : null;
       var itAt = (sum && typeof sum.at === 'string' && sum.at) || (refl && refl.saved) || '';
@@ -17381,6 +17451,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     var sh = shareApi();
     var res0 = { students: 0, added: 0, updated: 0, same: 0, bad: 0, noProfile: 0, found: 0 };
     text = typeof text === 'string' ? text : '';
+    if (looksLikeBook(text)) return Promise.resolve(importBook(text, { mode: 'merge' }));   // 保存したファイルの中身をはりつけたとき
     if (!sh || typeof sh.extractTokens !== 'function') {
       res0.message = 'コードを読む機能（share.js）がありません。';
       return Promise.resolve(res0);
@@ -17560,19 +17631,45 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
   function importFiles(files) {
     var list = [];
     try { list = Array.prototype.slice.call(files || []); } catch (e) { list = []; }
-    var texts = [], info = { errors: [], used: 0 }, budget = { left: MAX_UNZIP };
+    var texts = [], books = [], info = { errors: [], used: 0 }, budget = { left: MAX_UNZIP };
     return list.reduce(function (pr, f) {
       return pr.then(function () {
         if (f && f.size > MAX_FILE) { info.errors.push(baseName(f.name) + '（大きすぎます）'); return; }
-        return readBytes(f).then(function (b) { return collect(f && f.name, b, texts, 0, info, budget); })
-          .catch(function (e) { warnLog('file', e); info.errors.push(baseName(f && f.name)); });
+        return readBytes(f).then(function (b) {
+          // 保存したクラスのきろく（.json）は自動で見分ける
+          if (extOf(f && f.name) === 'json' || (b.length && (b[0] === 0x7b || b[0] === 0xef))) {
+            var t = decodeText(b);
+            if (looksLikeBook(t) || extOf(f && f.name) === 'json') {
+              var bk = parseBook(t);
+              if (bk) books.push(bk); else info.errors.push(baseName(f && f.name) + '（' + BAD_FILE.replace(/。$/, '') + '）');
+              return;
+            }
+          }
+          return collect(f && f.name, b, texts, 0, info, budget);
+        }).catch(function (e) { warnLog('file', e); info.errors.push(baseName(f && f.name)); });
       });
     }, Promise.resolve()).then(function () {
-      return importText(texts.join('\n'));
+      var bres = books.map(function (bk) { return importBook(bk, { mode: 'merge' }); });
+      if (books.length && !texts.length) {
+        var r0 = bres[0];
+        r0.message = bres.map(function (x) { return x.message; }).join(' ');
+        r0.keys = [].concat.apply([], bres.map(function (x) { return x.keys || []; }));
+        return r0;
+      }
+      return importText(texts.join('\n')).then(function (res) {
+        if (bres.length) {
+          res.message = bres.map(function (x) { return x.message; }).join(' ') + ' ' + res.message;
+          res.students += bres.reduce(function (n, x) { return n + x.students; }, 0);
+          res.keys = (res.keys || []).concat([].concat.apply([], bres.map(function (x) { return x.keys || []; })));
+        }
+        return res;
+      });
     }).then(function (res) {
       res.files = list.length;
       res.fileErrors = info.errors;
       if (info.errors.length) res.message += ' 開けなかったファイル：' + info.errors.join('、');
+      var badBook = BAD_FILE.replace(/。$/, '');
+      if (!texts.length && !books.length && info.errors.length && info.errors.every(function (e) { return e.indexOf(badBook) >= 0; })) { res.message = BAD_FILE; res.bad = true; }
       return res;
     });
   }
@@ -17748,6 +17845,222 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     return csv;
   }
 
+  /* ---------- 先生の名前（任意） ---------- */
+  var NAME_KEY = 'shosu.teacherName';
+  function teacherName() { var v = lsGet(NAME_KEY); return typeof v === 'string' ? str(v, 20).trim() : ''; }
+  function setTeacherName(n) { return lsSet(NAME_KEY, str(String(n || ''), 20).trim()); }
+  function byLabel(n) { n = String(n || '').trim(); return !n ? '' : /先生$/.test(n) ? n : n + '先生'; }
+  function editMeta() { return { at: new Date().toISOString(), by: teacherName() }; }
+  // 「11月24日に直しました（山田先生）」
+  function editedLine(m) {
+    var t = m ? tms(m.at) : null;
+    if (t == null) return '';
+    var d = new Date(t), by = byLabel(m.by);
+    return (d.getMonth() + 1) + '月' + d.getDate() + '日に直しました' + (by ? '（' + by + '）' : '');
+  }
+
+  /* ---------- ファイルに保存・ファイルを読みこむ（先生どうしの受けわたし） ----------
+   * { app:'shosu-cosmos', kind:'classbook', v:1, exportedAt, teacher, classes:[{cls,size}],
+   *   students:{'<cls>-<no>': 1人分}, noProfile:[…]（全部の組のときだけ）, assessSettings }
+   */
+  var BOOK_APP = 'shosu-cosmos', BOOK_KIND = 'classbook';
+  var BAD_FILE = 'このファイルは読みこめませんでした。';
+  function localDate(d) { d = d || new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function bookName(cls) { return '小数コスモス_クラスのきろく_4年' + (cls === 'all' || cls == null ? '全部の組' : cls + '組') + '_' + localDate() + '.json'; }
+  function assessSettingsNow() {
+    var A = assessApi();
+    try { return A && typeof A.settings === 'function' ? clone(A.settings()) : null; } catch (e) { return null; }
+  }
+  // which: 'all' か 組の番号
+  function buildBook(which) {
+    var db = load(), all = which === 'all' || which == null;
+    var want = all ? classList(db) : [Number(which)];
+    var out = { app: BOOK_APP, kind: BOOK_KIND, v: 1, exportedAt: new Date().toISOString(), teacher: teacherName(),
+      classes: [], students: {}, noProfile: [], assessSettings: assessSettingsNow() };
+    want.forEach(function (c) {
+      out.classes.push({ cls: c, size: db.classes[c] && db.classes[c].size || 0 });
+      studentsOf(db, c).forEach(function (st) { out.students[st.profile.cls + '-' + st.profile.no] = clone(st); });
+    });
+    if (all) out.noProfile = clone(db.noProfile);
+    return out;
+  }
+  function exportBook(which, opts) {
+    var book = buildBook(which), text = JSON.stringify(book), name = bookName(which === 'all' || which == null ? 'all' : Number(which));
+    if (!(opts && opts.download === false)) download(text, name, 'application/json;charset=utf-8');
+    return { name: name, text: text, book: book };
+  }
+  function looksLikeBook(text) { return typeof text === 'string' && /^\s*\{[\s\S]*"app"\s*:\s*"shosu-cosmos"/.test(text.slice(0, 4000)); }
+  // ファイルの文字 → 形をそろえた中身。読めなければ null
+  function parseBook(text) {
+    var d;
+    try { d = typeof text === 'string' ? JSON.parse(text.replace(/^﻿/, '')) : text; } catch (e) { return null; }
+    if (!isObj(d) || d.app !== BOOK_APP || d.kind !== BOOK_KIND || typeof d.v !== 'number' || d.v < 1 || d.v >= 2 || !isObj(d.students)) return null;
+    var b = { exportedAt: tms(d.exportedAt) != null ? d.exportedAt : '', teacher: str(d.teacher, 20).trim(), classes: {}, students: {}, noProfile: [], assessSettings: isObj(d.assessSettings) ? d.assessSettings : null };
+    cleanClasses(d.classes, b.classes);
+    Object.keys(d.students).forEach(function (k) {
+      var st = cleanStudent(k, d.students[k]);
+      if (st) { b.students[k] = st; if (!b.classes[st.profile.cls]) b.classes[st.profile.cls] = { size: 0 }; }
+    });
+    if (Array.isArray(d.noProfile)) b.noProfile = d.noProfile.map(cleanRefl).filter(Boolean);
+    return b;
+  }
+  // ファイルに入っている組と人数 [{cls, n, size}]
+  function bookClasses(b) {
+    return Object.keys(b.classes).map(Number).sort(function (x, y) { return x - y; }).map(function (c) {
+      var n = Object.keys(b.students).filter(function (k) { return b.students[k].profile.cls === c; }).length;
+      return { cls: c, n: n, size: b.classes[c].size || 0 };
+    });
+  }
+  function metaTime(m) { return m ? tms(m.at) : null; }
+  // ファイルの直し（theirs）を使うか。日時が無い側は古い扱い、両方無ければこちら（mine）を残す
+  function theirsNewer(tMine, tTheirs) {
+    if (tTheirs == null) return false;
+    if (tMine == null) return true;
+    return tTheirs > tMine;
+  }
+  function sameJson(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+  // 1人分をまとめる。戻り値 {changed, took, kept}
+  function mergeStudent(mine, theirs) {
+    var r = { changed: false, took: 0, kept: 0 };
+    // 名前（新しい学習のまとめを持つほう）
+    if (theirs.profileAt && (!mine.profileAt || atNewer(theirs.profileAt, mine.profileAt))) {
+      if (!sameJson(mine.profile, theirs.profile)) { mine.profile = clone(theirs.profile); r.changed = true; }
+      mine.profileAt = theirs.profileAt;
+    }
+    // 学習のまとめ：at が新しいほう
+    if (theirs.summary && (!mine.summary || atNewer(theirs.summary.at, mine.summary.at)) && !sameJson(mine.summary, theirs.summary)) {
+      mine.summary = clone(theirs.summary); r.changed = true;
+    }
+    // ふりかえり：日付ごと。同じ日は saved が新しいほう（saved が無い側は古い扱い）
+    theirs.reflections.forEach(function (tr) {
+      var idx = -1;
+      mine.reflections.forEach(function (x, i) { if (x.date === tr.date) idx = i; });
+      if (idx < 0) { mine.reflections.push(clone(tr)); r.changed = true; return; }
+      var cur = mine.reflections[idx];
+      if (!sameJson(cur, tr) && theirsNewer(tms(cur.saved), tms(tr.saved))) { mine.reflections[idx] = clone(tr); r.changed = true; }
+    });
+    mine.reflections.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+    // 先生の評価：観点ごとに、直した日時が新しいほう
+    AXES.forEach(function (a) {
+      var tv = theirs.override[a.id], tm = theirs.overrideMeta[a.id];
+      if (tv == null && !tm) return;                      // ファイル側は直していない
+      var mv = mine.override[a.id], mm = mine.overrideMeta[a.id];
+      var mineEdited = mv != null || !!mm;
+      if (mv === tv) {                                    // 同じ評価：日時だけ新しいほうに
+        if (theirsNewer(metaTime(mm), metaTime(tm))) mine.overrideMeta[a.id] = clone(tm);
+        return;
+      }
+      if (!mineEdited || theirsNewer(metaTime(mm), metaTime(tm))) {
+        mine.override[a.id] = tv; mine.overrideMeta[a.id] = clone(tm); r.took++; r.changed = true;
+      } else r.kept++;
+    });
+    // 直した所見：直した日時が新しいほう（短い・長いをいっしょに）
+    var tc = theirs.comment, mc = mine.comment;
+    if (tc.edited || tc.at) {
+      var tcm = tc.at ? { at: tc.at } : null, mcm = mc.at ? { at: mc.at } : null;
+      if (tc.short === mc.short && tc.long === mc.long) {
+        if (theirsNewer(metaTime(mcm), metaTime(tcm))) { mc.at = tc.at; mc.by = tc.by; }
+      } else if (!(mc.edited || mc.at) || theirsNewer(metaTime(mcm), metaTime(tcm))) {
+        mine.comment = clone(tc); r.took++; r.changed = true;
+      } else r.kept++;
+    }
+    return r;
+  }
+  function bookMessage(r) {
+    var parts = [];
+    r.perClass.forEach(function (c) {
+      var d;
+      if (r.mode === 'replace') d = '置きかえました';
+      else {
+        d = '新しく' + c.added + '人、更新' + c.updated + '人';
+        if (c.same) d += '、変わらず' + c.same + '人';
+      }
+      parts.push(c.cls + '組 ' + c.n + '人（' + d + '）');
+    });
+    var s = parts.length ? parts.join('、') : '読みこむ組がありませんでした';
+    if (r.mode === 'merge' && (r.took || r.kept)) {
+      s += '、先生の直し ' + (r.took + r.kept) + '件を取りこみ' + (r.kept ? '（' + r.kept + '件はこちらの方が新しいので残しました）' : '');
+    } else if (r.mode === 'replace' && r.edits) s += '、先生の直し ' + r.edits + '件';
+    s += '。';
+    if (r.noProfileNew) s += '組・番号なしのふりかえり' + r.noProfileNew + 'こ。';
+    if (r.settings) s += '基準の設定も読みこみました。';
+    if (r.saved === false) s += 'この端末がいっぱいで、保存できませんでした。';
+    else if (r.dropped) s += '（端末の容量のため、古いふりかえりの手書き' + r.dropped + '件を省きました）';
+    return s;
+  }
+  function editCount(st) {
+    var n = 0;
+    AXES.forEach(function (a) { if (st.override[a.id] != null) n++; });
+    if (st.comment.edited) n++;
+    return n;
+  }
+  /* ファイルの中身（parseBook の戻り値、または文字）を取りこむ
+   *   opts: {mode:'merge'|'replace', classes:[組…]（なければ全部）, settings:false}
+   *   戻り値 {ok, mode, students, added, updated, same, took, kept, perClass:[…], settings, saved, dropped, message, keys}
+   */
+  function importBook(book, opts) {
+    opts = opts || {};
+    var b = isObj(book) && isObj(book.students) && isObj(book.classes) && !book.app ? book : parseBook(book);
+    if (!b) return { ok: false, bad: true, students: 0, message: BAD_FILE };
+    var mode = opts.mode === 'replace' ? 'replace' : 'merge';
+    var avail = bookClasses(b).map(function (c) { return c.cls; });
+    var want = Array.isArray(opts.classes) ? opts.classes.map(Number).filter(function (c) { return avail.indexOf(c) >= 0; }) : avail;
+    var db = load(), now = new Date().toISOString();
+    var res = { ok: true, mode: mode, students: 0, added: 0, updated: 0, same: 0, took: 0, kept: 0, edits: 0, perClass: [], keys: [], settings: false, noProfileNew: 0 };
+    want.forEach(function (c) {
+      var pc = { cls: c, n: 0, added: 0, updated: 0, same: 0 };
+      var keys = Object.keys(b.students).filter(function (k) { return b.students[k].profile.cls === c; });
+      if (mode === 'replace') {
+        Object.keys(db.students).forEach(function (k) { if (db.students[k].profile.cls === c) delete db.students[k]; });
+        db.classes[c] = { size: b.classes[c].size || 0 };
+        if (!db.classes[c].size) delete db.classes[c];
+        keys.forEach(function (k) { db.students[k] = clone(b.students[k]); res.edits += editCount(b.students[k]); pc.n++; res.keys.push(k); });
+        pc.added = pc.n;
+      } else {
+        keys.forEach(function (k) {
+          var theirs = b.students[k], mine = db.students[k];
+          pc.n++; res.keys.push(k);
+          if (!mine) {
+            db.students[k] = clone(theirs);
+            db.students[k].updated = now;
+            res.took += editCount(theirs);
+            pc.added++;
+            return;
+          }
+          var m = mergeStudent(mine, theirs);
+          res.took += m.took; res.kept += m.kept;
+          if (m.changed) { mine.updated = now; pc.updated++; } else pc.same++;
+        });
+        var size = Math.max(db.classes[c] && db.classes[c].size || 0, b.classes[c].size || 0);
+        if (size || !db.classes[c]) db.classes[c] = { size: size };
+      }
+      res.students += pc.n; res.added += pc.added; res.updated += pc.updated; res.same += pc.same;
+      res.perClass.push(pc);
+    });
+    // 組・番号なし（全部の組のファイルだけに入っている）：同じものはまとめる
+    if (b.noProfile.length && opts.noProfile !== false) {
+      var idx = {};
+      db.noProfile.forEach(function (r, i) { idx[noProfileKey(r)] = i; });
+      b.noProfile.forEach(function (r) {
+        var k = noProfileKey(r);
+        if (own(idx, k)) { var cur = db.noProfile[idx[k]]; if (!sameJson(cur, r) && theirsNewer(tms(cur.saved), tms(r.saved))) db.noProfile[idx[k]] = clone(r); }
+        else { idx[k] = db.noProfile.length; db.noProfile.push(clone(r)); res.noProfileNew++; }
+      });
+    }
+    var sv = save(db);
+    res.saved = sv.ok; res.dropped = sv.dropped;
+    if (opts.settings && b.assessSettings) {
+      var A = assessApi();
+      try { if (A && typeof A.setSettings === 'function') { A.setSettings(clone(b.assessSettings)); res.settings = true; } } catch (e) { warnLog('setSettings', e); }
+    }
+    res.message = bookMessage(res);
+    return res;
+  }
+  // ファイルを読んで中身を返す（.json）。読めなければ null
+  function readBook(file) {
+    return readBytes(file).then(function (bytes) { return parseBook(decodeText(bytes)); }, function () { return null; });
+  }
+
   /* ---------- Forms のURL ---------- */
   function validUrl(u) { return typeof u === 'string' && u.length <= 400 && /^https:\/\/[^\s"'<>]+$/i.test(u); }
   function formsUrl() {
@@ -17900,6 +18213,14 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     return { cls: intIn(hs[1], 1, MAXCLS) || (hs[1] === 'none' ? 'none' : null), no: intIn(hs[2], 1, MAXNO) };
   }
 
+  function stampComment(c) { var m = editMeta(); c.at = m.at; c.by = m.by; }
+  // 保存。できなければ知らせる（落ちない）
+  function saveOrWarn(d) {
+    var r = save(d);
+    if (!r.ok && hasDOM) toast('この端末がいっぱいで、保存できませんでした');
+    return r.ok;
+  }
+
   function mount(el, opts) {
     opts = opts || {};
     var hp = parseHash();
@@ -17990,6 +18311,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
         panel.appendChild(classView(db, state.cls));
       }
       rootEl.appendChild(panel);
+      rootEl.appendChild(sharePanel(db));
       rootEl.appendChild(settingsPanel());
     }
 
@@ -18014,11 +18336,11 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       drop.setAttribute('role', 'button');
       drop.setAttribute('aria-label', 'ファイルをドロップ、またはおしてえらぶ');
       drop.appendChild(withIcon(h('div', 'cb-drop-title'), 'download', 'ここにファイルをドロップ'));
-      drop.appendChild(h('div', 'cb-drop-sub', 'Excel（.xlsx）・CSV・テキスト・ZIP'));
+      drop.appendChild(h('div', 'cb-drop-sub', 'Excel（.xlsx）・CSV・テキスト・ZIP・保存したクラスのきろく（.json）'));
       var input = h('input');
       input.type = 'file';
       input.multiple = true;
-      input.accept = '.xlsx,.csv,.txt,.tsv,.zip';
+      input.accept = '.xlsx,.csv,.txt,.tsv,.zip,.json';
       input.className = 'cb-file';
       input.setAttribute('aria-label', 'ファイルをえらぶ');
       var pickB = button('ファイルをえらぶ', 'primary', function (e) { e.stopPropagation(); input.click(); });
@@ -18058,7 +18380,22 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
 
       function setMsg(t, warn) { msg.textContent = t; msg.className = 'cb-msg ' + (warn ? 'warn' : 'good'); }
       function busy(on) { goB.disabled = on; pickB.disabled = on; if (on) setMsg('取りこみ中…'); }
-      function runFiles(fs) { busy(true); importFiles(fs).then(done, fail); }
+      // 保存したクラスのきろく（.json、または中身がそれ）は、読みこみ方をえらぶダイアログへ。ほかはコードの取りこみ
+      function runFiles(fs) {
+        var list = Array.prototype.slice.call(fs);
+        busy(true);
+        Promise.all(list.map(function (f) {
+          var ext = extOf(f.name);
+          if (ext === 'json') return Promise.resolve(true);
+          if (['xlsx', 'xls', 'zip', 'csv', 'tsv'].indexOf(ext) >= 0 || f.size > MAX_FILE) return Promise.resolve(false);
+          return readBytes(f).then(function (b) { return looksLikeBook(decodeText(b.subarray(0, 4000))); }, function () { return false; });
+        })).then(function (isBook) {
+          var books = list.filter(function (f, i) { return isBook[i]; }), rest = list.filter(function (f, i) { return !isBook[i]; });
+          if (!alive) return;
+          if (rest.length) importFiles(rest).then(done, fail); else busy(false);
+          if (books.length) openBookFile(books[0]);
+        }, fail);
+      }
       function done(r) {
         if (!alive) return;
         busy(false);
@@ -18073,6 +18410,160 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       }
       function fail(e) { warnLog('import', e); if (!alive) return; busy(false); setMsg('取りこめませんでした。', true); }
       return sec;
+    }
+
+    /* ---------- ファイルで受けわたす（先生どうし） ---------- */
+    function sharePanel(db) {
+      var sec = h('section', 'cb-panel cb-share');
+      var top = h('div', 'cb-share-top');
+      var tx = h('div', 'cb-share-text');
+      tx.appendChild(h('h2', null, '先生どうしで受けわたす'));
+      tx.appendChild(h('p', 'cb-note', '評価・所見を直したきろくをファイルにして、Teams の先生用のチャネルや OneDrive で、ほかの先生にわたせます。もらったファイルは「ファイルを読みこむ」で、この端末のきろくとまとめられます。'));
+      top.appendChild(tx);
+      var btns = h('div', 'cb-share-btns');
+      var saveB = withIcon(button('', 'primary cb-book-save', function () { saveDialog(db); }), 'download', 'ファイルに保存');
+      saveB.disabled = !classList(db).length;
+      btns.appendChild(saveB);
+      var input = h('input');
+      input.type = 'file';
+      input.accept = '.json,application/json';
+      input.className = 'cb-file cb-book-file';
+      input.setAttribute('aria-label', '保存したファイルをえらぶ');
+      input.addEventListener('change', function () { var f = input.files && input.files[0]; input.value = ''; if (f) openBookFile(f); });
+      btns.appendChild(button('ファイルを読みこむ', 'cb-book-load', function () { input.click(); }));
+      btns.appendChild(input);
+      top.appendChild(btns);
+      sec.appendChild(top);
+      var msg = h('div', 'cb-msg cb-book-msg');
+      msg.setAttribute('role', 'status');
+      if (state.bookMsg) { msg.textContent = state.bookMsg.text; msg.className = 'cb-msg cb-book-msg ' + (state.bookMsg.warn ? 'warn' : 'good'); }
+      sec.appendChild(msg);
+      return sec;
+    }
+    function modal(cls) {
+      var back = h('div', 'modal-back');
+      var box = h('div', 'modal cb-modal ' + (cls || ''));
+      box.setAttribute('role', 'dialog');
+      box.setAttribute('aria-modal', 'true');
+      back.appendChild(box);
+      document.body.appendChild(back);
+      function close() { back.remove(); document.removeEventListener('keydown', onKey); }
+      function onKey(e) { if (e.key === 'Escape') close(); }
+      document.addEventListener('keydown', onKey);
+      return { box: box, close: close };
+    }
+    function radio(name, value, label, checked, sub) {
+      var l = h('label', 'cb-opt');
+      var r = h('input');
+      r.type = 'radio'; r.name = name; r.value = value; r.checked = !!checked;
+      l.appendChild(r);
+      var t = h('span', 'cb-opt-text');
+      t.appendChild(h('span', 'cb-opt-label', label));
+      if (sub) t.appendChild(h('span', 'cb-opt-sub', sub));
+      l.appendChild(t);
+      return l;
+    }
+    function checkbox(label, checked, cls) {
+      var l = h('label', 'cb-opt ' + (cls || ''));
+      var c = h('input');
+      c.type = 'checkbox'; c.checked = !!checked;
+      l.appendChild(c);
+      l.appendChild(h('span', 'cb-opt-label', label));
+      return { label: l, input: c };
+    }
+    function saveDialog(db) {
+      var classes = classList(db);
+      if (!classes.length) return;
+      var cur = typeof state.cls === 'number' && classes.indexOf(state.cls) >= 0 ? state.cls : classes[0];
+      var m = modal('cb-book-dlg');
+      m.box.appendChild(h('h2', 'cb-modal-title', 'ファイルに保存'));
+      var grp = h('div', 'cb-opts');
+      grp.setAttribute('role', 'radiogroup');
+      grp.setAttribute('aria-label', '保存する組');
+      var total = classes.reduce(function (n, c) { return n + studentsOf(db, c).length; }, 0);
+      grp.appendChild(radio('cb-save-which', 'all', '全部の組', classes.length > 1, classes.map(function (c) { return c + '組'; }).join('・') + '（' + total + '人）'));
+      grp.appendChild(radio('cb-save-which', String(cur), 'いまの組（' + cur + '組）', classes.length <= 1, studentsOf(db, cur).length + '人'));
+      m.box.appendChild(grp);
+      m.box.appendChild(h('p', 'cb-modal-warn', PRIVACY + 'ファイルには、子どもの名前・学習のきろく・ふりかえり・評価・所見が入っています。受けわたしは Teams の先生用のチャネルや OneDrive など、校内で決められた場所だけで行い、使い終わったファイルは消してください。'));
+      var tn = teacherName();
+      m.box.appendChild(h('p', 'cb-note', tn ? '保存する人：' + byLabel(tn) : '先生の名前は、先生メニューの「クラスのきろく」で入れられます（入れなくてもかまいません）。'));
+      var row = h('div', 'modal-row');
+      row.appendChild(button('やめる', '', m.close));
+      var ok = withIcon(button('', 'primary cb-book-do', function () {
+        var v = (grp.querySelector('input:checked') || {}).value || 'all';
+        var which = v === 'all' ? 'all' : Number(v);
+        var r = exportBook(which);
+        m.close();
+        toast(r.name + ' を保存しました');
+      }), 'download', '注意を読んだので保存する');
+      row.appendChild(ok);
+      m.box.appendChild(row);
+      setTimeout(function () { try { ok.focus(); } catch (e) { /* なし */ } }, 20);
+    }
+    function openBookFile(f) {
+      readBook(f).then(function (b) {
+        if (!alive) return;
+        if (!b) { state.bookMsg = state.lastMsg = { text: BAD_FILE, warn: true }; render(); return; }
+        loadDialog(b);
+      }, function () { if (alive) { state.bookMsg = state.lastMsg = { text: BAD_FILE, warn: true }; render(); } });
+    }
+    function loadDialog(b) {
+      var cls = bookClasses(b);
+      var m = modal('cb-book-dlg');
+      m.box.appendChild(h('h2', 'cb-modal-title', 'ファイルを読みこむ'));
+      var who = [];
+      if (b.exportedAt) { var d = new Date(tms(b.exportedAt)); who.push(d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日'); }
+      if (b.teacher) who.push(byLabel(b.teacher));
+      if (who.length) m.box.appendChild(h('p', 'cb-note', who.join('　') + 'が保存したファイルです。'));
+      if (!cls.length) {
+        m.box.appendChild(h('p', 'cb-modal-warn', 'このファイルには、組のきろくが入っていません。'));
+      }
+      m.box.appendChild(h('div', 'cb-opt-head', '読みこみ方'));
+      var grp = h('div', 'cb-opts');
+      grp.setAttribute('role', 'radiogroup');
+      grp.appendChild(radio('cb-load-mode', 'merge', 'まとめる', true, '同じ子は、学習のまとめ・ふりかえりは新しいほう、先生が直した評価・所見は直した日時が新しいほうを残します。'));
+      grp.appendChild(radio('cb-load-mode', 'replace', '置きかえる', false, 'えらんだ組の、この端末のきろくを消して、ファイルの内容にします。'));
+      m.box.appendChild(grp);
+      m.box.appendChild(h('div', 'cb-opt-head', '読みこむ組'));
+      var cg = h('div', 'cb-opts cb-opts-row');
+      var checks = cls.map(function (c) {
+        var x = checkbox(c.cls + '組（' + c.n + '人）', true, 'cb-opt-cls');
+        x.input.value = c.cls;
+        cg.appendChild(x.label);
+        return x.input;
+      });
+      m.box.appendChild(cg);
+      var setC = checkbox('基準の設定（観点別評価のしきい値）も読みこむ', false, 'cb-opt-set');
+      if (!b.assessSettings) { setC.input.disabled = true; setC.label.classList.add('off'); }
+      m.box.appendChild(setC.label);
+      var warn = h('p', 'cb-msg warn');
+      m.box.appendChild(warn);
+      var row = h('div', 'modal-row');
+      row.appendChild(button('やめる', '', m.close));
+      var ok = button('読みこむ', 'primary cb-book-do', function () {
+        var mode = (grp.querySelector('input:checked') || {}).value === 'replace' ? 'replace' : 'merge';
+        var want = checks.filter(function (c) { return c.checked; }).map(function (c) { return Number(c.value); });
+        if (cls.length && !want.length) { warn.textContent = '読みこむ組をえらんでください。'; return; }
+        var opts = { mode: mode, classes: want, settings: setC.input.checked };
+        function run() {
+          var r = importBook(b, opts);
+          state.bookMsg = state.lastMsg = { text: r.message, warn: !r.ok || r.saved === false };
+          if (r.keys && r.keys.length) {
+            var cs = want.slice().sort(function (x, y) { return x - y; });
+            if (cs.indexOf(state.cls) < 0) state.cls = cs[0];
+          }
+          state.no = null;
+          if (r.settings) state.openSettings = true;
+          render();
+        }
+        m.close();
+        if (mode === 'replace') {
+          confirmDialog(want.map(function (c) { return c + '組'; }).join('・') + 'の、この端末のきろく（先生が直した評価・所見もふくむ）を消して、ファイルの内容に置きかえます。もとにもどせません。よろしいですか？', '置きかえる', run);
+        } else run();
+      });
+      row.appendChild(ok);
+      m.box.appendChild(row);
+      setTimeout(function () { try { ok.focus(); } catch (e) { /* なし */ } }, 20);
     }
 
     function classView(db, cls) {
@@ -18531,7 +19022,13 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
         if (info.teacher) seg.appendChild(button('案にもどす', 'small cb-undo', function () { setOverride(a.id, null); }));
         top.appendChild(seg);
         box.appendChild(top);
-        if (info.teacher) box.appendChild(h('div', 'cb-axis-changed', '先生が ' + (info.draft || '—') + ' → ' + info.teacher + ' に変えました'));
+        var em = editedLine(st.overrideMeta[a.id]);
+        if (info.teacher) {
+          var chg = h('div', 'cb-axis-changed', '先生が ' + (info.draft || '—') + ' → ' + info.teacher + ' に変えました');
+          if (em) chg.appendChild(h('span', 'cb-axis-when', em));
+          box.appendChild(chg);
+        }
+        else if (em) box.appendChild(h('div', 'cb-axis-back', '案にもどしました　' + em));
         if (!info.enough) box.appendChild(h('div', 'cb-axis-few', '材料が少ないので、案の確かさは低めです。授業での様子と合わせて判断してください。'));
         if (info.reasons.length) {
           var ul = h('ul', 'cb-reasons');
@@ -18544,8 +19041,10 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       function setOverride(axis, g) {
         var d = load(), s2 = d.students[st.profile.cls + '-' + st.profile.no];
         if (!s2) return;
+        if (s2.override[axis] === g) return;
         s2.override[axis] = g;
-        save(d);
+        s2.overrideMeta[axis] = editMeta();
+        if (!saveOrWarn(d)) return;
         render();
       }
     }
@@ -18588,6 +19087,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
           var d = load(), s2 = d.students[k];
           if (!s2) return;
           s2.comment.variant = (s2.comment.variant || 0) + 1;
+          if (s2.comment[len]) stampComment(s2.comment);
           s2.comment[len] = '';
           s2.comment.edited = !!(s2.comment.short || s2.comment.long);
           save(d);
@@ -18616,6 +19116,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
           if (!s2) return;
           s2.comment[len] = '';
           s2.comment.edited = !!(s2.comment.short || s2.comment.long);
+          stampComment(s2.comment);
           save(d);
           render();
         });
@@ -18625,6 +19126,9 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       sec.appendChild(foot);
       sec.appendChild(h('p', 'cb-caution', 'この案は記録から作った下書きです。先生が確かめてから使ってください。'));
       var edited = cc.edited;
+      var meta = st.comment.at ? { at: st.comment.at, by: st.comment.by } : null;
+      var when = h('span', 'cb-com-when');
+      foot.insertBefore(when, stat.nextSibling);
       function upd() {
         var A = assessApi(), n;
         try { n = A && typeof A.count === 'function' ? A.count(ta.value) : null; } catch (e) { n = null; }
@@ -18634,6 +19138,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
         count.className = 'cb-com-count' + (n && (n < want[0] || n > want[1]) ? ' out' : '');
         stat.textContent = edited ? '先生が直した文（この端末に保存ずみ）' : (cc.draft ? 'アプリの案' : '案を作れませんでした。ここに書くこともできます');
         stat.className = 'cb-com-stat' + (edited ? ' edited' : '');
+        when.textContent = edited || st.comment.edited ? editedLine(meta) : '';
         undo.hidden = !edited;
       }
       var tmr = null;
@@ -18642,10 +19147,13 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
         var d = load(), s2 = d.students[k];
         if (!s2) return;
         var v = ta.value;
-        s2.comment[len] = v.trim() && v.trim() !== cc.draft.trim() ? strMl(v, len === 'long' ? 1000 : 600) : '';
+        var nv = v.trim() && v.trim() !== cc.draft.trim() ? strMl(v, len === 'long' ? 1000 : 600) : '';
+        if (nv !== s2.comment[len]) stampComment(s2.comment);
+        s2.comment[len] = nv;
         s2.comment.edited = !!(s2.comment.short || s2.comment.long);
         edited = !!s2.comment[len];
-        save(d);
+        meta = s2.comment.at ? { at: s2.comment.at, by: s2.comment.by } : null;
+        saveOrWarn(d);
         upd();
       }
       ta.addEventListener('input', function () {
@@ -18681,7 +19189,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     var db = load(), cls = classList(db), total = Object.keys(db.students).length;
     var line = total ? '取りこんだ人数：' + total + '人（' + cls.filter(function (c) { return studentsOf(db, c).length; }).map(function (c) { return c + '組 ' + studentsOf(db, c).length + '人'; }).join('・') + '）' : 'まだ取りこんでいません。';
     sec.appendChild(h('p', 'cb-tc-count', line));
-    sec.appendChild(h('p', 'tnote', '子どもの学習のきろく・ふりかえりを組と番号で一覧にし、観点別評価の案・支援の提案・所見の案を見られます。CSV（Excel）にも書き出せます。'));
+    sec.appendChild(h('p', 'tnote', '子どもの学習のきろく・ふりかえりを組と番号で一覧にし、観点別評価の案・支援の提案・所見の案を見られます。CSV（Excel）に書き出したり、ファイルにしてほかの先生とやりとりしたりできます。'));
     sec.appendChild(link('クラスのきろくを開く ▶', 'btn primary', '#/classbook'));
     var how = h('div', 'cb-tc-how');
     how.appendChild(h('div', 'cb-tc-howtitle', 'Microsoft Forms で集めるとき'));
@@ -18714,6 +19222,30 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     }));
     sec.appendChild(row);
     sec.appendChild(msg);
+    // 先生の名前（任意）：評価・所見を直したときと、ファイルに保存したときに記録する
+    var nrow = h('div', 'cb-tc-url cb-tc-name');
+    var nlab = h('label', 'cb-tc-urllabel', '先生の名前（任意）');
+    var ninp = h('input', 'cb-tc-input cb-tc-nameinput');
+    ninp.type = 'text';
+    ninp.maxLength = 20;
+    ninp.placeholder = '例：山田';
+    ninp.value = teacherName();
+    ninp.id = 'cb-teacher-name';
+    ninp.setAttribute('autocomplete', 'off');
+    nlab.htmlFor = ninp.id;
+    var nmsg = h('span', 'cb-msg');
+    nmsg.setAttribute('role', 'status');
+    nrow.appendChild(nlab);
+    nrow.appendChild(ninp);
+    nrow.appendChild(button('保存', 'small', function () {
+      var ok = setTeacherName(ninp.value);
+      ninp.value = teacherName();
+      nmsg.className = 'cb-msg ' + (ok ? 'good' : 'warn');
+      nmsg.textContent = !ok ? '保存できませんでした。' : ninp.value ? '「' + byLabel(ninp.value) + '」で記録します。' : '名前を消しました。';
+    }));
+    sec.appendChild(nrow);
+    sec.appendChild(h('p', 'tnote cb-tc-namenote', '評価や所見を直したときに「11月24日に直しました（山田先生）」のように残ります。ファイルで受けわたすとき、だれが直したか分かります。'));
+    sec.appendChild(nmsg);
     return sec;
   }
 
@@ -18725,11 +19257,17 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     teacherSection: hasDOM ? teacherSection : function () { return null; },
     formsUrl: formsUrl,
     setFormsUrl: setFormsUrl,
+    exportBook: exportBook,
+    parseBook: parseBook,
+    importBook: importBook,
+    teacherName: teacherName,
+    setTeacherName: setTeacherName,
     count: function () { return Object.keys(load().students).length; },
     // テスト・つなぎ用
     _: { load: load, save: save, ingest: ingest, buildCsv: buildCsv, csvCell: csvCell, csvName: csvName, metrics: metrics,
       zipEntries: zipEntries, xmlText: xmlText, unescapeXml: unescapeXml, decodeText: decodeText, packInk: packInk, unpackInk: unpackInk,
-      countBroken: countBroken, classComments: classComments, studentsOf: studentsOf, rosterSize: rosterSize, KEY: KEY }
+      countBroken: countBroken, classComments: classComments, studentsOf: studentsOf, rosterSize: rosterSize, KEY: KEY,
+      buildBook: buildBook, bookName: bookName, bookClasses: bookClasses, mergeStudent: mergeStudent, editedLine: editedLine, editMeta: editMeta }
   };
   S.Classbook = Classbook;
   if (typeof module === 'object' && module.exports) module.exports = Classbook;
