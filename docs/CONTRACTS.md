@@ -359,3 +359,17 @@ Classbook.exportCsv(cls) -> 文字列（BOMつき）とダウンロード
 Classbook.teacherSection() -> HTMLElement            // 先生メニューに入れる部品（入口・FormsのURL欄）
 // 保存：'shosu.classbook' = { students:{ '<cls>-<no>': {profile, summary, reflections:[], override:{know,think,attitude}, comment:{short,long,edited}} } }
 ```
+
+---
+
+# 追加8：鬼ムズ（PLAN.md「追加機能8」）
+| 担当 | ファイル |
+|---|---|
+| U 問題 | js/generators.js, js/matome.js, tools/check-lessons.js, tools/matome-test.js, tools/oni-test.js（新規） |
+| V 画面 | js/problems.js, js/app.js, js/stars.js, tools/stars-test.js, css/style.css, css/matome 関連（app.js 内のまとめ画面） |
+
+- 問題の新しい項目：`pointMode:'tap'`（fill のスロットで小数点を自分で打つ。スロット {a:'14.22'} はマスを「答えの数字の数＋1」出し、小数点の印刷はしない）。`beyond:true`（4年の範囲をこえる）。
+- `Matome.LEVELS` に {id:'oni', label:'鬼ムズ'} を足す（build は level:'oni' で鬼ムズの問題だけ、7つの内容のかわりに 'oni-add','oni-muldiv','oni-mix','oni-idea' を順番に）。level が 'hard' と 'oni' の fill で、答えに小数点があるものは `pointMode:'tap'` を付ける（matome.build の中で付ける）。
+- 鬼ムズの問題の tag は 'oni'、skill は 'oni-add' など。ヒントは3段階必須。
+- `Stars.log('matome', {level:'oni', …})` と `Stars.log('oniUnlock')`。鬼ムズの星は kind:'special', group:'oni', title:false（称号の計算に入れない）。
+- 開く条件：`Stars` か app.js で「level hard を finished かつ correct/total ≥ 0.8」が1回以上。`Matome.oniUnlocked()` ではなく app.js 側で判定し、Store か Stars の記録から求める。
