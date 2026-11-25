@@ -104,7 +104,9 @@ eq(Stars.CATALOG.filter(function (s) { return s.group === 'recommend'; }).length
 ok(Stars.CATALOG.filter(function (s) { return s.group === 'recommend'; }).every(function (s) { return s.kind === 'normal'; }), 'おすすめモードはふつうの星');
 eq(Stars.CATALOG.filter(function (s) { return s.group === 'plan'; }).length, 8, '計画・ふりかえり8');
 ok(Stars.CATALOG.filter(function (s) { return s.group === 'plan'; }).every(function (s) { return s.kind === 'normal'; }), '計画・ふりかえりはふつうの星');
-eq(Stars.CATALOG.filter(function (s) { return s.kind === 'special'; }).length, 8, 'とくべつな星は8しゅるい');
+eq(Stars.CATALOG.filter(function (s) { return s.kind === 'special' && s.title !== false; }).length, 8, 'とくべつな星（称号に関係するもの）は8しゅるい');
+eq(Stars.CATALOG.filter(function (s) { return s.group === 'oni'; }).length, 8, '鬼ムズの星は8こ');
+ok(Stars.CATALOG.filter(function (s) { return s.group === 'oni'; }).every(function (s) { return s.kind === 'special' && s.title === false; }), '鬼ムズの星は kind:special・title:false');
 eq(Stars.CATALOG.filter(function (s) { return s.group === 'lesson'; }).length, 30, '各時30');
 eq(Stars.CATALOG.filter(function (s) { return s.group === 'matome'; }).length, 10, 'まとめ10');
 eq(Stars.CATALOG.filter(function (s) { return s.group === 'review'; }).length, 12, 'ふくしゅう12');
@@ -361,6 +363,45 @@ ls.clear(); ls.setItem('shosu.stars', JSON.stringify({ v: 1, got: { 'lesson-1-tr
 eq(Stars._state().reco, 0, 'こわれた reco は0');
 eq(Stars.evaluate().length, 0, '前の版のデータの evaluate で星はふえない');
 ok(Stars._state().got['lesson-1-try'], '前の版の星は残る');
+
+/* ---------- 鬼ムズ（追加8） ---------- */
+fresh();
+eq(ids(Stars.log('oniUnlock')).join(), 'oni-open', '鬼ムズを開いた');
+eq(Stars.log('oniUnlock').length, 0, '開いたのは1回だけ');
+sm = Stars.summary();
+eq(sm.specialTotal, 1, '鬼ムズの星は✦の合計（表示）に入る');
+eq(sm.specialTotalForTitle, 0, '称号用の✦合計には入らない');
+eq(sm.specialKinds, 0, '✦のしゅるいには入らない');
+ok(sm.oni && sm.oni.open && sm.oni.got === 1 && sm.oni.max === 8, 'summary().oni');
+var g1 = ids(Stars.log('matome', { level: 'oni', minutes: 5, total: 6, correct: 6, answered: 6, finished: true }));
+eq(g1.join(), 'oni-fin1,oni-80,oni-all', '鬼ムズ さいごまで・8わり・全問○');
+ok(!Stars._state().got['matome-normal-finish'] && !Stars._state().got['matome-oni-finish'], '鬼ムズでは、ふつうのまとめの星は出ない');
+eq(Stars.summary().normal, 0, '鬼ムズでは★はふえない');
+eq(Stars._state().ev.slice(-1)[0][2], 'oni:6/6:f', '鬼ムズの出来事の中身');
+Stars.log('matome', { level: 'oni', minutes: 5, total: 6, correct: 3, answered: 3, finished: false });
+eq(Stars._state().oni.ok, 9, '○の合計は correct を足す'); eq(Stars._state().oni.run, 2, 'やった回数'); eq(Stars._state().oni.fin, 1, 'さいごまでの回数');
+eq(ids(Stars.log('matome', { level: 'oni', minutes: 10, total: 12, correct: 2, finished: true })).join(), 'oni-ok10', '○10こ');
+eq(ids(Stars.log('matome', { level: 'oni', minutes: 20, total: 30, correct: 20, finished: true })).join(), 'oni-fin3,oni-ok30', 'さいごまで3回・○30こ（8わり未満）');
+ok(!Stars._state().got['matome-20min'], '鬼ムズの20分では「20分コース」の★は出ない');
+Stars.log('matome', { level: 'oni', minutes: 20, total: 30, correct: 20, finished: true });
+eq(Stars.summary().oni.got, 8, '鬼ムズの星8こぜんぶ');
+Stars._reload();
+eq(Stars._state().oni.ok, 51, '鬼ムズの記録は保存される'); eq(Stars.summary().oni.got, 8, '再読みこみ後も8こ');
+// 称号は変わらない：★56＋全しゅるい（サン）に鬼ムズ8こを足してもギャラクシーにならない・しゅるいも8のまま
+fresh(); giveNormal(67); giveAllKinds();
+for (i = 0; i < 13; i++) Stars.log('made', { kind: 'fill', token: 'on-' + i });
+sm = Stars.summary(); eq(sm.specialTotal, 29, '鬼ムズ前 ✦29'); eq(sm.title.id, 'sun', '鬼ムズ前はサン');
+Stars.log('oniUnlock');
+for (i = 0; i < 6; i++) Stars.log('matome', { level: 'oni', minutes: 20, total: 10, correct: 10, finished: true });
+sm = Stars.summary();
+eq(sm.oni.got, 8, '鬼ムズ8こ');
+eq(sm.specialTotal, 37, '✦の表示は 29＋8＝37 にふえる');
+eq(sm.specialKinds, 8, '✦のしゅるいは8のまま'); eq(sm.specialKindsMax, 8, '✦のしゅるいの最大も8');
+eq(sm.title.id, 'sun', '鬼ムズの星では称号は変わらない（サンのまま）');
+eq(sm.needForNext.specialTotal, 1, 'ギャラクシーまで（称号用）✦あと1');
+eq(Stars._state().title, 'sun', '保存された称号もサン');
+fresh(); Stars.log('oniUnlock'); for (i = 0; i < 3; i++) Stars.log('matome', { level: 'oni', total: 20, correct: 20, finished: true });
+eq(Stars.summary().title.id, 'earth', '鬼ムズの星だけでは地球人のまま'); eq(Stars.summary().normal, 0, '★0のまま');
 
 /* ---------- onChange ---------- */
 fresh();

@@ -8,6 +8,9 @@
  *   opts.reportRetry が true なら、×のあとやり直して○になったときにも onResult({..., retry:true, retried:true}) を呼ぶ
  *   （このときの correct は前に知らせた結果のまま。記録の○×は変えない）。
  * 戻り値の pause()/resume() で、時間の計測を止められる（おすすめモードで「みる」を重ねて開いている間など）。
+ * 追加8：fill の pointMode:'tap' … 小数点のある答えのスロットは「数字の数＋1」のマスにし、小数点は印刷せず、
+ *   マスの間をタップして打つ（筆算と同じ。1スロットに1つ）。丸つけは数でくらべる（先頭・末尾の0は許す）。
+ *   beyond:true の問題には「4年のはんいをこえる問題」の印を出す。
  */
 (function (S) {
   'use strict';
@@ -140,6 +143,7 @@
       au.appendChild(inkCanvas(problem.authorInk, { height: 40, width: 320, trim: true, lineWidth: 6, label: 'つくった人の名前' }));
       root.appendChild(au);
     }
+    if (problem.beyond) root.appendChild(h('div', 'p-beyond', '4年のはんいをこえる問題'));   // 追加8
     if (problem.q) root.appendChild(h('div', 'p-q', problem.q));
     if (hasInk(problem.qInk)) {
       var qi = h('div', 'p-qink');
@@ -313,15 +317,48 @@
   }
 
   /* ================= fill ================= */
+  var TAP_RE = /^\d*\.\d+$|^\d+\.\d*$/;   // 数字と小数点1つだけの答え
+  function sigDigits(s) { return String(s).replace(/[^\d]/g, '').replace(/^0+/, '').replace(/0+$/, ''); }
   function renderFill(container, p, opts) {
     var f = Frame(container, p, opts, 'fill');
     var size = boxSize();
-    var slots = []; // {a, items:[{box}|{dot}]}
+    var slots = []; // {a, items:[{box}|{dot}]}　小数点を自分で打つマスは {a, tap:true, items:[{box}], zones, point}
     var line = h('div', 'fill-line');
     line.style.setProperty('--box', size + 'px');
+    // 追加8：pointMode:'tap' … 小数点のある答えは「数字の数＋1」のマス。小数点は印刷せず、マスの間をタップして打つ
+    var tapMode = p.pointMode === 'tap';
+    function tapSlot(a) {
+      var nd = a.replace(/\D/g, '').length + 1;
+      var slot = { a: a, tap: true, items: [], zones: [], point: null };
+      var se = h('span', 'slot slot-tap');
+      se.style.setProperty('--cell', size + 'px');
+      for (var i = 0; i < nd; i++) {
+        var b = S.Pad.digitBox({ size: size });
+        se.appendChild(b.el);
+        slot.items.push({ box: b });
+        if (i < nd - 1) {
+          (function (g) {
+            var z = h('button', 'dot-zone');
+            z.type = 'button';
+            z.setAttribute('aria-label', '小数点を打つ');
+            z.appendChild(h('span', 'dot-mark'));
+            z.addEventListener('click', function () {
+              slot.point = slot.point === g ? null : g;
+              slot.zones.forEach(function (zz, k) { zz.classList.toggle('on', k === slot.point); zz.classList.remove('ng'); });
+            });
+            slot.zones.push(z);
+            se.appendChild(z);
+          })(i);
+        }
+      }
+      line.appendChild(se);
+      slots.push(slot);
+    }
     (p.parts || []).forEach(function (part) {
       if (typeof part === 'string') {
         line.appendChild(h('span', 'fill-text', part));
+      } else if (part && part.a != null && tapMode && TAP_RE.test(String(part.a))) {
+        tapSlot(String(part.a));
       } else if (part && part.a != null) {
         var slot = { a: String(part.a), items: [] };
         var se = h('span', 'slot');
@@ -340,6 +377,8 @@
       }
     });
     f.body.appendChild(line);
+    var hasTap = slots.some(function (s) { return s.tap; });
+    if (hasTap) f.body.appendChild(h('div', 'fill-tip', '小数点は、数字と数字の間をタップして打とう。（左のマスは使わなくてもいいよ）'));
 
     function allBoxes() {
       var r = [];
@@ -352,11 +391,14 @@
         if (typeof part === 'string') w.appendChild(h('span', null, part));
         else if (part && part.a != null) w.appendChild(h('span', 'answer-num', String(part.a)));
       });
+      if (hasTap) w.appendChild(h('span', 'answer-note', '（小数点の位置も くらべよう）'));
       return w;
     }
 
+    function clearZoneNg() { slots.forEach(function (s) { (s.zones || []).forEach(function (z) { z.classList.remove('ng'); }); }); }
     function initialActions() {
       allBoxes().forEach(function (b) { b.mark(null); });
+      clearZoneNg();
       f.showMark(null);
       if (f.mode === 'auto') f.setActions([button('こたえあわせ', 'primary check', check), f.hintButton(), f.memoButton()]);
       else f.setActions([button('答えを見る', 'primary show', selfShow), f.hintButton(), f.memoButton()]);
@@ -380,20 +422,49 @@
       slots.forEach(function (s) {
         s.items.forEach(function (it) { if (it.box && it.box.box.classList.contains('mark-ng')) it.box.clear(); });
       });
+      clearZoneNg();
       initialActions();
     }
 
     function check() {
-      var boxes = allBoxes();
-      var empty = boxes.filter(function (b) { return b.isEmpty(); });
+      clearZoneNg();
+      // ふつうのマスは全部、小数点を打つマスは1つ以上書いてあればよい（左の空のマスは使わなくてよい）
+      var empty = [];
+      slots.forEach(function (s) {
+        var bx = s.items.filter(function (it) { return it.box; }).map(function (it) { return it.box; });
+        if (s.tap) { if (bx.every(function (b) { return b.isEmpty(); })) empty = empty.concat(bx); }
+        else empty = empty.concat(bx.filter(function (b) { return b.isEmpty(); }));
+      });
       if (empty.length) {
         empty.forEach(function (b) { b.mark('unsure'); });
         f.setStatus('まだ書いていないマスがあるよ。', 'warn');
         return;
       }
-      var anyUnsure = false, readParts = [], slotOk = [];
+      var anyUnsure = false, readParts = [], slotOk = [], pointBad = [];
       slots.forEach(function (s, si) {
         var str = '', chars = [];
+        if (s.tap) {
+          s.items.forEach(function (it, i) {
+            if (!it.box.isEmpty()) {
+              var r = recognizeBox(it.box);
+              it.res = r;
+              var unsure = r.digit == null || r.conf < UNSURE;
+              if (unsure) { anyUnsure = true; it.box.mark('unsure'); }
+              var c = r.digit == null ? '?' : String(r.digit);
+              str += c;
+              chars.push({ ch: c, unsure: unsure });
+            } else it.res = { empty: true };
+            if (s.point === i) { str += '.'; chars.push({ ch: '.' }); }
+          });
+          if (si > 0) readParts.push({ ch: '、' });
+          readParts = readParts.concat(chars);
+          s.read = str;
+          var good = str.indexOf('?') < 0 && numEq(str.charAt(0) === '.' ? '0' + str : str, s.a);
+          slotOk.push(good);
+          // 小数点がない・位置ちがい（数字の並びはあっている）
+          pointBad.push(!good && str.indexOf('?') < 0 && (s.point === null || (sigDigits(str) !== '' && sigDigits(str) === sigDigits(s.a))));
+          return;
+        }
         s.items.forEach(function (it) {
           if (it.box) {
             var r = recognizeBox(it.box);
@@ -409,6 +480,7 @@
         readParts = readParts.concat(chars);
         s.read = str;
         slotOk.push(str.indexOf('?') < 0 && numEq(str, s.a));
+        pointBad.push(false);
       });
       var rn = readNode(readParts);
       if (anyUnsure) {
@@ -431,10 +503,18 @@
         f.showExplain();
         f.setActions([misreadButton(), f.nextButton()]);
       } else {
+        var anyPoint = false;
         slots.forEach(function (s, i) {
-          if (!slotOk[i]) s.items.forEach(function (it) { if (it.box) it.box.mark('ng'); });
+          if (slotOk[i]) return;
+          if (pointBad[i]) {
+            anyPoint = true;
+            if (s.point !== null && s.zones[s.point]) s.zones[s.point].classList.add('ng');
+            else s.items.forEach(function (it) { if (it.box && !it.box.isEmpty()) it.box.mark('ng'); });
+            return;
+          }
+          s.items.forEach(function (it) { if (it.box && !it.box.isEmpty()) it.box.mark('ng'); });
         });
-        w2.appendChild(h('div', 'msg', 'ざんねん。もう一度考えてみよう。'));
+        w2.appendChild(h('div', 'msg', anyPoint ? '小数点の位置を見直そう。' : 'ざんねん。もう一度考えてみよう。'));
         f.setStatus(w2, 'bad');
         f.showMark('ng');
         f.report(false, 'auto');
@@ -601,7 +681,6 @@
     var canon = full.indexOf('.') >= 0 ? full.replace(/0+$/, '').replace(/\.$/, '') : full;
     return { full: (neg ? '-' : '') + full, canon: (neg ? '-' : '') + canon, value: (neg ? -1 : 1) * r / Math.pow(10, nd) };
   }
-  function sigDigits(s) { return String(s).replace(/[^\d]/g, '').replace(/^0+/, '').replace(/0+$/, ''); }
 
   function renderHissan(container, p, opts) {
     if (!p.hints || !p.hints.length) {

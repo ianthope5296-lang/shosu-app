@@ -7,7 +7,10 @@
  *   { v:1, got:{星id: もらった時刻ms}, made:{tokenハッシュ: kind}, friend:{tokenハッシュ: {c:0|1, a:authorKeyハッシュ}},
  *     present:{tokenハッシュ:1}, more:もっとれんしゅう○の数(記録したぶん), title:いまの称号id, ev:[出来事の記録(新しい100こ)],
  *     plan:{日付:1}（今日の計画を立てた日）, refl:{日付: 1=めあて◎ | 2=計画どおり | 4=前回のTをやった}（ふりかえりを書いた日）,
- *     road:{goalIdハッシュ:1}（地図をやりきったゴール）, reco:おすすめモードをさいごまでやった回数（追加5） }
+ *     road:{goalIdハッシュ:1}（地図をやりきったゴール）, reco:おすすめモードをさいごまでやった回数（追加5）,
+ *     oni:{open:0|1, run:鬼ムズをやった回数, fin:さいごまでやった回数, ok:鬼ムズの○の合計}（追加8） }
+ * 追加8：鬼ムズの星（kind:'special', group:'oni', title:false）は、とくべつな星の合計（表示）には入るが、
+ *   称号の条件（とくべつな星のしゅるい・合計）には数えない。
  * token は長い（最大6000字）ので、ハッシュにしてから保存する。
  * classic script。Node でも require できる（DOM を使う部分は呼ばなければ動かない）。
  */
@@ -30,6 +33,7 @@
   var MAKE_KINDS = ['hissan', 'fill', 'compare', 'masu', 'numberline'];
   var KIND_ALIAS = { word: 'fill', bunsho: 'fill', story: 'fill', daisho: 'compare', line: 'numberline', suchokusen: 'numberline' };
   var MORE_STEPS = [10, 30, 50];
+  var ONI_OK_STEPS = [10, 30, 50];
   var REFLECT_STEPS = [1, 5, 10];
   var DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
   var RF = { double: 1, planDone: 2, prevT: 4 };
@@ -108,11 +112,29 @@
       how: 'ちがう人が作った問題を、5人分といてみよう' });
     add({ id: 'sp-present', kind: 'special', group: 'present', label: '「みんなに見せる」で発表した', short: '発表した',
       how: '自分の問題を「みんなに見せる」で、みんなに発表しよう' });
+    // 鬼ムズ（追加8）8こ。とくべつな星だが、称号には関係しない（title:false）
+    add({ id: 'oni-open', kind: 'special', group: 'oni', sub: 'open', title: false, label: '鬼ムズを開いた', short: '鬼ムズを開いた',
+      how: 'まとめモード「むずかしい」を、8わり以上○で さいごまでやろう' });
+    add({ id: 'oni-fin1', kind: 'special', group: 'oni', sub: 'finish', title: false, label: '鬼ムズを さいごまで 1回', short: 'さいごまで1回',
+      how: 'まとめモード「鬼ムズ」を、さいごの問題までやろう' });
+    add({ id: 'oni-fin3', kind: 'special', group: 'oni', sub: 'finish', title: false, label: '鬼ムズを さいごまで 3回', short: 'さいごまで3回',
+      how: 'まとめモード「鬼ムズ」を、さいごの問題まで あわせて3回やろう' });
+    add({ id: 'oni-80', kind: 'special', group: 'oni', sub: 'good', title: false, label: '鬼ムズで 8わり以上○', short: '8わり以上○',
+      how: 'まとめモード「鬼ムズ」をさいごまでやって、8わり以上○をとろう' });
+    add({ id: 'oni-all', kind: 'special', group: 'oni', sub: 'good', title: false, label: '鬼ムズで 全問○', short: '全問○',
+      how: 'まとめモード「鬼ムズ」をさいごまでやって、ぜんぶ○にしよう' });
+    for (i = 0; i < ONI_OK_STEPS.length; i++) {
+      add({ id: 'oni-ok' + ONI_OK_STEPS[i], kind: 'special', group: 'oni', sub: 'ok', title: false,
+        label: '鬼ムズの問題で ○' + ONI_OK_STEPS[i] + 'こ', short: '○' + ONI_OK_STEPS[i] + 'こ',
+        how: '鬼ムズの問題で、○をあわせて' + ONI_OK_STEPS[i] + 'こ とろう' });
+    }
   })();
   var BY_ID = {};
   CATALOG.forEach(function (s) { BY_ID[s.id] = s; });
   var NORMAL_MAX = CATALOG.filter(function (s) { return s.kind === 'normal'; }).length;   // 67
-  var SPECIAL_MAX = CATALOG.filter(function (s) { return s.kind === 'special'; }).length; // 8
+  function forTitle(s) { return s.title !== false; }   // 鬼ムズの星（title:false）は称号の計算に入れない
+  var SPECIAL_MAX = CATALOG.filter(function (s) { return s.kind === 'special' && forTitle(s); }).length; // 8
+  var ONI_MAX = CATALOG.filter(function (s) { return s.group === 'oni'; }).length; // 8
 
   /* ---------- 自前のSVG（絵文字は使わない） ---------- */
   function starPts(cx, cy, ro, ri, n, rot) {
@@ -207,7 +229,7 @@
       return ls;
     } catch (e) { return null; }
   }
-  function blank() { return { v: 1, got: {}, made: {}, friend: {}, present: {}, more: 0, title: 'earth', ev: [], plan: {}, refl: {}, road: {}, reco: 0, fresh: true }; }
+  function blank() { return { v: 1, got: {}, made: {}, friend: {}, present: {}, more: 0, title: 'earth', ev: [], plan: {}, refl: {}, road: {}, reco: 0, oni: { open: 0, run: 0, fin: 0, ok: 0 }, fresh: true }; }
   function isObj(o) { return !!o && typeof o === 'object' && !Array.isArray(o); }
   function sanitize(d) {
     var s = blank();
@@ -223,6 +245,8 @@
     if (isObj(d.road)) for (k in d.road) s.road[k] = 1;
     var m = Number(d.more); s.more = isFinite(m) && m > 0 ? Math.floor(m) : 0;
     var rc = Number(d.reco); s.reco = isFinite(rc) && rc > 0 ? Math.floor(rc) : 0;
+    if (isObj(d.oni)) ['open', 'run', 'fin', 'ok'].forEach(function (f) { var x = Number(d.oni[f]); s.oni[f] = isFinite(x) && x > 0 ? Math.floor(x) : 0; });
+    if (s.oni.open) s.oni.open = 1;
     s.title = typeof d.title === 'string' && titleIndex(d.title) >= 0 ? d.title : 'earth';
     if (Array.isArray(d.ev)) s.ev = d.ev.filter(function (e) { return Array.isArray(e); }).slice(-100);
     return s;
@@ -235,7 +259,7 @@
   }
   function save() {
     var o = { v: 1, got: state.got, made: state.made, friend: state.friend, present: state.present, more: state.more, title: state.title, ev: state.ev,
-      plan: state.plan, refl: state.refl, road: state.road, reco: state.reco };
+      plan: state.plan, refl: state.refl, road: state.road, reco: state.reco, oni: state.oni };
     var str;
     for (var tries = 0; tries < 3; tries++) {
       try { str = JSON.stringify(o); } catch (e) { return false; }
@@ -343,7 +367,16 @@
     var allKinds = MAKE_KINDS.every(function (x) { return kinds[x]; });
     return { made: made, allKinds: allKinds, kinds: countKeys(kinds), answered: answered, ok: ok, people: countKeys(people), present: countKeys(state.present) };
   }
-  function specialTotal() { var c = specialCounts(); return c.made + c.ok + c.present; }
+  function specialTotal() { var c = specialCounts(); return c.made + c.ok + c.present; }   // 称号の計算に使う とくべつな星の合計
+  function oniGot() { var n = 0; for (var id in state.got) if (BY_ID[id] && BY_ID[id].group === 'oni') n++; return n; }
+  function displayTotal() { return specialTotal() + oniGot(); }   // 表示する とくべつな星の合計（鬼ムズの星も入る）
+  // 鬼ムズ（level:'oni'）の1回の結果からもらえる星
+  function oniIds(d) {
+    var total = Number(d.total) || 0, correct = Number(d.correct) || 0, fin = !!d.finished, out = [];
+    if (fin && total >= 1 && correct >= total * 0.8) out.push('oni-80');
+    if (fin && total >= 1 && correct >= total) out.push('oni-all');
+    return out;
+  }
   function planCounts() {
     var refl = 0, dbl = 0, done = 0, prevT = 0;
     for (var d in state.refl) {
@@ -391,6 +424,10 @@
     if (pc.double >= 3) ids.push('reflect-double3');
     if (state.reco >= 1) ids.push('reco-1');
     if (state.reco >= 3) ids.push('reco-3');
+    if (state.oni.open) ids.push('oni-open');
+    if (state.oni.fin >= 1) ids.push('oni-fin1');
+    if (state.oni.fin >= 3) ids.push('oni-fin3');
+    ONI_OK_STEPS.forEach(function (n) { if (state.oni.ok >= n) ids.push('oni-ok' + n); });
     return ids;
   }
   // ids のうち、まだもらっていない星をもらう。カタログの順で返す
@@ -404,8 +441,8 @@
 
   function summary() {
     var normal = 0, kinds = 0;
-    for (var id in state.got) { var s = BY_ID[id]; if (!s) continue; if (s.kind === 'normal') normal++; else kinds++; }
-    var total = specialTotal();
+    for (var id in state.got) { var s = BY_ID[id]; if (!s || !forTitle(s)) continue; if (s.kind === 'normal') normal++; else kinds++; }
+    var total = specialTotal();   // 称号の計算用（鬼ムズの星は入れない）
     var have = { normal: normal, specialKinds: kinds, specialTotal: total };
     var ti = 0;
     for (var i = 0; i < TITLES.length; i++) {
@@ -419,7 +456,9 @@
       need.specialKinds = Math.max(0, next.need.specialKinds - kinds);
       need.specialTotal = Math.max(0, next.need.specialTotal - total);
     }
-    return { normal: normal, normalMax: NORMAL_MAX, specialTotal: total, specialKinds: kinds, specialKindsMax: SPECIAL_MAX,
+    var og = oniGot();
+    return { normal: normal, normalMax: NORMAL_MAX, specialTotal: total + og, specialTotalForTitle: total, specialKinds: kinds, specialKindsMax: SPECIAL_MAX,
+      oni: { got: og, max: ONI_MAX, open: !!state.oni.open, run: state.oni.run, fin: state.oni.fin, ok: state.oni.ok },
       title: TITLES[ti], next: next, needForNext: need };
   }
   function plain(str) {
@@ -476,7 +515,7 @@
 
   function log(type, data) {
     data = data || {};
-    var totalBefore = specialTotal(), extra = [], info = 0;
+    var totalBefore = displayTotal(), extra = [], info = 0;
     try {
       switch (type) {
         case 'lesson': info = Number(data.no) || 0; break;
@@ -490,6 +529,14 @@
           info = data.correct ? 1 : 0;
           break;
         case 'matome':
+          if (String(data.level) === 'oni') {   // 鬼ムズ（追加8）：称号に関係するまとめの星は出さない
+            extra = oniIds(data);
+            state.oni.run++;
+            if (data.finished) state.oni.fin++;
+            state.oni.ok += Math.max(0, Math.floor(Number(data.correct) || 0));
+            info = 'oni:' + (Number(data.correct) || 0) + '/' + (Number(data.total) || 0) + (data.finished ? ':f' : '');
+            break;
+          }
           extra = matomeIds(data);
           info = String(data.level) + ':' + (Number(data.correct) || 0) + '/' + (Number(data.total) || 0) + (data.finished ? ':f' : '');
           break;
@@ -528,6 +575,10 @@
           if (data.improved) extra.push('reco-up');
           info = (Number(data.minutes) || 0) + ':' + (Number(data.correct) || 0) + '/' + (Number(data.total) || 0) + (data.finished ? ':f' : '');
           break;
+        case 'oniUnlock':     // 鬼ムズが開いた（追加8）
+          state.oni.open = 1;
+          info = 1;
+          break;
         case 'roadmapDone':   // ゴールまでの地図をやりきった {goalId}
           state.road[hash(data.goalId != null && data.goalId !== '' ? data.goalId : 'goal')] = 1;
           info = 1;
@@ -548,7 +599,7 @@
   // 起動時：前からの記録も星に変える。おいわいは連発せず、まとめて1回だけ表示する
   function evaluate() {
     try {
-      var totalBefore = specialTotal();
+      var totalBefore = displayTotal();
       // つくった問題（Store.myList）も「作った」に数える
       var my = [];
       try { my = S.Store && S.Store.myList ? S.Store.myList() || [] : []; } catch (e) { my = []; }
@@ -858,15 +909,25 @@
       sec.appendChild(rowOf('できるようになった', group('recommend').filter(function (s) { return s.sub === 'good'; })));
       wrap.appendChild(sec);
       // とくべつな星
-      var spAll = CATALOG.filter(function (s) { return s.kind === 'special'; });
+      var spAll = CATALOG.filter(function (s) { return s.kind === 'special' && forTitle(s); });
       sec = section('{S} とくべつな星', spAll, null, 'st-sec-sp');
       var tot = el('div', 'st-sp-total');
       tot.appendChild(rich(el('span', 'st-sp-total-v'), '{S}' + sm.specialTotal + 'こ'));
-      tot.appendChild(el('span', 'st-sp-total-l', '問題を1こ作るごと、ともだちの問題で○をとるごと、自分の問題を発表するごとに、とくべつな星が1こずつふえるよ（同じ問題は1回だけ）。'));
+      tot.appendChild(el('span', 'st-sp-total-l', '問題を1こ作るごと、ともだちの問題で○をとるごと、自分の問題を発表するごとに、とくべつな星が1こずつふえるよ（同じ問題は1回だけ）。' +
+        (sm.oni.got ? '鬼ムズの星（' + sm.oni.got + 'こ）も入っているよ。' : '')));
       sec.appendChild(tot);
       sec.appendChild(rowOf('もんだいづくり', group('make'), 'st-row-sp'));
       sec.appendChild(rowOf('ともだちの問題', group('friend'), 'st-row-sp'));
       sec.appendChild(rowOf('はっぴょう', group('present'), 'st-row-sp'));
+      wrap.appendChild(sec);
+      // 鬼ムズ（追加8）：とくべつな星の合計には入るが、称号には関係しない
+      sec = section('{S} 鬼ムズ（称号には関係しないよ）', group('oni'),
+        (state.oni.open ? 'まとめモードの「鬼ムズ」でもらえる、とくべつな星だよ。いま さいごまで ' + state.oni.fin + '回・○' + state.oni.ok + 'こ。'
+          : 'まとめモード「むずかしい」を8わり以上○で さいごまでやると、「鬼ムズ」が開くよ。') +
+        'とくべつな星の合計にはふえるけど、称号の条件には数えないよ。', 'st-sec-sp st-sec-oni');
+      sec.appendChild(rowOf('開いた・さいごまで', group('oni').filter(function (s) { return s.sub === 'open' || s.sub === 'finish'; }), 'st-row-sp'));
+      sec.appendChild(rowOf('できぐあい', group('oni').filter(function (s) { return s.sub === 'good'; }), 'st-row-sp'));
+      sec.appendChild(rowOf('○の数', group('oni').filter(function (s) { return s.sub === 'ok'; }), 'st-row-sp'));
       wrap.appendChild(sec);
     }
     render();

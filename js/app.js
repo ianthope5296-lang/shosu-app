@@ -820,7 +820,9 @@
   /* ---------- まとめモード（問題選びは Shosu.Matome：担当I） ---------- */
   var MATOME_TAG_LABEL = {
     hyoshikata: '表し方・単位', shikumi: 'しくみ・数の構成', daisho: '大小', jubai: '10倍・1/10',
-    tashizan: 'たし算', hikizan: 'ひき算', kimari: '計算のきまり'
+    tashizan: 'たし算', hikizan: 'ひき算', kimari: '計算のきまり',
+    // 鬼ムズ（追加8）
+    oni: '鬼ムズ', 'oni-add': 'たし算・ひき算', 'oni-muldiv': 'かけ算・わり算', 'oni-mix': 'まじった式・くふう', 'oni-idea': 'ひらめき'
   };
   var MATOME_LEVELS = [{ id: 'easy', label: 'かんたん' }, { id: 'normal', label: 'ふつう' }, { id: 'hard', label: 'むずかしい' }];
   var MATOME_TIMES = [5, 10, 15, 20];
@@ -866,6 +868,53 @@
     return st && validItems(st.items) && typeof st.minutes === 'number' && st.level;
   }
 
+  /* ---------- 鬼ムズ（追加8） ---------- */
+  var ONI_LOCK_MSG = 'むずかしいを 8わり以上○で さいごまでやると開くよ';
+  function hasOniLevel() { return matomeLevels().some(function (l) { return l && l.id === 'oni'; }); }
+  function starState() { try { return S.Stars && S.Stars._state ? S.Stars._state() : null; } catch (e) { return null; } }
+  // まとめモードの hard を「さいごまで」かつ「○の割合 0.8 以上」で1回以上やったか（または、もう開いたことがあるか）
+  function hardPassed(level, correct, total, finished) {
+    return level === 'hard' && !!finished && total > 0 && correct / total >= 0.8;
+  }
+  function oniUnlocked() {
+    var mark = sessLoad('oni-open');
+    if (mark && mark.open) return true;
+    var ss = starState();
+    if (!ss) return false;
+    if (ss.oni && ss.oni.open) return true;
+    var got = ss.got || {};
+    if (got['oni-open'] || got['matome-hard-80']) return true;   // matome-hard-80 は「さいごまで・8わり以上」の星
+    // 出来事の記録（'matome', 'hard:8/10:f'）
+    return (ss.ev || []).some(function (e) {
+      if (!Array.isArray(e) || e[0] !== 'matome') return false;
+      var m = /^hard:(\d+)\/(\d+):f$/.exec(String(e[2]));
+      return !!m && hardPassed('hard', +m[1], +m[2], true);
+    });
+  }
+  function oniOpenLogged() { var ss = starState(); return !!(ss && ss.oni && ss.oni.open) || !!(sessLoad('oni-open') || {}).logged; }
+  // 開いた瞬間：記録して「鬼ムズが開いた！」を出す。新しく開いたときだけ true
+  function openOni() {
+    if (oniOpenLogged()) return false;
+    sessSave('oni-open', { open: true, logged: true, t: Date.now() });
+    starLog('oniUnlock', {});
+    toast('鬼ムズが開いた！');
+    return true;
+  }
+  function oniRuns() { var ss = starState(); return ss && ss.oni ? ss.oni.run || 0 : 0; }
+  // 自作のSVG：ツノとほのおの鬼ムズのしるし・鍵
+  var SVG_ONI = '<svg class="oni-ic" viewBox="0 0 48 48" aria-hidden="true" focusable="false">' +
+    '<path d="M24 46c-9 0-15-6-15-14 0-6 3-9 5-13 1 4 3 6 5 6-1-6 2-12 7-17 0 6 3 9 6 12 2-2 2-5 2-7 4 4 5 9 5 14 0 11-6 19-15 19z" fill="#ff7a1a"/>' +
+    '<path d="M24 46c-5 0-9-4-9-9 0-4 2-6 4-8 0 3 2 4 3 4 0-4 2-7 4-9 1 4 3 5 4 7 1-1 2-2 2-4 2 3 2 6 2 9 0 6-4 10-10 10z" fill="#ffd34d"/>' +
+    '<path d="M11 21 6 4l11 10zM37 21l5-17-11 10z" fill="#fff4e8" stroke="#7a1010" stroke-width="2" stroke-linejoin="round"/>' +
+    '<circle cx="19" cy="34" r="2.4" fill="#7a1010"/><circle cx="29" cy="34" r="2.4" fill="#7a1010"/>' +
+    '<path d="M16 29.5l6 2M32 29.5l-6 2" stroke="#7a1010" stroke-width="2.2" stroke-linecap="round"/>' +
+    '<path d="M20 40.5q4 2.5 8 0" stroke="#7a1010" stroke-width="2" fill="none" stroke-linecap="round"/></svg>';
+  var SVG_LOCK = '<svg class="lock-ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+    '<path d="M7.5 10.5V8a4.5 4.5 0 0 1 9 0v2.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>' +
+    '<rect x="4.5" y="10.5" width="15" height="11" rx="2.5" fill="currentColor"/>' +
+    '<circle cx="12" cy="15.3" r="1.7" fill="#fff"/><path d="M12 16.5v2.4" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>';
+  function svgSpan(svg, cls) { var e = h('span', cls); e.innerHTML = svg; return e; }
+
   function viewMatome() {
     app.appendChild(topbar('まとめモード', { sub: 'いろいろな問題にちょうせん' }));
     var main = h('main', 'mm');
@@ -894,11 +943,28 @@
     main.innerHTML = '';
     var last = matomeLast();
     var level = last.level || 'easy', minutes = last.minutes || 5;
+    var hasOni = hasOniLevel();
+    var oniOpen = hasOni && oniUnlocked();
+    var justOpened = oniOpen && openOni();   // 前からの記録で開けるようになっていたとき
+    if (level === 'oni' && !oniOpen) level = 'easy';
     var card = h('section', 'mm-setup');
+    if (justOpened) card.appendChild(oniBanner());
     card.appendChild(h('p', 'mm-lead', 'これまでに学習した、いろいろな問題が出るよ。レベルと時間をえらんで「スタート」をおそう。'));
     card.appendChild(h('h2', 'mm-h', 'レベル'));
-    var lv = h('div', 'mm-choices mm-levels');
+    var lv = h('div', 'mm-choices mm-levels' + (hasOni ? ' mm-levels-oni' : ''));
     var lvBtns = matomeLevels().map(function (l) {
+      if (l.id === 'oni') {
+        var ob = button('', 'mm-choice mm-oni' + (oniOpen ? '' : ' locked'), function () { if (!oniOpen) return; level = l.id; mark(); });
+        ob.dataset.id = l.id;
+        var ot = h('span', 'mm-choice-t');
+        ot.appendChild(svgSpan(oniOpen ? SVG_ONI : SVG_LOCK, oniOpen ? 'mm-oni-ic' : 'mm-lock-ic'));
+        ot.appendChild(document.createTextNode(l.label || '鬼ムズ'));
+        ob.appendChild(ot);
+        ob.appendChild(h('span', 'mm-choice-sub mm-oni-sub', oniOpen ? '4年のはんいをこえる問題も！' : ONI_LOCK_MSG));
+        if (!oniOpen) { ob.disabled = true; ob.setAttribute('aria-label', '鬼ムズ（鍵がかかっています。' + ONI_LOCK_MSG + '）'); }
+        lv.appendChild(ob);
+        return ob;
+      }
       var b = button('', 'mm-choice', function () { level = l.id; mark(); });
       b.appendChild(h('span', 'mm-choice-t', l.label));
       b.dataset.id = l.id;
@@ -1092,6 +1158,8 @@
         var byTag = {}, tagOrder = [];
         items.forEach(function (it) {
           var tag = it.tag || (it.p && it.p.tag) || '';
+          // 鬼ムズは、内容（oni-add など）ごとに分ける
+          if (st.level === 'oni' && it.p && typeof it.p.skill === 'string' && MATOME_TAG_LABEL[it.p.skill]) tag = it.p.skill;
           if (!byTag[tag]) { byTag[tag] = { n: 0, ok: 0, total: 0 }; tagOrder.push(tag); }
           byTag[tag].total++;
           var r = res[it.pid];
@@ -1105,14 +1173,72 @@
         sessSave('matome-last', l);
         var finished = n === items.length;
         var got = starLog('matome', { level: st.level, minutes: st.minutes, total: items.length, answered: n, correct: ok, finished: finished, seconds: Math.round(took / 1000) });
-        matomeResult(main, st, { n: n, ok: ok, took: took, byTag: byTag, tagOrder: tagOrder, got: got, finished: finished });
+        var oniNew = false;
+        if (hasOniLevel() && hardPassed(st.level, ok, items.length, finished)) {
+          sessSave('oni-open', Object.assign({}, sessLoad('oni-open') || {}, { open: true }));
+          var before = starGotIds();
+          oniNew = openOni();
+          if (oniNew) got = got.concat(starNewSince(before));
+        }
+        matomeResult(main, st, { n: n, ok: ok, took: took, byTag: byTag, tagOrder: tagOrder, got: got, finished: finished, oniNew: oniNew });
       }
     });
   }
 
+  function starGotIds() { var ss = starState(); return ss ? Object.keys(ss.got || {}) : []; }
+  function starNewSince(before) {
+    var cat = S.Stars && Array.isArray(S.Stars.CATALOG) ? S.Stars.CATALOG : [];
+    return starGotIds().filter(function (id) { return before.indexOf(id) < 0; })
+      .map(function (id) { var c = null; cat.forEach(function (x) { if (x.id === id) c = x; }); return c || { id: id, label: id }; });
+  }
+  function oniBanner() {
+    var b = h('div', 'oni-banner');
+    b.setAttribute('role', 'status');
+    b.appendChild(svgSpan(SVG_ONI, 'oni-banner-ic'));
+    var t = h('div', 'oni-banner-tx');
+    t.appendChild(h('div', 'oni-banner-big', '鬼ムズが開いた！'));
+    t.appendChild(h('div', 'oni-banner-sub', 'まとめモードで「鬼ムズ」をえらべるようになったよ。4年のはんいをこえる問題にも ちょうせんしよう。'));
+    b.appendChild(t);
+    return b;
+  }
+  // まちがえた鬼ムズの問題の「せつめい」を見るボタン（結果画面のアドバイス）
+  function oniReview(st) {
+    var wrong = [];
+    st.items.forEach(function (it, i) { var r = st.results && st.results[it.pid]; if (r && !r.correct) wrong.push({ it: it, no: i + 1 }); });
+    if (!wrong.length) return null;
+    var sec = h('div', 'mm-oni-review');
+    sec.appendChild(h('h2', 'mm-h', 'まちがえた問題の せつめいを見よう'));
+    wrong.forEach(function (w) {
+      var p = w.it.p || {};
+      var row = h('div', 'mm-oni-item');
+      var body = h('div', 'mm-oni-body');
+      body.hidden = true;
+      var b = button(w.no + '問目の せつめいを見る', 'small mm-oni-explain', function () {
+        body.hidden = !body.hidden;
+        b.textContent = w.no + '問目の せつめいを' + (body.hidden ? '見る' : 'とじる');
+        b.setAttribute('aria-expanded', !body.hidden);
+      });
+      b.setAttribute('aria-expanded', 'false');
+      row.appendChild(b);
+      var q = p.q || (p.type === 'hissan' ? p.a + ' ' + (p.op === '-' ? '−' : '＋') + ' ' + p.b : '');
+      if (Array.isArray(p.parts)) q += (q ? '\n' : '') + p.parts.map(function (x) { return typeof x === 'string' ? x : '□'; }).join('');
+      if (q) body.appendChild(h('div', 'mm-oni-q', q));
+      var ans = p.type === 'fill' && Array.isArray(p.parts) ? p.parts.filter(function (x) { return x && typeof x === 'object' && x.a != null; }).map(function (x) { return String(x.a); }).join('、')
+        : p.type === 'hissan' && S.Problems && S.Problems.hissanAnswer ? S.Problems.hissanAnswer(p.op === '-' ? '-' : '+', p.a, p.b).canon
+        : p.type === 'order' && Array.isArray(p.items) ? '' : (p.a != null ? String(p.a) : '');
+      if (ans) body.appendChild(h('div', 'mm-oni-a', '答え：' + ans));
+      if (p.explain) body.appendChild(h('div', 'mm-oni-ex', p.explain));
+      else if (Array.isArray(p.hints) && p.hints.length) body.appendChild(h('div', 'mm-oni-ex', p.hints.filter(function (x) { return typeof x === 'string'; }).join('\n')));
+      row.appendChild(body);
+      sec.appendChild(row);
+    });
+    return sec;
+  }
+
   function matomeResult(main, st, R) {
     main.innerHTML = '';
-    var box = h('section', 'mm-result');
+    var box = h('section', 'mm-result' + (st.level === 'oni' ? ' mm-result-oni' : ''));
+    if (R.oniNew) box.appendChild(oniBanner());
     box.appendChild(h('div', 'done-msg', R.finished ? 'まとめモード おつかれさま！' : 'ここまで よくがんばったね！'));
     var score = h('div', 'mm-score');
     score.appendChild(h('span', 'mm-score-big', '○ ' + R.ok));
@@ -1143,6 +1269,8 @@
     });
     box.appendChild(tbl);
     box.appendChild(h('div', 'mm-weak', weakNames.length ? 'にがてな内容：' + weakNames.join('、') + '（次の回に少し多めに出るよ）' : 'にがてな内容は なかったよ。すばらしい！'));
+    if (st.level === 'oni') { var rv = oniReview(st); if (rv) box.appendChild(rv); }
+    else if (st.level === 'hard' && hasOniLevel() && !oniUnlocked()) box.appendChild(h('p', 'mm-note mm-oni-hint', '「鬼ムズ」は、' + ONI_LOCK_MSG + '。'));
 
     var gotBox = h('div', 'mm-got');
     gotBox.appendChild(h('h2', 'mm-h', 'もらった星'));
@@ -1680,7 +1808,7 @@
     var rows = [];
     lessons().forEach(function (l) { rows.push({ key: 'lesson-' + l.no, label: '第' + l.no + '時 ' + (l.title || '') }); });
     topics().forEach(function (t) { rows.push({ key: 'review-' + t.id, label: 'ふくしゅう：' + t.title }); });
-    rows.push({ key: 'matome', label: 'まとめモード' });
+    rows.push({ key: 'matome', label: 'まとめモード' + (hasOniLevel() || oniRuns() ? '（うち 鬼ムズ ' + oniRuns() + '回）' : '') });
     rows.push({ key: 'osusume', label: 'おすすめモード' });
     rows.push({ key: 'friend', label: 'ともだちの問題' });
     var known = rows.map(function (r) { return r.key; });
