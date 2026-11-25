@@ -2488,10 +2488,14 @@ html.osu-miru-open { overflow: hidden; }
 
 <!-- 読み込み順は docs/CONTRACTS.md のとおり。ないファイルがあっても、ほかは動くようにしてある -->
 <script>/* js/preset.js */
-/* preset.js — 配るときに最初から入れておく設定。ふだんは空。
- * 先生メニューの「ゴール入りのアプリをダウンロード」で作った shosu-app.html では、
- * ここが window.SHOSU_PRESET = {"goal": {...}}; に置きかわる（担当N）。 */
+/* preset.js — 配るときに最初から入れておく設定。
+ * 先生メニューの「ゴール・Forms入りのアプリをダウンロード」で作った shosu-app.html では、
+ * ここが window.SHOSU_PRESET = {"goal": {...}, "formsUrl": "..."}; に置きかわる。
+ * formsUrl：子どもが「先生に送る」を押したときに開く Microsoft Forms（学校で決めたもの）。 */
 window.SHOSU_PRESET = window.SHOSU_PRESET || {};
+if (!window.SHOSU_PRESET.formsUrl) {
+  window.SHOSU_PRESET.formsUrl = 'https://forms.cloud.microsoft/pages/responsepage.aspx?id=hE02HiLu7U28DW6kpOnphdTv0bkOdnxPt_eShBybv4RUMDBCTTg3OEZNS0tQV0M3VFA2T1hESlQ2Ti4u&route=shorturl';
+}
 
 </script>
 <script>/* model/digit-model.js */
@@ -18078,7 +18082,10 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
   function validUrl(u) { return typeof u === 'string' && u.length <= 400 && /^https:\/\/[^\s"'<>]+$/i.test(u); }
   function formsUrl() {
     try { var g = S.Planner && S.Planner.goal ? S.Planner.goal() : null; if (g && validUrl(g.formsUrl)) return g.formsUrl; } catch (e) { /* なし */ }
-    return load().formsUrl || '';
+    var own = load().formsUrl || '';
+    if (own) return own;
+    var pre = typeof window !== 'undefined' && window.SHOSU_PRESET ? window.SHOSU_PRESET.formsUrl : '';
+    return validUrl(pre) ? pre : '';
   }
   // 戻り値 'goal'（ゴールに入った）| 'local'（この端末だけ）| 'bad'
   function setFormsUrl(u) {

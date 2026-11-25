@@ -971,7 +971,10 @@
   function validUrl(u) { return typeof u === 'string' && u.length <= 400 && /^https:\/\/[^\s"'<>]+$/i.test(u); }
   function formsUrl() {
     try { var g = S.Planner && S.Planner.goal ? S.Planner.goal() : null; if (g && validUrl(g.formsUrl)) return g.formsUrl; } catch (e) { /* なし */ }
-    return load().formsUrl || '';
+    var own = load().formsUrl || '';
+    if (own) return own;
+    var pre = typeof window !== 'undefined' && window.SHOSU_PRESET ? window.SHOSU_PRESET.formsUrl : '';
+    return validUrl(pre) ? pre : '';
   }
   // 戻り値 'goal'（ゴールに入った）| 'local'（この端末だけ）| 'bad'
   function setFormsUrl(u) {
