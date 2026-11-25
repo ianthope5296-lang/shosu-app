@@ -149,7 +149,7 @@ function hissanAnswer(p) {
 function checkProblem(where, p, opt) {
   opt = opt || {};
   if (!p || typeof p !== 'object') { err(where, '問題がオブジェクトでない'); return; }
-  if (TAGS.indexOf(p.tag) < 0) err(where, 'tag が不明: ' + p.tag);
+  if (TAGS.indexOf(p.tag) < 0 && !(p.tag === 'oni' && p.src && ONI_SKILL[p.src.gen])) err(where, 'tag が不明: ' + p.tag);
   if (typeof p.id !== 'string' || !p.id) err(where, 'id がない');
   if (p.hints !== undefined || p.type !== 'hissan') {
     if (!Array.isArray(p.hints) || p.hints.length < 1 || p.hints.length > 3) err(where, 'hints は1〜3こ');
@@ -314,6 +314,7 @@ var PLACE_NAMES = ['一の位', '小数第一位', '小数第二位', '小数第
 var UNIT_VAL = ['1', '0.1', '0.01', '0.001'];
 
 function verifyGen(name, p, where, level) {
+  if (ONI_SKILL[name]) return verifyOni(name, p, where);
   var ss = p.type === 'fill' ? slots(p) : [];
   var src = p.src || {};
   if (src.gen !== name) err(where, 'src.gen');
@@ -451,6 +452,205 @@ function verifyGen(name, p, where, level) {
       var qNums = p.q.match(/\d+(?:\.\d+)?(?:km|kg|mL|cm|m|g|L)/g) || [];
       if (qNums.join('|') !== (src.show || []).join('|')) err(where, '問題文の数と式が合わない: ' + qNums.join(',') + ' / ' + (src.show || []).join(','));
       if (typeof p.parts[2] !== 'string' || p.parts[2].indexOf(src.unit) !== 0) err(where, '文章題の答えの単位');
+      break;
+    }
+  }
+}
+
+// ---------- 鬼ムズ（追加8・担当U）の検算 ----------
+// 生成器の計算とは別に、表示された式・文・カードから答えを求めなおす（BigInt）。
+var ONI_SKILL = { oniAdd: 'oni-add', oniMulDiv: 'oni-muldiv', oniMix: 'oni-mix', oniIdea: 'oni-idea' };
+var ONI_KINDS = {
+  oniAdd: ['mix3', 'mix4', 'intSub', 'add4', 'word'],
+  oniMulDiv: ['mul1', 'mul2', 'div', 'wordMul', 'wordDiv'],
+  oniMix: ['parenMul', 'kufuMul', 'kufuAdd', 'parenSub', 'kufuSub', 'order', 'divMix', 'boxA', 'boxB', 'boxC', 'boxP', 'boxM'],
+  oniIdea: ['card', 'mushikui', 'seq', 'units', 'choice']
+};
+var P10 = function (k) { return 10n ** BigInt(k); };
+function permsOf(a) {
+  if (a.length <= 1) return [a.slice()];
+  var out = [];
+  for (var i = 0; i < a.length; i++) permsOf(a.slice(0, i).concat(a.slice(i + 1))).forEach(function (r) { out.push([a[i]].concat(r)); });
+  return out;
+}
+// カードで作れる数（D の値）。いちばん右は0にしない、整数部分が2けた以上ならいちばん左も0にしない
+function oniCardValues(cards, k) {
+  var out = {};
+  permsOf(cards).forEach(function (r) {
+    if (r[r.length - 1] === 0 || (k >= 2 && r[0] === 0)) return;
+    var s = r.slice(0, k).join('') + '.' + r.slice(k).join('');
+    out[S(D(s))] = D(s);
+  });
+  return Object.keys(out).map(function (x) { return out[x]; });
+}
+// 虫食い算の解（? に 0〜9）を全部さがす
+function oniMushikuiSolutions(pattern) {
+  var qs = pattern.split('').filter(function (c) { return c === '?'; }).length, sols = [];
+  for (var z = 0; z < Math.pow(10, qs); z++) {
+    var digits = String(z).padStart(qs, '0').split(''), k = 0;
+    var s = pattern.replace(/\?/g, function () { return digits[k++]; });
+    var sides = s.split('＝');
+    try { if (evalExpr(sides[0]) === evalExpr(sides[1])) sols.push(digits.join('')); } catch (e) { /* 形がおかしい */ }
+  }
+  return sols;
+}
+function oniOptionValue(t) {
+  var m;
+  if (NUM_RE.test(t)) return D(t);
+  if ((m = /^(0\.0*1)を(\d+)こ集めた数$/.exec(t))) return D(m[1]) * BigInt(m[2]);
+  if ((m = /^([\d.]+)を10倍した数$/.exec(t))) return D(m[1]) * 10n;
+  if ((m = /^([\d.]+)の1\/10$/.exec(t))) return D(m[1]) / 10n;
+  if ((m = /^1を(\d+)こと0\.01を(\d+)こ合わせた数$/.exec(t))) return D(m[1]) + D('0.01') * BigInt(m[2]);
+  throw new Error('選択肢を読めない: ' + t);
+}
+function verifyOni(name, p, where) {
+  var src = p.src || {}, ss = p.type === 'fill' ? slots(p) : [];
+  if (src.gen !== name) err(where, 'src.gen');
+  if (p.tag !== 'oni') err(where, '鬼ムズの tag が oni でない: ' + p.tag);
+  if (src.skill !== ONI_SKILL[name]) err(where, 'src.skill: ' + src.skill);
+  if (G.skillOf(p) !== ONI_SKILL[name]) err(where, 'skillOf: ' + G.skillOf(p));
+  if (ONI_KINDS[name].indexOf(src.kind) < 0) err(where, 'kind が不明: ' + src.kind);
+  if (!Array.isArray(p.hints) || p.hints.length !== 3) err(where, 'ヒントが3段でない');
+  if (typeof p.explain !== 'string' || p.explain.length < 5) err(where, 'explain がない');
+  if (p.beyond !== undefined && p.beyond !== true) err(where, 'beyond は true か なし');
+  if (p.beyond && !(p.hints || []).some(function (h) { return h.indexOf('まだ習っていないけど、0.1や0.01の何こ分で考えればできるよ') >= 0; })) err(where, '範囲外なのに「まだ習っていないけど」の一言がない');
+  if (name === 'oniMulDiv' && !p.beyond) err(where, 'かけ算・わり算は beyond');
+  // ヒントに答えが出ていない（1けたの整数の答えは見ない）
+  var answers = ss.slice();
+  if (p.type === 'choice') answers.push(p.a, S(oniOptionValue(p.a)));
+  answers.forEach(function (a) {
+    if (a.length < 2 && a.indexOf('.') < 0) return;
+    (p.hints || []).forEach(function (h) {
+      if ((h.match(/\d+(?:\.\d+)?/g) || []).indexOf(a) >= 0 || (p.type === 'choice' && h.indexOf(p.a) >= 0)) err(where, 'ヒントに答え ' + a + ' が出ている: ' + h);
+    });
+  });
+  var q = p.q || '', m, v;
+  switch (src.kind) {
+    case 'mix3': case 'mix4': case 'intSub': case 'add4': case 'mul1': case 'mul2': case 'div':
+    case 'parenMul': case 'kufuMul': case 'kufuAdd': case 'parenSub': case 'kufuSub': case 'order': case 'divMix': {
+      if (p.parts.length !== 2 || typeof p.parts[0] !== 'string' || !/＝$/.test(p.parts[0])) { err(where, '式の形'); break; }
+      var ex = p.parts[0].slice(0, -1);
+      v = evalExpr(ex);
+      if (S(v) !== ss[0]) err(where, '答えちがい: ' + ex + ' = ' + S(v) + ' / ' + ss[0]);
+      var nn = (ex.match(/\d+(?:\.\d+)?/g) || []);
+      if (src.kind === 'mix3' && nn.length !== 3) err(where, '3つの数でない');
+      if ((src.kind === 'mix4' || src.kind === 'add4') && nn.length !== 4) err(where, '4つの数でない');
+      if (name === 'oniAdd') {
+        if (/[×÷(]/.test(ex)) err(where, 'たし算ひき算に×÷');
+        if (!nn.some(function (x) { return decimals(x) === 3; })) err(where, '小数第三位の数がない');
+        if (!nn.some(function (x) { return intDigits(x) >= 2; })) err(where, '大きな数がない');
+        // 途中で負にならない
+        var ops = ex.match(/[＋−]/g), acc = D(nn[0]);
+        for (var i = 1; i < nn.length; i++) { acc = ops[i - 1] === '＋' ? acc + D(nn[i]) : acc - D(nn[i]); if (acc <= 0n) err(where, '途中で0以下'); }
+      }
+      if (src.kind === 'div' && !/÷\d$/.test(ex)) err(where, 'わる数が1けたの整数でない');
+      if (src.kind === 'mul1' && !/×\d$/.test(ex)) err(where, 'かける数が1けたの整数でない');
+      if (src.kind === 'mul2' && !/×\d\d$/.test(ex)) err(where, 'かける数が2けたの整数でない');
+      if (v <= 0n) err(where, '答えが0以下');
+      break;
+    }
+    case 'word': {
+      var UK = { km: 6, m: 3, kg: 6, g: 3, L: 6, dL: 5, mL: 3 }; // 1000倍の基準でそろえる（km・kg・L が 10^6）
+      var re = /(\d+(?:\.\d+)?)(km|kg|dL|mL|L|m|g)(?:(\d+)(mL|m|g))?/g, qty = [];
+      while ((m = re.exec(q))) {
+        var val = D(m[1]) * P10(UK[m[2]]);
+        if (m[3]) val += D(m[3]) * P10(UK[m[4]]);
+        qty.push(val);
+      }
+      if (qty.length !== src.ops.length + 1) { err(where, '文章の数の数: ' + qty.length); break; }
+      var tot = qty[0];
+      for (var j = 1; j < qty.length; j++) { tot = src.ops[j - 1] === '+' ? tot + qty[j] : tot - qty[j]; if (tot <= 0n) err(where, '途中で0以下'); }
+      if (S(tot / P10(6)) !== ss[0]) err(where, '文章題の答えちがい ' + S(tot / P10(6)) + ' / ' + ss[0]);
+      if (q.length < 60) err(where, '文章が短い');
+      if (!/km|kg|L/.test(p.parts[2]) || p.parts[2].indexOf(src.u) !== 0) err(where, '答えの単位');
+      if (!(q.match(/\d+(mL|g|dL)|\dkm\d|\d+m[^L]/g))) err(where, '単位のかんさんがない');
+      break;
+    }
+    case 'wordMul': case 'wordDiv': {
+      if (q.indexOf(src.a) < 0 || q.indexOf(src.b) < 0) err(where, '問題文に数がない');
+      v = evalExpr(src.a + (src.op === '*' ? '*' : '/') + src.b);
+      if (S(v) !== ss[0]) err(where, '答えちがい ' + S(v) + ' / ' + ss[0]);
+      if ((src.kind === 'wordMul') !== (src.op === '*')) err(where, 'op');
+      break;
+    }
+    case 'boxA': case 'boxB': case 'boxC': case 'boxP': case 'boxM': {
+      if (ss.length !== 1) { err(where, '□が1つでない'); break; }
+      var eq1 = p.parts.map(function (x) { return typeof x === 'string' ? x : x.a; }).join('');
+      var sd = eq1.split('＝');
+      if (sd.length !== 2 || evalExpr(sd[0]) !== evalExpr(sd[1])) err(where, '□に答えを入れても式が成り立たない: ' + eq1);
+      // □の値が1つに決まる（□を x、x+0.001 にしたときに左辺がかわる＝1次式で増え方が0でない）
+      var tpl = p.parts.map(function (x) { return typeof x === 'string' ? x : '#'; }).join('').split('＝')[0];
+      var l1 = evalExpr(tpl.replace('#', '1')), l2 = evalExpr(tpl.replace('#', '2'));
+      if (l1 === l2) err(where, '□が決まらない');
+      if (src.kind === 'boxM' && !p.beyond) err(where, '□×整数 は beyond');
+      break;
+    }
+    case 'card': {
+      var cards = src.cards, k = src.k;
+      if (!Array.isArray(cards) || cards.length < 3 || cards.length > 5 || new Set(cards).size !== cards.length) { err(where, 'カードの数'); break; }
+      cards.forEach(function (c) { if (q.indexOf('［' + c + '］') < 0) err(where, 'カードが問題文にない: ' + c); });
+      if (q.indexOf('［．］') < 0) err(where, '小数点のカードがない');
+      var form = '□'.repeat(k) + '.' + '□'.repeat(cards.length - k);
+      if (q.indexOf('「' + form + '」') < 0) err(where, '形が問題文にない: ' + form);
+      if (cards.indexOf(0) >= 0 && q.indexOf('0のカードを おけません') < 0) err(where, '0のきまりが問題文にない');
+      var vals = oniCardValues(cards, k);
+      var mx = vals.reduce(function (a, b) { return b > a ? b : a; }), mn = vals.reduce(function (a, b) { return b < a ? b : a; });
+      var want;
+      if (/いちばん大きい数を/.test(q)) want = [mx];
+      else if (/いちばん小さい数を/.test(q)) want = [mn];
+      else if ((m = /([\d.]+)に いちばん近い数を/.exec(q))) {
+        var T = D(m[1]), bd = null;
+        vals.forEach(function (x) { var dd = x > T ? x - T : T - x; if (bd === null || dd < bd) bd = dd; });
+        want = vals.filter(function (x) { return (x > T ? x - T : T - x) === bd; });
+        if (want.length !== 1) err(where, 'いちばん近い数が1つに決まらない');
+      } else { err(where, 'カードの問題の形'); break; }
+      if (S(want[0]) !== ss[0]) err(where, 'カードの答えちがい ' + S(want[0]) + ' / ' + ss[0]);
+      if (decimals(ss[0]) !== cards.length - k) err(where, 'カードの答えのけた');
+      break;
+    }
+    case 'mushikui': {
+      var pat = p.parts.map(function (x) { return typeof x === 'string' ? x : '?'; }).join('');
+      ss.forEach(function (d) { if (!/^\d$/.test(d)) err(where, '虫食いの□は1けた: ' + d); });
+      var sols = oniMushikuiSolutions(pat);
+      if (sols.length !== 1) err(where, '虫食い算の解が1つでない: ' + pat + ' → ' + sols.length);
+      else if (sols[0] !== ss.join('')) err(where, '虫食い算の答えちがい ' + sols[0] + ' / ' + ss.join(''));
+      break;
+    }
+    case 'seq': {
+      var shown = p.parts.map(function (x) { return typeof x === 'string' ? x : '?'; }).join('').split('、');
+      var terms = src.terms.map(D);
+      if (shown.length !== terms.length || shown.filter(function (x) { return x === '?'; }).length !== 1) { err(where, '数の列の形'); break; }
+      shown.forEach(function (x, i2) { if (x !== '?' && D(x) !== terms[i2]) err(where, '数の列の数がちがう'); });
+      if (S(terms[shown.indexOf('?')]) !== ss[0]) err(where, '数の列の答えちがい');
+      var dif = []; for (var a2 = 1; a2 < terms.length; a2++) dif.push(terms[a2] - terms[a2 - 1]);
+      var okRule = false;
+      if (src.rule === 'add' || src.rule === 'sub') okRule = dif.every(function (x) { return x === dif[0]; }) && (src.rule === 'add' ? dif[0] > 0n : dif[0] < 0n);
+      else if (src.rule === 'x10') okRule = terms.every(function (x, i3) { return i3 === 0 || x === terms[i3 - 1] * 10n; }) || terms.every(function (x, i3) { return i3 === 0 || x * 10n === terms[i3 - 1]; });
+      else if (src.rule === 'x2') okRule = terms.every(function (x, i3) { return i3 === 0 || x === terms[i3 - 1] * 2n; }) && p.beyond === true;
+      else if (src.rule === 'diff2') okRule = dif.every(function (x, i3) { return i3 < 2 || x - dif[i3 - 1] === dif[1] - dif[0]; }) && shown[shown.length - 1] === '?';
+      if (!okRule) err(where, '数の列のきまりがちがう: ' + src.rule + ' ' + src.terms.join(','));
+      break;
+    }
+    case 'units': {
+      var want2;
+      if ((m = /^([\d.]+)は、(0\.0*1)を何こ集めた数ですか。$/.exec(q))) want2 = div(D(m[1]), D(m[2]));
+      else if ((m = /^([\d.]+)と([\d.]+)をたした数は、(0\.0*1)を何こ集めた数ですか。$/.exec(q))) want2 = div(D(m[1]) + D(m[2]), D(m[3]));
+      else {
+        var re2 = /(?:(0\.0*1)|1を(10|100|1000)等分した1つ分)を(\d+)こ/g, xs = [];
+        while ((m = re2.exec(q))) xs.push((m[1] ? D(m[1]) : D('1') / BigInt(m[2])) * BigInt(m[3]));
+        if (xs.length !== 2) { err(where, '何こ分の問題を読めない: ' + q); break; }
+        want2 = /ひくと/.test(q) ? xs[0] - xs[1] : xs[0] + xs[1];
+      }
+      if (S(want2) !== ss[0]) err(where, '何こ分の答えちがい ' + S(want2) + ' / ' + ss[0]);
+      break;
+    }
+    case 'choice': {
+      if (p.type !== 'choice' || p.options.length !== 4) { err(where, '選択肢は4つ'); break; }
+      var ov = p.options.map(oniOptionValue);
+      if (new Set(ov.map(S)).size !== 4) err(where, '同じ大きさの選択肢がある');
+      var big = /いちばん大きい/.test(q), bi = 0;
+      ov.forEach(function (x, i4) { if (big ? x > ov[bi] : x < ov[bi]) bi = i4; });
+      if (p.options[bi] !== p.a) err(where, '選択の答えちがい ' + p.options[bi] + ' / ' + p.a);
       break;
     }
   }
@@ -665,7 +865,24 @@ function main() {
     }
   });
 
+  // ---------- 鬼ムズ（追加8）：4種 × N回 ----------
+  var oniNames = G.oniNames ? G.oniNames() : [], oniStats = {};
+  if (oniNames.join() !== 'oniAdd,oniMulDiv,oniMix,oniIdea') err('Generators', 'oniNames: ' + oniNames.join());
+  oniNames.forEach(function (name, gi) {
+    if (ALL_GENS.indexOf(name) >= 0) err('Generators', '鬼ムズが names() に入っている: ' + name);
+    var rng = mulberry32(8800 + gi * 313), kinds = {};
+    for (var i = 0; i < N; i++) {
+      var where = 'gen ' + name + ' #' + i, p;
+      try { p = G.make(name, rng); } catch (e) { err(where, '例外: ' + e.message); continue; }
+      try { checkProblem(where, p); verifyGen(name, p, where, 'oni'); levelRules(name, p, where, 'oni'); kinds[JSON.stringify([p.q, p.parts, p.options])] = 1; }
+      catch (e) { err(where, '検証エラー: ' + e.message + ' ' + JSON.stringify(p)); }
+    }
+    oniStats[name] = Object.keys(kinds).length;
+    if (oniStats[name] < N * 0.9) warn('gen ' + name, 'ちがう問題が少ない: ' + oniStats[name]);
+  });
+
   // ---------- 結果 ----------
+  console.log('鬼ムズ: ' + oniNames.length + '種 × ' + N + '回（ちがう問題の数: ' + oniNames.map(function (n) { return n + ' ' + oniStats[n]; }).join(', ') + '）');
   console.log('技能: ' + skillIds.length + 'こ（教科書の問題の技能: ' + skillIds.map(function (id) { return id + ' ' + (skillStats[id] || 0); }).join(', ') + '）');
   console.log('問題数: ' + total + '（' + Object.keys(byType).map(function (k) { return k + ' ' + byType[k]; }).join('、') + '）');
   Lessons.forEach(function (L) { console.log('  第' + L.no + '時 ' + L.title + ': ' + L.problems.length + '問'); });
@@ -684,5 +901,5 @@ function main() {
 }
 
 function takeErrors() { var e = errors.slice(); errors.length = 0; warnings.length = 0; return e; }
-module.exports = { checkProblem: checkProblem, verifyGen: verifyGen, levelRules: levelRules, mulberry32: mulberry32, takeErrors: takeErrors, LEVELS: LEVELS };
+module.exports = { verifyOni: verifyOni, oniCardValues: oniCardValues, oniMushikuiSolutions: oniMushikuiSolutions, oniOptionValue: oniOptionValue, evalExpr: evalExpr, D: D, S: S, checkProblem: checkProblem, verifyGen: verifyGen, levelRules: levelRules, mulberry32: mulberry32, takeErrors: takeErrors, LEVELS: LEVELS };
 if (require.main === module) main();

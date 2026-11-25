@@ -3,17 +3,26 @@
  * Shosu.Matome.estimate(problem, level) -> 秒
  * 7つの内容（TAGS）を順番にかわるがわる出す。×が多かった内容（weak）は少し多めに出す。
  * 問題そのもの（src つき）を返すので、つづきから用にはそのまま保存すればよい。
+ * 追加8（担当U）：level 'oni'（鬼ムズ）は 7つの内容のかわりに、鬼ムズの4種類（ONI_GENS）を順番に出す。weak は見ない。
+ *   level が 'normal'・'hard'・'oni' のとき、fill で答えのスロットに小数点があるものに pointMode:'tap' を付ける
+ *   （小数点を自分で打つ。'easy' は今までどおり小数点を印刷）。
  */
 (function (S) {
   'use strict';
 
-  var LEVELS = [{ id: 'easy', label: 'かんたん' }, { id: 'normal', label: 'ふつう' }, { id: 'hard', label: 'むずかしい' }];
+  var LEVELS = [{ id: 'easy', label: 'かんたん' }, { id: 'normal', label: 'ふつう' }, { id: 'hard', label: 'むずかしい' }, { id: 'oni', label: '鬼ムズ' }];
   var TIMES = [5, 10, 15, 20];
   var TAGS = ['hyoshikata', 'shikumi', 'daisho', 'jubai', 'tashizan', 'hikizan', 'kimari'];
   var TAG_LABELS = {
     hyoshikata: '表し方・単位', shikumi: 'しくみ・数の構成', daisho: '大小', jubai: '10倍・1/10',
-    tashizan: 'たし算', hikizan: 'ひき算', kimari: '計算のきまり'
+    tashizan: 'たし算', hikizan: 'ひき算', kimari: '計算のきまり', oni: '鬼ムズ'
   };
+  // 鬼ムズ：この順番にかわるがわる出す（skill は 'oni-add','oni-muldiv','oni-mix','oni-idea'）
+  var ONI_GENS = ['oniAdd', 'oniMulDiv', 'oniMix', 'oniIdea'];
+  // 鬼ムズの1問の目安（秒）
+  var ONI_SEC = { oniAdd: 70, oniMulDiv: 70, oniMix: 80, oniIdea: 90 };
+  var ONI_WORD = 90, ONI_CHOICE = 70;
+  var TAP_LEVELS = { normal: 1, hard: 1, oni: 1 };
 
   // 内容ごとの生成器と重み（レベル別）
   var POOLS = {
@@ -60,6 +69,11 @@
   function estimate(p, level) {
     var gen = p && p.src && p.src.gen;
     var s;
+    if (ONI_SEC[gen]) {
+      if (gen === 'oniIdea' && p.type === 'choice') return ONI_CHOICE;
+      if (/^word/.test(p.src.kind || '')) return ONI_WORD;
+      return ONI_SEC[gen];
+    }
     if (gen === 'wordAdd' || gen === 'wordSub') s = WORD;
     else if (gen === 'threeSum') s = THREE;
     else s = BASE[p.type] || 40;
@@ -83,8 +97,42 @@
     return list[list.length - 1][0];
   }
 
+  // 答えのスロットに小数点がある fill に、小数点を自分で打つしるしを付ける
+  function markTap(p, level) {
+    if (!TAP_LEVELS[level] || p.type !== 'fill' || !Array.isArray(p.parts)) return p;
+    var dot = p.parts.some(function (x) { return x && typeof x === 'object' && String(x.a).indexOf('.') >= 0; });
+    if (dot) p.pointMode = 'tap';
+    return p;
+  }
+
+  // 鬼ムズ：4種類を順番に。時間に合う数（最低3問）
+  function buildOni(minutes, rng) {
+    var Gen = G(), target = minutes * 60, seen = {}, lastKind = {};
+    var problems = [], seconds = [], total = 0;
+    for (var i = 0; i < 200; i++) {
+      var name = ONI_GENS[i % ONI_GENS.length], p = null;
+      for (var t = 0; t < 40; t++) {
+        var c = Gen.make(name, rng);
+        if (seen[signature(c)]) continue;
+        p = c;
+        if (c.src.kind !== lastKind[name] || t >= 6) break; // 同じ種類の問題はなるべく続けない
+      }
+      if (!p) continue;
+      var sec = estimate(p, 'oni');
+      if (problems.length >= 3 && total + sec / 2 > target) break;
+      seen[signature(p)] = true;
+      lastKind[name] = p.src.kind;
+      p.id = 'M-' + (problems.length + 1);
+      problems.push(markTap(p, 'oni'));
+      seconds.push(sec);
+      total += sec;
+    }
+    return { problems: problems, seconds: seconds, total: total };
+  }
+
   function build(opts) {
     opts = opts || {};
+    if (opts.level === 'oni') return buildOni(Number(opts.minutes) > 0 ? Number(opts.minutes) : 10, typeof opts.rng === 'function' ? opts.rng : Math.random);
     var level = opts.level === 'easy' || opts.level === 'hard' ? opts.level : 'normal';
     var minutes = Number(opts.minutes) > 0 ? Number(opts.minutes) : 10;
     var rng = typeof opts.rng === 'function' ? opts.rng : Math.random;
@@ -127,7 +175,7 @@
       if (problems.length >= 3 && total + sec / 2 > target) break;
       seen[signature(p)] = true;
       p.id = 'M-' + (problems.length + 1);
-      problems.push(p);
+      problems.push(markTap(p, level));
       seconds.push(sec);
       total += sec;
       prevTag = best;
@@ -163,6 +211,7 @@
     TAGS: TAGS,
     TAG_LABELS: TAG_LABELS,
     POOLS: POOLS,
+    ONI_GENS: ONI_GENS,
     build: build,
     estimate: estimate,
     signature: signature

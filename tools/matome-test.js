@@ -13,7 +13,10 @@ var fails = [], passed = 0;
 function ok(cond, msg) { if (cond) passed++; else fails.push(msg); }
 
 // ---------- 約束（CONTRACTS 追加2）----------
-ok(JSON.stringify(M.LEVELS) === JSON.stringify([{ id: 'easy', label: 'かんたん' }, { id: 'normal', label: 'ふつう' }, { id: 'hard', label: 'むずかしい' }]), 'LEVELS');
+ok(JSON.stringify(M.LEVELS) === JSON.stringify([{ id: 'easy', label: 'かんたん' }, { id: 'normal', label: 'ふつう' }, { id: 'hard', label: 'むずかしい' }, { id: 'oni', label: '鬼ムズ' }]), 'LEVELS');
+ok(M.TAG_LABELS.oni === '鬼ムズ' && M.TAGS.indexOf('oni') < 0, 'TAG_LABELS.oni（TAGS には入れない）');
+// 7つの内容のレベル（鬼ムズは下で別に調べる）
+var LV3 = M.LEVELS.filter(function (L) { return L.id !== 'oni'; });
 ok(JSON.stringify(M.TIMES) === JSON.stringify([5, 10, 15, 20]), 'TIMES');
 ok(JSON.stringify(M.TAGS) === JSON.stringify(['hyoshikata', 'shikumi', 'daisho', 'jubai', 'tashizan', 'hikizan', 'kimari']), 'TAGS');
 ok(typeof M.build === 'function' && typeof M.estimate === 'function', 'build / estimate');
@@ -24,7 +27,7 @@ var RANGE = { 5: [6, 8], 10: [12, 16], 15: [18, 23], 20: [25, 30] };
 var SEEDS = 40;
 var counts = {}, typeCount = {}, genCount = {};
 
-M.LEVELS.forEach(function (L) {
+LV3.forEach(function (L) {
   var lv = L.id;
   M.TIMES.forEach(function (min) {
     var ns = [];
@@ -62,6 +65,10 @@ M.LEVELS.forEach(function (L) {
         // レベルの決まり
         if (lv === 'easy') ok(p.type !== 'order', w + ': かんたんにならべかえ');
         if (lv !== 'hard') ok(['wordAdd', 'wordSub', 'threeSum'].indexOf(p.src.gen) < 0, w + ': 文章題・3つの数は むずかしいだけ');
+        // 小数点を自分で打つ（追加8）：ふつう・むずかしいの fill で答えに小数点があるもの。かんたんは印刷
+        var dot = p.type === 'fill' && p.parts.some(function (x) { return x && typeof x === 'object' && String(x.a).indexOf('.') >= 0; });
+        if (lv === 'easy') ok(p.pointMode === undefined, w + ': かんたんに pointMode');
+        else ok(dot ? p.pointMode === 'tap' : p.pointMode === undefined, w + ': pointMode ' + p.pointMode);
         typeCount[lv] = typeCount[lv] || {};
         typeCount[lv][p.type] = (typeCount[lv][p.type] || 0) + 1;
         genCount[lv] = genCount[lv] || {};
@@ -82,6 +89,44 @@ C.takeErrors().forEach(function (e) { fails.push('問題の検査: ' + e); });
 
 // むずかしいには文章題・3つ以上のならべかえ・3つの数のたし算が出る
 ['wordAdd', 'wordSub', 'threeSum', 'order'].forEach(function (g) { ok((genCount.hard || {})[g] > 0, 'むずかしいに ' + g + ' が出ない'); });
+
+// ---------- 鬼ムズ（追加8）----------
+var ONI_RANGE = { 5: [3, 5], 10: [7, 9], 15: [10, 13], 20: [14, 17] };
+M.TIMES.forEach(function (min) {
+  var ns = [];
+  for (var s = 0; s < SEEDS; s++) {
+    var where = '鬼ムズ ' + min + '分 seed' + s;
+    var r = M.build({ level: 'oni', minutes: min, rng: C.mulberry32(3000 + s) }), ps = r.problems;
+    ns.push(ps.length);
+    ok(ps.length >= ONI_RANGE[min][0] && ps.length <= ONI_RANGE[min][1], where + ': 問題数 ' + ps.length);
+    ok(r.seconds.reduce(function (a, b) { return a + b; }, 0) === r.total, where + ': total');
+    var sigs = {};
+    ps.forEach(function (p, i) {
+      var w = where + ' #' + (i + 1);
+      ok(p.id === 'M-' + (i + 1), w + ': id');
+      ok(p.tag === 'oni', w + ': tag ' + p.tag);
+      ok(p.src.gen === M.ONI_GENS[i % 4], w + ': 4種類を順番に出していない ' + p.src.gen);
+      ok(r.seconds[i] === M.estimate(p, 'oni') && r.seconds[i] >= 70, w + ': 目安の時間');
+      ok(!sigs[M.signature(p)], w + ': 同じ問題'); sigs[M.signature(p)] = 1;
+      var dot = p.type === 'fill' && p.parts.some(function (x) { return x && typeof x === 'object' && String(x.a).indexOf('.') >= 0; });
+      ok(dot ? p.pointMode === 'tap' : p.pointMode === undefined, w + ': pointMode');
+      C.checkProblem(w, p);
+      C.verifyGen(p.src.gen, p, w, 'oni');
+      C.levelRules(p.src.gen, p, w, 'oni');
+    });
+  }
+  ns.sort(function (a, b) { return a - b; });
+  counts['oni ' + min] = ns[0] === ns[ns.length - 1] ? String(ns[0]) : ns[0] + '〜' + ns[ns.length - 1];
+});
+C.takeErrors().forEach(function (e) { fails.push('鬼ムズの検査: ' + e); });
+(function () {
+  var a = JSON.stringify(M.build({ level: 'oni', minutes: 10, rng: C.mulberry32(7) }));
+  ok(a === JSON.stringify(M.build({ level: 'oni', minutes: 10, rng: C.mulberry32(7) })), '鬼ムズ: 同じ rng で同じ問題にならない');
+  var orig = Math.random;
+  Math.random = function () { throw new Error('Math.random を使った'); };
+  try { M.build({ level: 'oni', minutes: 5, rng: C.mulberry32(9) }); ok(true); } catch (e) { ok(false, '鬼ムズ: rng を渡しても ' + e.message); } finally { Math.random = orig; }
+  ok(M.build({ level: 'oni' }).problems.length >= 7, '鬼ムズ: minutes 省略');
+})();
 
 // ---------- weak（×が多かった内容を少し多めに）----------
 function avgTags(level, minutes, weak) {
@@ -142,7 +187,7 @@ console.log('問題数（' + SEEDS + '通り）:');
 M.LEVELS.forEach(function (L) {
   console.log('  ' + L.label + ': ' + M.TIMES.map(function (m) { return m + '分 ' + counts[L.id + ' ' + m] + '問'; }).join('、'));
 });
-console.log('問題の形: ' + M.LEVELS.map(function (L) {
+console.log('問題の形: ' + LV3.map(function (L) {
   var t = typeCount[L.id] || {};
   return L.label + ' ' + Object.keys(t).map(function (k) { return k + ' ' + t[k]; }).join(' ');
 }).join(' / '));
