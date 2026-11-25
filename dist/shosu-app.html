@@ -805,6 +805,140 @@ main.practice .pw-tips { background: var(--bg); }
   .tabs .tab { flex: 1 1 0; min-width: 0; }
 }
 
+
+/* 追加9：鬼の だん・ボス問題・鬼ポイント */
+.mm-oni-stages[hidden] { display: none; }
+.mm-stages { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.btn.mm-choice.mm-stage { background: linear-gradient(135deg, #3a0a12, #7a1414); color: #fff4e8; border-color: #b8442a; }
+.btn.mm-choice.mm-stage.on { background: linear-gradient(135deg, #5c0a14, #b01818 55%, #ff6a00); border-color: #ffd34d; box-shadow: 0 0 0 3px rgba(255, 211, 77, .85); }
+.btn.mm-choice.mm-stage.locked, .btn.mm-choice.mm-stage:disabled { background: #4a4a5a; color: #d8d8e4; border-color: #6a6a7a; opacity: .85; }
+.mm-stage .mm-lock-ic svg, .mm-stage .lock-ic { width: 1em; height: 1em; vertical-align: -0.1em; margin-right: .2em; }
+.mm-stage-best { color: #ffd34d; font-weight: bold; }
+.dot.dot-boss { background: linear-gradient(135deg, #7a1414, #ff6a00); color: #fff; border-color: #ffd34d; min-width: 3em; border-radius: 999px; }
+.dot.dot-boss.ok { background: linear-gradient(135deg, #d23c3c, #ffb42e); }
+.boss-banner { display: flex; align-items: center; gap: .7rem; margin: 0 0 .8rem; padding: .6rem .9rem; border-radius: 12px; color: #fff4e8;
+  background: linear-gradient(135deg, #3a0a12, #a01616 60%, #ff6a00); border: 2px solid #ffd34d; box-shadow: 0 0 14px rgba(255, 106, 0, .5); animation: boss-pulse 1.6s ease-in-out infinite; }
+.boss-banner-ic svg { width: 48px; height: 48px; display: block; }
+.boss-banner-big { font-size: 1.4rem; font-weight: bold; letter-spacing: .08em; }
+.boss-banner-sub { font-size: .9rem; }
+@keyframes boss-pulse { 50% { box-shadow: 0 0 26px rgba(255, 106, 0, .85); } }
+.boss-fx { position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .4rem;
+  background: rgba(11, 16, 51, .78); color: #fff; cursor: pointer; animation: boss-in .2s ease-out; }
+.boss-fx-stage { position: relative; width: 140px; height: 140px; }
+.boss-fx-oni svg { width: 140px; height: 140px; display: block; animation: boss-down 1.2s ease-in forwards; }
+.boss-fx-star { position: absolute; left: 50%; top: 50%; color: #ffd34d; font-size: 1.6rem; transform: translate(-50%, -50%); animation: boss-star 1.1s ease-out .35s forwards; opacity: 0; }
+.boss-fx-big { font-size: 2rem; font-weight: bold; color: #ffd34d; text-shadow: 0 0 12px rgba(255, 180, 46, .8); }
+.boss-fx-sub { font-size: 1.2rem; }
+@keyframes boss-in { from { opacity: 0; } }
+@keyframes boss-down { 0% { transform: rotate(0); } 15% { transform: rotate(-12deg); } 30% { transform: rotate(12deg); } 45% { transform: rotate(-8deg); }
+  100% { transform: translateY(30px) rotate(90deg) scale(.7); opacity: .35; } }
+@keyframes boss-star { 0% { opacity: 1; transform: translate(-50%, -50%) rotate(var(--a)) translateY(0); }
+  100% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--a)) translateY(calc(-1 * var(--d))); } }
+@media (prefers-reduced-motion: reduce) { .boss-banner, .boss-fx-oni svg, .boss-fx-star, .boss-fx { animation: none !important; } .boss-fx-star { display: none; } }
+.mm-oni-pts { margin: .8rem auto; padding: .8rem 1rem; max-width: 26rem; border-radius: 14px; text-align: center; color: #fff4e8;
+  background: linear-gradient(135deg, #3a0a12, #8a1616 60%, #d85a00); border: 2px solid #ffd34d; }
+.mm-oni-pts-t { font-weight: bold; letter-spacing: .1em; }
+.mm-oni-pts-n { font-size: 2.6rem; font-weight: bold; color: #ffd34d; }
+.mm-oni-pts-of { font-size: 1.1rem; }
+.mm-oni-rec { display: inline-block; margin: .2rem 0; padding: .1rem .7rem; border-radius: 999px; background: #ffd34d; color: #5c0a14; font-weight: bold; }
+.mm-oni-prev { font-size: .9rem; opacity: .9; }
+.mm-oni-pts-info { display: flex; flex-wrap: wrap; justify-content: center; gap: .3rem 1rem; margin-top: .3rem; font-size: .95rem; }
+.mm-oni-pts-info .boss-win { color: #ffd34d; font-weight: bold; }
+.mm-oni-pts .mm-note { color: #fff4e8; margin: .4rem 0 0; }
+
+/* 追加10：鬼バトル */
+.ob { margin: 0 0 .8rem; border-radius: 16px; overflow: hidden; border: 3px solid #ffd34d; box-shadow: 0 6px 18px rgba(0,0,0,.35); position: relative; }
+.ob-sky { position: relative; padding: .5rem .8rem .5rem; color: #fff;
+  background: radial-gradient(ellipse at 50% 120%, #ff8a3d 0%, #b0281a 30%, #3a0a24 70%, #140818 100%); }
+.ob-s2 .ob-sky { background: radial-gradient(ellipse at 50% 120%, #5ad0ff 0%, #1e5fb0 30%, #0e1a4a 70%, #070a20 100%); }
+.ob-s3 .ob-sky { background: radial-gradient(ellipse at 50% 120%, #e08aff 0%, #7a2ab0 30%, #2a0a4a 70%, #0e0620 100%); }
+.ob-top { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem 1rem; }
+.ob-name { font-weight: bold; font-size: 1.05rem; text-shadow: 0 2px 0 #000; }
+.ob-hp { flex: 1 1 14rem; display: flex; align-items: center; gap: .5rem; }
+.ob-hp-l { font-weight: bold; color: #ffd34d; text-shadow: 0 2px 0 #000; }
+.ob-hp-bar { position: relative; flex: 1; height: 16px; background: #1a1a1a; border: 2px solid #fff; border-radius: 999px; overflow: hidden; }
+.ob-hp-lag, .ob-hp-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; }
+.ob-hp-lag { background: #ff4a4a; transition: width .6s ease .1s; }
+.ob-hp-fill { background: linear-gradient(#7dff7a, #2fbf3a); transition: width .3s ease; }
+.ob-hp-fill.mid { background: linear-gradient(#ffe36a, #e0b400); }
+.ob-hp-fill.low { background: linear-gradient(#ff8a6a, #e03a1a); animation: ob-blink .6s infinite; }
+.ob-hp-n { font-variant-numeric: tabular-nums; font-weight: bold; min-width: 6.5em; text-align: right; text-shadow: 0 2px 0 #000; }
+.ob-stage { position: relative; height: 150px; display: flex; justify-content: center; align-items: flex-end; }
+.ob-oni { width: 140px; height: 150px; animation: ob-idle 2.2s ease-in-out infinite; transform-origin: 50% 100%; }
+.ob-oni svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 6px 4px rgba(0,0,0,.5)); }
+.ob-oni .ob-eyes-hurt, .ob-oni .ob-mouth-hurt, .ob-oni .ob-sweat { display: none; }
+.ob-weak .ob-oni .ob-sweat { display: inline; }
+.ob-oni.hit .ob-eyes, .ob-oni.hit .ob-mouth { display: none; }
+.ob-oni.hit .ob-eyes-hurt, .ob-oni.hit .ob-mouth-hurt { display: inline; }
+.ob-oni.hit { animation: ob-hit .5s ease; }
+.ob-oni.atk { animation: ob-atk .6s ease; }
+.ob-oni.atk .ob-club { transform-origin: 167px 170px; animation: ob-swing .6s ease; }
+.ob-bubble { position: absolute; left: calc(50% + 75px); top: 10px; max-width: 40%; background: #fff; color: #222; font-weight: bold; font-size: .95rem;
+  padding: .3rem .6rem; border-radius: 12px; box-shadow: 0 2px 0 rgba(0,0,0,.3); }
+.ob-bubble::before { content: ""; position: absolute; left: -9px; top: 12px; border: 6px solid transparent; border-right: 10px solid #fff; border-left: 0; }
+.ob-bubble.pop { animation: ob-pop .3s ease; }
+.ob-fx { position: absolute; inset: 0; pointer-events: none; }
+.ob-slash { position: absolute; left: 50%; top: 50%; width: 220px; height: 8px; margin: -4px 0 0 -110px; border-radius: 99px;
+  background: linear-gradient(90deg, transparent, #fff 30%, #fff8b0 50%, #fff 70%, transparent); box-shadow: 0 0 14px #fff, 0 0 26px #ffd34d;
+  transform: rotate(var(--r)) scaleX(0); animation: ob-slash .4s ease-out forwards; }
+.ob-float { position: absolute; left: 50%; top: 35%; transform: translateX(-50%); font-size: 2rem; font-weight: 900; color: #fff;
+  -webkit-text-stroke: 2px #a01616; text-shadow: 0 3px 0 #000; animation: ob-float 1.2s ease-out forwards; white-space: nowrap; }
+.ob-float.crit { color: #ffd34d; font-size: 2.6rem; }
+.ob-float.word { top: 8%; font-size: 1.4rem; color: #fff; -webkit-text-stroke: 0; background: #e0401a; padding: 0 .6em; border-radius: 99px; }
+.ob-float.miss { color: #9fd8ff; -webkit-text-stroke: 2px #1e3fa8; }
+.ob-spark { position: absolute; left: 50%; top: 50%; color: #ffd34d; font-size: 1.2rem; transform: translate(-50%,-50%); animation: ob-spark .9s ease-out forwards; }
+.ob-log { margin-top: .3rem; padding: .3rem .6rem; background: rgba(0,0,0,.55); border: 2px solid rgba(255,255,255,.8); border-radius: 8px; font-size: .95rem; min-height: 1.6em; }
+.ob.ouch { animation: ob-shake .5s ease; }
+.ob.ouch::after { content: ""; position: absolute; inset: 0; background: rgba(255,0,0,.35); animation: ob-flash .5s ease forwards; pointer-events: none; }
+.ob-rage .ob-sky { box-shadow: inset 0 0 40px rgba(255,60,0,.9); }
+.ob-rage .ob-oni { animation: ob-rage .5s ease-in-out infinite; }
+.ob-rage .ob-oni svg { filter: drop-shadow(0 0 10px #ff3a00) drop-shadow(0 0 20px #ff8a00); }
+.ob-end { position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5rem;
+  background: rgba(11,8,30,.86); color: #fff; cursor: pointer; animation: boss-in .25s ease-out; text-align: center; padding: 1rem; }
+.ob-end-oni { width: 180px; height: 200px; position: relative; }
+.ob-end-oni svg { width: 100%; height: 100%; }
+.ob-end.win .ob-end-oni { animation: ob-defeat 2s ease-in forwards; }
+.ob-end.win .ob-end-oni .ob-eyes, .ob-end.win .ob-end-oni .ob-mouth { display: none; }
+.ob-end.lose .ob-end-oni .ob-eyes-hurt, .ob-end.lose .ob-end-oni .ob-mouth-hurt, .ob-end-oni .ob-sweat { display: none; }
+.ob-end.lose .ob-end-oni { animation: ob-run 2.5s ease-in forwards; }
+.ob-end-star { position: absolute; left: 50%; top: 40%; color: #ffd34d; font-size: 2rem; opacity: 0; animation: boss-star 1.4s ease-out .9s forwards; }
+.ob-end-big { font-size: 2.2rem; font-weight: 900; color: #ffd34d; text-shadow: 0 0 14px rgba(255,180,46,.9), 0 3px 0 #000; }
+.ob-end.lose .ob-end-big { color: #cfe6ff; text-shadow: 0 3px 0 #000; }
+.ob-end-sub { font-size: 1.2rem; }
+.ob-end-tap { font-size: .9rem; opacity: .75; margin-top: .5rem; }
+@keyframes ob-idle { 50% { transform: translateY(-4px) scaleY(1.02); } }
+@keyframes ob-hit { 0% { filter: brightness(3); transform: translateX(0); } 20% { transform: translateX(-12px) rotate(-4deg); } 40% { transform: translateX(10px) rotate(3deg); } 60% { transform: translateX(-6px); } 100% { filter: none; transform: none; } }
+@keyframes ob-atk { 30% { transform: scale(1.25) translateY(10px); } 60% { transform: scale(1.1); } }
+@keyframes ob-swing { 0% { transform: rotate(0); } 40% { transform: rotate(-70deg); } 100% { transform: rotate(0); } }
+@keyframes ob-rage { 50% { transform: translateX(2px) scale(1.04); } }
+@keyframes ob-pop { from { transform: scale(.6); opacity: .3; } }
+@keyframes ob-slash { 40% { transform: rotate(var(--r)) scaleX(1); opacity: 1; } 100% { transform: rotate(var(--r)) scaleX(1.1); opacity: 0; } }
+@keyframes ob-float { 0% { opacity: 0; transform: translate(-50%, 10px) scale(.6); } 20% { opacity: 1; transform: translate(-50%, -10px) scale(1.15); } 100% { opacity: 0; transform: translate(-50%, -50px) scale(1); } }
+@keyframes ob-spark { 0% { opacity: 1; transform: translate(-50%,-50%) rotate(var(--a)) translateY(0); } 100% { opacity: 0; transform: translate(-50%,-50%) rotate(var(--a)) translateY(calc(-1 * var(--d))); } }
+@keyframes ob-shake { 20% { transform: translateX(-8px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(4px); } }
+@keyframes ob-flash { to { opacity: 0; } }
+@keyframes ob-blink { 50% { opacity: .55; } }
+@keyframes ob-defeat { 0% { transform: none; filter: brightness(3); } 10% { transform: translateX(-14px) rotate(-6deg); } 20% { transform: translateX(14px) rotate(6deg); filter: brightness(2); }
+  35% { transform: translateX(-8px); } 50% { transform: none; filter: none; } 100% { transform: translateY(60px) rotate(90deg) scale(.5); opacity: 0; } }
+@keyframes ob-run { 30% { transform: translateX(0) scaleX(-1); } 100% { transform: translateX(60vw) scaleX(-1); opacity: 0; } }
+@media (max-width: 560px) { .ob-stage { height: 120px; } .ob-oni { width: 110px; height: 120px; } .ob-bubble { left: auto; right: 4px; top: 4px; max-width: 45%; font-size: .8rem; } .ob-bubble::before { display: none; } }
+@media (prefers-reduced-motion: reduce) { .ob *, .ob, .ob-end, .ob-end * { animation: none !important; transition: none !important; } .ob-slash, .ob-spark, .ob-end-star { display: none; } }
+
+/* 追加11：3Dの鬼（WebGL。外部ライブラリなし。使えない端末では2Dの絵） */
+.ob-3d .ob-stage { height: 210px; }
+.ob-3d .ob-oni { position: absolute; inset: 0; width: auto; height: auto; animation: none; }
+.ob-cv { display: block; width: 100%; height: 100%; touch-action: pan-y; }
+.ob-3d.ob-rage .ob-oni { animation: none; }
+.ob-3d.ob-rage .ob-sky { box-shadow: inset 0 0 50px rgba(255,60,0,.95); }
+.ob-3d .ob-bubble { left: auto; right: 6%; top: 8px; max-width: 32%; z-index: 2; }
+.ob-3d .ob-bubble::before { display: none; }
+.ob-3d .ob-fx { z-index: 3; }
+.ob-end-3d .ob-end-oni { width: min(320px, 80vw); height: 260px; animation: none !important; }
+@media (max-width: 560px) { .ob-3d .ob-stage { height: 180px; } .ob-3d .ob-bubble { max-width: 40%; } }
+
+/* おいわいの星は自作のSVG（文字の記号は使わない） */
+.boss-fx-star svg, .ob-spark svg, .ob-end-star svg { width: 1em; height: 1em; display: block; }
+
 </style>
 <style>/* css/demos.css */
 /* demos.css : 「みる」教材と図のスタイル（sd- で始まるクラス） */
@@ -10167,8 +10301,57 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     return { problems: problems, seconds: seconds, total: total };
   }
 
+  /* 鬼ムズの「だん」（追加9）：鬼1＝計算（けた数を多く）、鬼2＝文章題・くふう、鬼3＝ひらめき中心。
+     さいごに「ボス問題」を1問（p.boss = true）。stage がないときは今までと同じ。 */
+  var ONI_STAGES = {
+    1: { gens: ['oniAdd', 'oniMulDiv', 'oniAdd', 'oniMulDiv', 'oniMix'], ok: function (p) { return !/^word/.test(p.src.kind || ''); },
+         boss: 'oniAdd', bossOk: function (p) { return p.src.kind === 'mix4' || p.src.kind === 'add4'; } },
+    2: { gens: ['oniAdd', 'oniMix', 'oniMulDiv', 'oniMix'], ok: function (p) { return p.src.gen === 'oniMix' || /^word/.test(p.src.kind || ''); },
+         boss: 'oniAdd', bossOk: function (p) { return p.src.kind === 'word' && (p.src.ops || []).length >= 3; } },
+    3: { gens: ['oniIdea', 'oniMix', 'oniIdea', 'oniMulDiv', 'oniIdea'], ok: function () { return true; },
+         boss: 'oniIdea', bossOk: function (p) { return p.src.kind === 'card' || p.src.kind === 'mushikui'; } }
+  };
+  var BOSS_EXTRA = 30; // ボス問題は目安を少し長く
+  function buildOniStage(minutes, rng, stage) {
+    var cf = ONI_STAGES[stage], Gen = G(), seen = {}, lastKind = {};
+    var problems = [], seconds = [], total = 0, t, c, p;
+    // 先にボス問題を作って、その時間をとっておく
+    var boss = null;
+    for (t = 0; t < 300; t++) { c = Gen.make(cf.boss, rng); boss = c; if (cf.bossOk(c)) break; }
+    var bossSec = estimate(boss, 'oni') + BOSS_EXTRA;
+    seen[signature(boss)] = true;
+    var target = minutes * 60 - bossSec;
+    for (var i = 0; i < 200; i++) {
+      var name = cf.gens[i % cf.gens.length];
+      p = null;
+      for (t = 0; t < 60; t++) {
+        c = Gen.make(name, rng);
+        if (seen[signature(c)]) continue;
+        if (!cf.ok(c) && t < 50) continue;
+        p = c;
+        if (c.src.kind !== lastKind[name] || t >= 6) break;
+      }
+      if (!p) continue;
+      var sec = estimate(p, 'oni');
+      if (problems.length >= 2 && total + sec / 2 > target) break;
+      seen[signature(p)] = true;
+      lastKind[name] = p.src.kind;
+      p.id = 'M-' + (problems.length + 1);
+      problems.push(markTap(p, 'oni'));
+      seconds.push(sec);
+      total += sec;
+    }
+    boss.boss = true;
+    boss.id = 'M-BOSS';
+    problems.push(markTap(boss, 'oni'));
+    seconds.push(bossSec);
+    total += bossSec;
+    return { problems: problems, seconds: seconds, total: total };
+  }
+
   function build(opts) {
     opts = opts || {};
+    if (opts.level === 'oni' && ONI_STAGES[opts.stage]) return buildOniStage(Number(opts.minutes) > 0 ? Number(opts.minutes) : 10, typeof opts.rng === 'function' ? opts.rng : Math.random, opts.stage);
     if (opts.level === 'oni') return buildOni(Number(opts.minutes) > 0 ? Number(opts.minutes) : 10, typeof opts.rng === 'function' ? opts.rng : Math.random);
     var level = opts.level === 'easy' || opts.level === 'hard' ? opts.level : 'normal';
     var minutes = Number(opts.minutes) > 0 ? Number(opts.minutes) : 10;
@@ -20674,7 +20857,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       prog.innerHTML = '';
       items.forEach(function (it, i) {
         var r = results[it.pid];
-        var d = h('button', 'dot' + (i === idx ? ' cur' : '') + (r ? (r.correct ? ' ok' : ' ng') : ''), String(i + 1));
+        var d = h('button', 'dot' + (i === idx ? ' cur' : '') + (r ? (r.correct ? ' ok' : ' ng') : '') + (it.p && it.p.boss ? ' dot-boss' : ''), it.p && it.p.boss ? 'ボス' : String(i + 1));
         d.type = 'button';
         d.setAttribute('aria-label', (i + 1) + '問目');
         d.addEventListener('click', function () { go(i); });
@@ -20717,6 +20900,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
         },
         onNext: function () { go(idx + 1); }
       });
+      if (it.p && it.p.boss) { area.insertBefore(bossBanner(), area.firstChild); if (opts.onBoss) { try { opts.onBoss(); } catch (e) { console.error(e); } } }
       drawProgress();
       if (shown++) window.scrollTo({ top: Math.max(0, wrap.getBoundingClientRect().top + window.scrollY - 80), behavior: 'auto' });
     }
@@ -21110,11 +21294,11 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     };
   }
   var matomeCountCache = {};
-  function matomeCount(level, minutes) {
-    var k = level + '/' + minutes;
+  function matomeCount(level, minutes, stage) {
+    var k = level + '/' + minutes + '/' + (stage || 0);
     if (k in matomeCountCache) return matomeCountCache[k];
     var n = 0;
-    try { var b = matomeApi().build({ level: level, minutes: minutes, rng: seededRng(minutes * 7 + 1) }); n = b && b.problems ? b.problems.length : 0; }
+    try { var b = matomeApi().build({ level: level, minutes: minutes, stage: stage || undefined, rng: seededRng(minutes * 7 + 1) }); n = b && b.problems ? b.problems.length : 0; }
     catch (e) { console.error('Matome.build', e); }
     matomeCountCache[k] = n;
     return n;
@@ -21157,6 +21341,459 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     toast('鬼ムズが開いた！');
     return true;
   }
+  /* ---------- 鬼ムズの「だん」・ボス問題・鬼ポイント（追加9） ---------- */
+  var ONI_STAGE_INFO = [
+    { n: 1, label: '鬼1', sub: '計算の鬼（けた数が多い）' },
+    { n: 2, label: '鬼2', sub: '文章題・くふうの鬼' },
+    { n: 3, label: '鬼3', sub: 'ひらめきの鬼' }
+  ];
+  function oniStageData() {
+    var v = sessLoad('oni-stage');
+    if (!v || typeof v !== 'object') v = {};
+    var mx = Math.floor(Number(v.max) || 1);
+    v.max = Math.min(3, Math.max(1, mx));
+    if (!v.best || typeof v.best !== 'object') v.best = {};
+    if (!v.boss || typeof v.boss !== 'object') v.boss = {};
+    return v;
+  }
+  function oniStageLabel(n) { return n >= 1 && n <= 3 ? '鬼' + n : ''; }
+  function oniPts(p, r) {
+    if (!r || !r.correct) return 0;
+    var base = (r.hints || 0) === 0 ? 3 : (r.hints === 1 ? 2 : 1);
+    return p && p.boss ? base * 2 : base;
+  }
+  function oniScore(items, results) {
+    var o = { pts: 0, max: 0, noHint: 0, boss: null };
+    items.forEach(function (it) {
+      var r = results && results[it.pid];
+      o.max += it.p && it.p.boss ? 6 : 3;
+      o.pts += oniPts(it.p, r);
+      if (r && r.correct && !(r.hints > 0)) o.noHint++;
+      if (it.p && it.p.boss) o.boss = r ? (r.correct ? 'win' : 'lose') : 'skip';
+    });
+    return o;
+  }
+  function bossBanner() {
+    var b = h('div', 'boss-banner');
+    b.setAttribute('role', 'note');
+    b.appendChild(svgSpan(SVG_ONI, 'boss-banner-ic'));
+    var t = h('div', 'boss-banner-tx');
+    t.appendChild(h('div', 'boss-banner-big', 'ボス問題！'));
+    t.appendChild(h('div', 'boss-banner-sub', '正かいすると 鬼ポイントが2倍！ ヒントなしなら 6ポイントだよ。'));
+    b.appendChild(t);
+    return b;
+  }
+  // ボスをたおしたときの演出（タップか2.4秒で消える）
+  function bossDefeated(pts) {
+    var back = h('div', 'boss-fx');
+    back.setAttribute('role', 'status');
+    var stage = h('div', 'boss-fx-stage');
+    stage.appendChild(svgSpan(SVG_ONI, 'boss-fx-oni'));
+    for (var i = 0; i < 12; i++) {
+      var sp = h('span', 'boss-fx-star'); sp.innerHTML = (S.Stars && S.Stars.SVG_STAR) || '';
+      sp.style.setProperty('--a', (i * 30) + 'deg');
+      sp.style.setProperty('--d', (90 + (i % 3) * 30) + 'px');
+      stage.appendChild(sp);
+    }
+    back.appendChild(stage);
+    back.appendChild(h('div', 'boss-fx-big', 'ボスをたおした！'));
+    back.appendChild(h('div', 'boss-fx-sub', '鬼ポイント +' + pts));
+    var gone = false;
+    function close() { if (gone) return; gone = true; back.remove(); }
+    back.addEventListener('click', close);
+    document.body.appendChild(back);
+    setTimeout(close, 2400);
+  }
+
+
+  /* ---------- 鬼バトル（追加10）：問題に答えるたびに攻撃。全問○で鬼をたおせる ---------- */
+  var ONI_NAMES = { 1: 'けいさん鬼', 2: 'もんだい鬼', 3: 'ひらめき大鬼' };
+  var ONI_COLORS = { 1: ['#e0403a', '#a81e1e'], 2: ['#3a7be0', '#1e3fa8'], 3: ['#8a4ae0', '#4a1ea8'] };
+  function bigOniSvg(stage) {
+    var c = ONI_COLORS[stage] || ONI_COLORS[1];
+    return '<svg viewBox="0 0 200 220" aria-hidden="true" focusable="false">' +
+      '<defs><radialGradient id="obg' + stage + '" cx="50%" cy="40%" r="60%"><stop offset="0" stop-color="' + c[0] + '"/><stop offset="1" stop-color="' + c[1] + '"/></radialGradient></defs>' +
+      // こんぼう
+      '<g class="ob-club"><rect x="160" y="70" width="14" height="110" rx="6" fill="#7a4a1e" transform="rotate(18 167 125)"/>' +
+      '<rect x="150" y="40" width="34" height="70" rx="14" fill="#5a3410" transform="rotate(18 167 75)"/>' +
+      '<circle cx="158" cy="58" r="4" fill="#ccc"/><circle cx="172" cy="80" r="4" fill="#ccc"/><circle cx="160" cy="92" r="4" fill="#ccc"/></g>' +
+      // からだ
+      '<path d="M40 215 Q45 150 100 145 Q155 150 160 215 Z" fill="url(#obg' + stage + ')"/>' +
+      '<path d="M55 215 L70 175 L130 175 L145 215 Z" fill="#ffd34d"/><path d="M70 175 L80 195 L90 175 L100 195 L110 175 L120 195 L130 175" fill="none" stroke="#222" stroke-width="4"/>' +
+      // つの
+      '<path d="M58 62 L40 8 L80 48 Z" fill="#fff4d6" stroke="#c9a85a" stroke-width="3"/>' +
+      '<path d="M142 62 L160 8 L120 48 Z" fill="#fff4d6" stroke="#c9a85a" stroke-width="3"/>' +
+      // かお
+      '<ellipse cx="100" cy="95" rx="62" ry="58" fill="url(#obg' + stage + ')"/>' +
+      '<path d="M45 60 Q60 30 100 34 Q140 30 155 60 Q130 48 100 52 Q70 48 45 60Z" fill="#222"/>' +
+      '<g class="ob-eyes"><path d="M62 78 L90 88" stroke="#222" stroke-width="7" stroke-linecap="round"/><path d="M138 78 L110 88" stroke="#222" stroke-width="7" stroke-linecap="round"/>' +
+      '<circle cx="77" cy="98" r="11" fill="#fff"/><circle cx="123" cy="98" r="11" fill="#fff"/><circle cx="79" cy="99" r="5.5" fill="#222"/><circle cx="121" cy="99" r="5.5" fill="#222"/></g>' +
+      '<g class="ob-eyes-hurt"><path d="M66 92 L88 104 M66 104 L88 92 M112 92 L134 104 M112 104 L134 92" stroke="#222" stroke-width="6" stroke-linecap="round"/></g>' +
+      '<path class="ob-mouth" d="M70 125 Q100 108 130 125 Q100 140 70 125Z" fill="#3a0a0a"/>' +
+      '<path class="ob-mouth" d="M78 120 L84 130 L90 119 M110 119 L116 130 L122 120" fill="#fff"/>' +
+      '<path class="ob-mouth-hurt" d="M72 132 Q100 118 128 132" fill="none" stroke="#3a0a0a" stroke-width="6" stroke-linecap="round"/>' +
+      '<g class="ob-sweat"><path d="M150 70 Q158 84 150 90 Q142 84 150 70Z" fill="#9fd8ff"/><path d="M48 80 Q54 92 48 96 Q42 92 48 80Z" fill="#9fd8ff"/></g>' +
+      '<path d="M40 100 Q30 96 34 108 Q40 112 42 106" fill="url(#obg' + stage + ')"/><path d="M160 100 Q170 96 166 108 Q160 112 158 106" fill="url(#obg' + stage + ')"/>' +
+      '</svg>';
+  }
+  /* ---------- 3Dの鬼（追加11）：WebGL だけで描く（外部ライブラリなし）。使えないときは null を返し、2Dの絵にもどす ---------- */
+  function Oni3D(canvas, stage, opts) {
+    opts = opts || {};
+    var gl = null;
+    try { gl = canvas.getContext('webgl', { alpha: true, antialias: true, premultipliedAlpha: false }) || canvas.getContext('experimental-webgl', { alpha: true }); } catch (e) { gl = null; }
+    if (!gl) return null;
+    var VS = 'attribute vec3 aP;attribute vec3 aN;uniform mat4 uMVP;uniform mat4 uM;uniform mat3 uNM;varying vec3 vN;varying vec3 vW;' +
+      'void main(){vN=normalize(uNM*aN);vec4 w=uM*vec4(aP,1.0);vW=w.xyz;gl_Position=uMVP*vec4(aP,1.0);}';
+    var FS = 'precision mediump float;varying vec3 vN;varying vec3 vW;uniform vec3 uC;uniform float uF;uniform vec3 uE;uniform vec3 uCam;' +
+      'void main(){vec3 n=normalize(vN);vec3 L=normalize(vec3(0.5,0.9,0.7));vec3 V=normalize(uCam-vW);' +
+      'float d=max(dot(n,L),0.0);float b=max(dot(n,normalize(vec3(-0.6,0.2,-0.5))),0.0);' +
+      'float s=pow(max(dot(n,normalize(L+V)),0.0),28.0);float r=pow(1.0-max(dot(n,V),0.0),2.5);' +
+      'vec3 c=uC*(0.38+0.75*d)+uC*b*0.25+vec3(1.0)*s*0.35+vec3(1.0,0.85,0.6)*r*0.35+uE;' +
+      'gl_FragColor=vec4(mix(c,vec3(1.0),uF),1.0);}';
+    function sh(t, src) { var s = gl.createShader(t); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; }
+    var pr;
+    try {
+      pr = gl.createProgram();
+      gl.attachShader(pr, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, FS));
+      gl.linkProgram(pr);
+      if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) return null;
+    } catch (e) { return null; }
+    gl.useProgram(pr);
+    var A = { p: gl.getAttribLocation(pr, 'aP'), n: gl.getAttribLocation(pr, 'aN') };
+    var U = {}; ['uMVP', 'uM', 'uNM', 'uC', 'uF', 'uE', 'uCam'].forEach(function (k) { U[k] = gl.getUniformLocation(pr, k); });
+
+    // ---- 形（球・円柱/円すい・箱） ----
+    function mesh(pos, nor, idx) {
+      var m = { n: idx.length };
+      m.pb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, m.pb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(pos), gl.STATIC_DRAW);
+      m.nb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, m.nb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(nor), gl.STATIC_DRAW);
+      m.ib = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(idx), gl.STATIC_DRAW);
+      return m;
+    }
+    function sphere(la, lo) {
+      var p = [], n = [], ix = [], i, j;
+      for (i = 0; i <= la; i++) { var th = i * Math.PI / la, st = Math.sin(th), ct = Math.cos(th);
+        for (j = 0; j <= lo; j++) { var ph = j * 2 * Math.PI / lo, x = Math.cos(ph) * st, z = Math.sin(ph) * st; p.push(x, ct, z); n.push(x, ct, z); } }
+      for (i = 0; i < la; i++) for (j = 0; j < lo; j++) { var a = i * (lo + 1) + j, b = a + lo + 1; ix.push(a, b, a + 1, b, b + 1, a + 1); }
+      return mesh(p, n, ix);
+    }
+    // 高さ1（y -0.5〜0.5）。rt=上の半径、rb=下の半径
+    function cyl(rt, rb, seg) {
+      var p = [], n = [], ix = [], j, sl = (rb - rt);
+      for (j = 0; j <= seg; j++) { var a = j * 2 * Math.PI / seg, c = Math.cos(a), s = Math.sin(a), l = Math.sqrt(1 + sl * sl);
+        p.push(c * rt, 0.5, s * rt, c * rb, -0.5, s * rb); n.push(c / l, sl / l, s / l, c / l, sl / l, s / l); }
+      for (j = 0; j < seg; j++) { var k = j * 2; ix.push(k, k + 1, k + 2, k + 1, k + 3, k + 2); }
+      var base = p.length / 3;
+      p.push(0, 0.5, 0); n.push(0, 1, 0); p.push(0, -0.5, 0); n.push(0, -1, 0);
+      for (j = 0; j <= seg; j++) { var b2 = j * 2 * Math.PI / seg; p.push(Math.cos(b2) * rt, 0.5, Math.sin(b2) * rt); n.push(0, 1, 0); p.push(Math.cos(b2) * rb, -0.5, Math.sin(b2) * rb); n.push(0, -1, 0); }
+      for (j = 0; j < seg; j++) { var q = base + 2 + j * 2; ix.push(base, q + 2, q); ix.push(base + 1, q + 1, q + 3); }
+      return mesh(p, n, ix);
+    }
+    function box() {
+      var p = [], n = [], ix = [], F = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
+      F.forEach(function (f, fi) {
+        var u = f[0] ? [0, 1, 0] : [1, 0, 0], v = [f[1] * u[2] - f[2] * u[1], f[2] * u[0] - f[0] * u[2], f[0] * u[1] - f[1] * u[0]];
+        [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(function (c) { p.push((f[0] + u[0] * c[0] + v[0] * c[1]) / 2, (f[1] + u[1] * c[0] + v[1] * c[1]) / 2, (f[2] + u[2] * c[0] + v[2] * c[1]) / 2); n.push(f[0], f[1], f[2]); });
+        var o = fi * 4; ix.push(o, o + 1, o + 2, o, o + 2, o + 3);
+      });
+      return mesh(p, n, ix);
+    }
+    var G = { s: sphere(18, 24), sl: sphere(10, 12), c: cyl(1, 1, 20), cone: cyl(0, 1, 16), club: cyl(1, 0.45, 14), b: box() };
+
+    // ---- 行列 ----
+    function I() { return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]; }
+    function mul(a, b) { var o = new Array(16); for (var c = 0; c < 4; c++) for (var r = 0; r < 4; r++) { var s = 0; for (var k = 0; k < 4; k++) s += a[k * 4 + r] * b[c * 4 + k]; o[c * 4 + r] = s; } return o; }
+    function T(x, y, z) { var m = I(); m[12] = x; m[13] = y; m[14] = z; return m; }
+    function S(x, y, z) { var m = I(); m[0] = x; m[5] = y; m[10] = z; return m; }
+    function RX(a) { var c = Math.cos(a), s = Math.sin(a), m = I(); m[5] = c; m[6] = s; m[9] = -s; m[10] = c; return m; }
+    function RY(a) { var c = Math.cos(a), s = Math.sin(a), m = I(); m[0] = c; m[2] = -s; m[8] = s; m[10] = c; return m; }
+    function RZ(a) { var c = Math.cos(a), s = Math.sin(a), m = I(); m[0] = c; m[1] = s; m[4] = -s; m[5] = c; return m; }
+    function C() { var m = arguments[0]; for (var i = 1; i < arguments.length; i++) m = mul(m, arguments[i]); return m; }
+    function persp(f, asp, n, fa) { var t = 1 / Math.tan(f / 2), m = [t / asp, 0, 0, 0, 0, t, 0, 0, 0, 0, (fa + n) / (n - fa), -1, 0, 0, 2 * fa * n / (n - fa), 0]; return m; }
+    function look(e, c) {
+      var z = [e[0] - c[0], e[1] - c[1], e[2] - c[2]], l = Math.hypot(z[0], z[1], z[2]); z = z.map(function (v) { return v / l; });
+      var x = [z[2], 0, -z[0]]; l = Math.hypot(x[0], x[1], x[2]); x = x.map(function (v) { return v / l; });
+      var y = [z[1] * x[2] - z[2] * x[1], z[2] * x[0] - z[0] * x[2], z[0] * x[1] - z[1] * x[0]];
+      return [x[0], y[0], z[0], 0, x[1], y[1], z[1], 0, x[2], y[2], z[2], 0,
+        -(x[0] * e[0] + x[1] * e[1] + x[2] * e[2]), -(y[0] * e[0] + y[1] * e[1] + y[2] * e[2]), -(z[0] * e[0] + z[1] * e[1] + z[2] * e[2]), 1];
+    }
+    function nmat(m) {
+      var a = m[0], b = m[1], c = m[2], d = m[4], e = m[5], f = m[6], g = m[8], h2 = m[9], i = m[10];
+      var A0 = e * i - f * h2, B0 = -(d * i - f * g), C0 = d * h2 - e * g, det = a * A0 + b * B0 + c * C0 || 1e-6;
+      return [A0 / det, B0 / det, C0 / det, -(b * i - c * h2) / det, (a * i - c * g) / det, -(a * h2 - b * g) / det, (b * f - c * e) / det, -(a * f - c * d) / det, (a * e - b * d) / det];
+    }
+    function hex(s) { var v = parseInt(s.slice(1), 16); return [(v >> 16 & 255) / 255, (v >> 8 & 255) / 255, (v & 255) / 255]; }
+
+    var BODY = { 1: '#e2453c', 2: '#3f7fe4', 3: '#8f52e6' }[stage] || '#e2453c';
+    var FLOOR = { 1: '#5a2a2a', 2: '#22365e', 3: '#3e2660' }[stage] || '#5a2a2a';
+    var COL = { body: hex(BODY), dark: hex('#1c1416'), horn: hex('#fff0cc'), white: hex('#ffffff'), pants: hex('#ffd23a'),
+      mouth: hex('#4a0c10'), club: hex('#7a4a1e'), spike: hex('#c8c8d0'), floor: hex(FLOOR), ring: hex('#ffd34d'), shadow: hex('#140a12'), nose: hex(BODY).map(function (v) { return v * 0.8; }) };
+
+    // ---- ようす ----
+    var st = { hitT: -1e9, atkT: -1e9, rage: false, weak: false, mode: opts.mode || 'idle', modeT: performance.now(), drag: 0, dragV: 0 };
+    var VP, camE = [0, 1.8, 4.9], dead = false, raf = 0;
+    function draw(m, mesh, col, F, E) {
+      gl.uniformMatrix4fv(U.uMVP, false, mul(VP, m));
+      gl.uniformMatrix4fv(U.uM, false, m);
+      gl.uniformMatrix3fv(U.uNM, false, nmat(m));
+      gl.uniform3fv(U.uC, col); gl.uniform1f(U.uF, F || 0); gl.uniform3fv(U.uE, E || [0, 0, 0]);
+      gl.bindBuffer(gl.ARRAY_BUFFER, mesh.pb); gl.vertexAttribPointer(A.p, 3, gl.FLOAT, false, 0, 0); gl.enableVertexAttribArray(A.p);
+      gl.bindBuffer(gl.ARRAY_BUFFER, mesh.nb); gl.vertexAttribPointer(A.n, 3, gl.FLOAT, false, 0, 0); gl.enableVertexAttribArray(A.n);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.ib); gl.drawElements(gl.TRIANGLES, mesh.n, gl.UNSIGNED_SHORT, 0);
+    }
+    function resize() {
+      var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      var w = Math.max(1, Math.round(canvas.clientWidth * dpr)), h2 = Math.max(1, Math.round(canvas.clientHeight * dpr));
+      if (canvas.width !== w || canvas.height !== h2) { canvas.width = w; canvas.height = h2; }
+      gl.viewport(0, 0, w, h2);
+      return w / h2;
+    }
+    var reduce = false; try { reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+    function frame(now) {
+      if (dead) return;
+      if (!canvas.isConnected) { dead = true; return; }
+      raf = requestAnimationFrame(frame);
+      if (document.hidden) return;
+      var t = reduce ? 0 : now / 1000, asp = resize();
+      // 動きの計算
+      var bob = Math.sin(t * (st.rage ? 5 : 2.2)) * (st.weak ? 0.03 : 0.05), rotY = Math.sin(t * 0.6) * 0.28, lean = st.weak ? 0.12 : 0, shx = 0, lunge = 0, swing = 0, flash = 0, squint = st.weak ? 0.45 : 1, mouth = 1, yoff = 0, fall = 0, sc = 1, camShake = 0, xoff = 0;
+      var hh = (now - st.hitT) / 520;
+      if (hh >= 0 && hh < 1) { flash = Math.pow(1 - hh, 2) * 0.85; lean -= 0.4 * Math.sin(Math.PI * hh); shx = Math.sin(hh * 38) * 0.12 * (1 - hh); squint = 0.15; mouth = 1.8; camShake = 0.05 * (1 - hh); }
+      var aa = (now - st.atkT) / 750;
+      if (aa >= 0 && aa < 1) {
+        swing = aa < 0.35 ? -0.9 * (aa / 0.35) : aa < 0.55 ? -0.9 + 2.6 * ((aa - 0.35) / 0.2) : 1.7 * (1 - (aa - 0.55) / 0.45);
+        lunge = 0.9 * Math.sin(Math.PI * Math.min(1, aa * 1.3)); lean += 0.25 * Math.sin(Math.PI * aa); mouth = 2;
+        if (aa > 0.45 && aa < 0.75) camShake = 0.12 * (1 - (aa - 0.45) / 0.3);
+      }
+      if (st.drag === 0 && Math.abs(st.dragV) > 0.001) st.dragV *= 0.94;
+      rotY += st.dragV;
+      var md = (now - st.modeT) / 1000;
+      if (st.mode === 'defeat') {
+        var p1 = Math.min(1, md / 0.8), p2 = Math.max(0, Math.min(1, (md - 0.8) / 1.0));
+        flash = md < 0.8 ? 0.5 + 0.5 * Math.sin(md * 40) : 0; shx = md < 0.8 ? Math.sin(md * 60) * 0.1 : 0; squint = 0.12; mouth = 1.6;
+        fall = -1.45 * (p2 * p2); yoff = -0.3 * p2; sc = 1 - 0.25 * p2; rotY = 0.4 * p1; camShake = md < 0.8 ? 0.05 : 0;
+      } else if (st.mode === 'flee') {
+        var f1 = Math.min(1, md / 0.6), f2 = Math.max(0, (md - 0.6) / 1.4);
+        rotY = Math.PI * 0.5 * f1; xoff = 6 * f2 * f2; bob = Math.abs(Math.sin(md * 14)) * 0.18 * (md > 0.6 ? 1 : 0); squint = 0.5;
+      }
+      var E = st.rage ? [0.35 + 0.2 * Math.sin(t * 8), 0.05, 0] : [0, 0, 0];
+      // カメラ
+      var ce = [camE[0] + (Math.random() - 0.5) * camShake, camE[1] + (Math.random() - 0.5) * camShake, camE[2]];
+      VP = mul(persp(0.78, asp, 0.1, 50), look(ce, [0, 1.45, 0]));
+      gl.uniform3fv(U.uCam, ce);
+      gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.enable(gl.DEPTH_TEST); gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK); gl.frontFace(gl.CW);
+      // 床
+      if (!opts.noFloor) {
+        draw(C(T(0, -0.08, 0), S(3.2, 0.16, 2.2)), G.c, COL.floor);
+        draw(C(T(0, 0.005, 0), S(2.9, 0.01, 2.0)), G.c, COL.floor.map(function (v) { return v * 1.25; }));
+        draw(C(T(0, 0.012, 0), S(2.95, 0.012, 2.05)), G.c, COL.ring, 0, [0.25, 0.18, 0]);
+        draw(C(T(0, 0.016, 0), S(2.85, 0.012, 1.95)), G.c, COL.floor.map(function (v) { return v * 1.15; }));
+      }
+      // 影
+      var shs = Math.max(0.3, 1 - (bob + yoff) * 0.6) * sc;
+      draw(C(T(xoff + shx, 0.03, lunge), S(1.1 * shs, 0.01, 0.7 * shs)), G.c, COL.shadow);
+      // からだ全体
+      var R = C(T(xoff + shx, bob + yoff, lunge), RY(rotY), RX(lean), RX(fall), S(sc, sc, sc));
+      var body = COL.body;
+      draw(C(R, T(-0.38, 0.28, 0), S(0.26, 0.56, 0.26)), G.c, body, flash, E);
+      draw(C(R, T(0.38, 0.28, 0), S(0.26, 0.56, 0.26)), G.c, body, flash, E);
+      draw(C(R, T(-0.38, 0.03, 0.08), S(0.22, 0.1, 0.3)), G.s, COL.dark, flash);
+      draw(C(R, T(0.38, 0.03, 0.08), S(0.22, 0.1, 0.3)), G.s, COL.dark, flash);
+      draw(C(R, T(0, 1.15, 0), S(0.95, 0.8, 0.72)), G.s, body, flash, E);
+      draw(C(R, T(0, 0.68, 0), S(1.0, 0.42, 0.78)), G.s, COL.pants, flash);
+      [0.52, 0.72, 0.9].forEach(function (y, i) { draw(C(R, T(0, y, 0), RY(i * 0.7), S(i === 1 ? 0.99 : 0.93, 0.05, i === 1 ? 0.77 : 0.72)), G.c, COL.dark, flash); });
+      // 頭
+      var Hd = C(R, T(0, 2.15, 0.02), RX(st.mode === 'idle' ? Math.sin(t * 1.3) * 0.05 : 0));
+      draw(C(Hd, S(0.86, 0.8, 0.8)), G.s, body, flash, E);
+      draw(C(Hd, T(0, 0.42, -0.16), S(0.9, 0.5, 0.78)), G.s, COL.dark, flash);
+      draw(C(Hd, T(-0.42, 0.56, 0), RZ(0.38), T(0, 0.36, 0), S(0.19, 0.78, 0.19)), G.cone, COL.horn, flash);
+      draw(C(Hd, T(0.42, 0.56, 0), RZ(-0.38), T(0, 0.36, 0), S(0.19, 0.78, 0.19)), G.cone, COL.horn, flash);
+      draw(C(Hd, T(-0.86, -0.02, 0), S(0.14, 0.2, 0.12)), G.sl, body, flash, E);
+      draw(C(Hd, T(0.86, -0.02, 0), S(0.14, 0.2, 0.12)), G.sl, body, flash, E);
+      [-1, 1].forEach(function (sx) {
+        draw(C(Hd, T(0.29 * sx, 0.04, 0.66), S(0.18, 0.18 * squint, 0.12)), G.sl, COL.white, flash);
+        if (squint > 0.2) draw(C(Hd, T(0.27 * sx, 0.03, 0.76), S(0.085, 0.085 * Math.min(1, squint), 0.05)), G.sl, COL.dark);
+        draw(C(Hd, T(0.3 * sx, 0.25, 0.72), RZ(-0.5 * sx * (st.weak ? -0.4 : 1)), S(0.34, 0.09, 0.1)), G.b, COL.dark, flash);
+        draw(C(Hd, T(0.17 * sx, -0.36, 0.72), T(0, 0.08, 0), S(0.07, 0.18, 0.07)), G.cone, COL.white, flash);
+      });
+      draw(C(Hd, T(0, -0.12, 0.78), S(0.1, 0.08, 0.07)), G.sl, COL.nose, flash);
+      draw(C(Hd, T(0, -0.36, 0.64), S(0.4, 0.11 * mouth, 0.1)), G.s, COL.mouth, flash);
+      // 左うで
+      draw(C(R, T(-0.9, 1.4, 0), RZ(-0.55 - (st.weak ? 0.3 : 0)), T(0, -0.36, 0), S(0.17, 0.72, 0.17)), G.c, body, flash, E);
+      draw(C(R, T(-0.9, 1.4, 0), RZ(-0.55 - (st.weak ? 0.3 : 0)), T(0, -0.76, 0), S(0.2, 0.2, 0.2)), G.sl, body, flash, E);
+      // 右うで＋こんぼう
+      var Ar = C(R, T(0.9, 1.45, 0), RZ(0.5), RX(swing));
+      draw(C(Ar, T(0, -0.36, 0), S(0.17, 0.72, 0.17)), G.c, body, flash, E);
+      draw(C(Ar, T(0, -0.76, 0), S(0.21, 0.21, 0.21)), G.sl, body, flash, E);
+      var Cl = C(Ar, T(0, -0.76, 0), RZ(-0.55), RX(-0.1));
+      draw(C(Cl, T(0, 0.7, 0), S(0.2, 1.5, 0.2)), G.club, COL.club, flash);
+      draw(C(Cl, T(0, 1.45, 0), S(0.2, 0.08, 0.2)), G.sl, COL.club, flash);
+      for (var k = 0; k < 7; k++) { var ky = 0.75 + (k % 3) * 0.25, ka = k * 2.1; draw(C(Cl, T(Math.cos(ka) * 0.16, ky, Math.sin(ka) * 0.16), S(0.05, 0.05, 0.05)), G.sl, COL.spike, flash); }
+    }
+    raf = requestAnimationFrame(frame);
+    // 横にスワイプすると、鬼が回る（たてのスクロールはそのまま）
+    var px = null;
+    canvas.addEventListener('pointerdown', function (e) { px = e.clientX; st.drag = 1; });
+    canvas.addEventListener('pointermove', function (e) { if (px == null) return; st.dragV += (e.clientX - px) * 0.01; px = e.clientX; });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) { canvas.addEventListener(ev, function () { px = null; st.drag = 0; }); });
+    canvas.addEventListener('webglcontextlost', function (e) { e.preventDefault(); dead = true; if (opts.onLost) opts.onLost(); });
+    return {
+      hit: function () { st.hitT = performance.now(); },
+      attack: function () { st.atkT = performance.now(); },
+      setRage: function (v) { st.rage = !!v; },
+      setWeak: function (v) { st.weak = !!v; },
+      setMode: function (m) { st.mode = m; st.modeT = performance.now(); },
+      destroy: function () { dead = true; cancelAnimationFrame(raf); }
+    };
+  }
+
+  var ONI_TAUNT = ['ふはは！ その程度か！', 'まだまだ！', 'こんな問題も とけないのか？', 'おれさまの勝ちだな！'];
+  var ONI_OUCH = ['ぐわっ！', 'いたたた…', 'な、なんだと！', 'うぐぐ…', 'やるな…！'];
+  function oniBattle(items, results, stage) {
+    var dmgOf = function (it) { return it.p && it.p.boss ? 200 : 100; };
+    var maxHp = 0; items.forEach(function (it) { maxHp += dmgOf(it); });
+    var hp = maxHp, enraged = false, done = false;
+    items.forEach(function (it) { var r = results[it.pid]; if (r && r.correct) hp -= dmgOf(it); });
+    hp = Math.max(0, hp);
+
+    var el = h('section', 'ob ob-s' + stage);
+    el.setAttribute('aria-label', '鬼バトル');
+    var sky = h('div', 'ob-sky');
+    var top = h('div', 'ob-top');
+    top.appendChild(h('span', 'ob-name', (ONI_NAMES[stage] || '鬼') + ' があらわれた！'));
+    var hpWrap = h('div', 'ob-hp');
+    hpWrap.appendChild(h('span', 'ob-hp-l', 'HP'));
+    var bar = h('div', 'ob-hp-bar'), lag = h('div', 'ob-hp-lag'), fill = h('div', 'ob-hp-fill');
+    bar.appendChild(lag); bar.appendChild(fill); hpWrap.appendChild(bar);
+    var hpNum = h('span', 'ob-hp-n', '');
+    hpWrap.appendChild(hpNum);
+    top.appendChild(hpWrap);
+    sky.appendChild(top);
+    var stageEl = h('div', 'ob-stage');
+    var oni = h('div', 'ob-oni');
+    var o3 = null, cv = document.createElement('canvas');
+    cv.className = 'ob-cv';
+    cv.setAttribute('aria-label', (ONI_NAMES[stage] || '鬼') + '（3D）');
+    try { o3 = Oni3D(cv, stage, { onLost: function () { el.classList.remove('ob-3d'); cv.remove(); oni.innerHTML = bigOniSvg(stage); o3 = null; } }); } catch (e) { console.error(e); o3 = null; }
+    if (o3) { el.classList.add('ob-3d'); oni.appendChild(cv); } else oni.innerHTML = bigOniSvg(stage);
+    var bubble = h('div', 'ob-bubble', 'おれさまを たおせるかな？');
+    var fx = h('div', 'ob-fx');
+    stageEl.appendChild(oni); stageEl.appendChild(bubble); stageEl.appendChild(fx);
+    sky.appendChild(stageEl);
+    var log = h('div', 'ob-log', '問題に正かいすると こうげき！ ぜんぶ○で 鬼をたおせるよ。');
+    log.setAttribute('aria-live', 'polite');
+    sky.appendChild(log);
+    el.appendChild(sky);
+
+    function draw(instant) {
+      var pc = maxHp ? hp / maxHp * 100 : 0;
+      fill.style.width = pc + '%';
+      if (instant) lag.style.width = pc + '%'; else setTimeout(function () { lag.style.width = pc + '%'; }, 450);
+      fill.className = 'ob-hp-fill' + (pc <= 25 ? ' low' : pc <= 50 ? ' mid' : '');
+      hpNum.textContent = hp + ' / ' + maxHp;
+      el.classList.toggle('ob-weak', pc > 0 && pc <= 30);
+      if (o3) o3.setWeak(pc > 0 && pc <= 30);
+    }
+    draw(true);
+    function say(t) { bubble.textContent = t; bubble.classList.remove('pop'); void bubble.offsetWidth; bubble.classList.add('pop'); }
+    function anim(node, cls, ms) { node.classList.remove(cls); void node.offsetWidth; node.classList.add(cls); setTimeout(function () { node.classList.remove(cls); }, ms); }
+    function floatText(t, cls) {
+      var d = h('div', 'ob-float ' + (cls || ''), t);
+      fx.appendChild(d);
+      setTimeout(function () { d.remove(); }, 1300);
+    }
+    function slash(n) {
+      for (var i = 0; i < n; i++) {
+        (function (k) {
+          setTimeout(function () {
+            var s2 = h('div', 'ob-slash');
+            s2.style.setProperty('--r', (k % 2 ? 35 : -35) + 'deg');
+            fx.appendChild(s2);
+            setTimeout(function () { s2.remove(); }, 450);
+          }, k * 140);
+        })(i);
+      }
+    }
+    function sparks(n) {
+      for (var i = 0; i < n; i++) {
+        var sp = h('span', 'ob-spark'); sp.innerHTML = (S.Stars && S.Stars.SVG_STAR) || '';
+        sp.style.setProperty('--a', (i * (360 / n)) + 'deg');
+        sp.style.setProperty('--d', (60 + (i % 3) * 25) + 'px');
+        fx.appendChild(sp);
+        (function (x) { setTimeout(function () { x.remove(); }, 1000); })(sp);
+      }
+    }
+    function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+
+    return {
+      el: el,
+      answer: function (it, r) {
+        if (done || !r) return;
+        var boss = it.p && it.p.boss;
+        if (r.correct) {
+          var d = dmgOf(it);
+          var crit = !(r.hints > 0);
+          hp = Math.max(0, hp - d);
+          slash(boss ? 3 : crit ? 2 : 1);
+          setTimeout(function () {
+            if (o3) o3.hit(); else anim(oni, 'hit', 500);
+            floatText('-' + d, crit ? 'crit' : '');
+            if (crit) floatText(boss ? '必殺の一撃！' : '会心の一撃！', 'word');
+            sparks(crit ? 10 : 6);
+            draw(false);
+            if (hp <= 0) { say('ぐ…ぐわあああ！'); log.textContent = '鬼のHPが 0 になった！'; }
+            else { say(pick(ONI_OUCH)); log.textContent = (crit ? 'ヒントなしで ' : '') + d + ' のダメージ！'; }
+          }, 150);
+        } else {
+          anim(el, 'ouch', 600);
+          if (o3) o3.attack(); else anim(oni, 'atk', 600);
+          say(pick(ONI_TAUNT));
+          floatText('ミス！', 'miss');
+          log.textContent = '鬼のはんげき！ ヒントを見て、もう一度考えてみよう。';
+        }
+      },
+      // 問題を表示したとき（ボス問題で鬼がおこる）
+      enterBoss: function () {
+        if (enraged || done) return;
+        enraged = true;
+        el.classList.add('ob-rage');
+        if (o3) o3.setRage(true);
+        say(hp > 0 ? 'もうゆるさん！ 本気を出すぞ！' : '…');
+        log.textContent = 'さいごの問題！ 正かいで 200 のダメージ！';
+      },
+      finale: function () {
+        if (done) return;
+        done = true;
+        var win = hp <= 0;
+        var back = h('div', 'ob-end ' + (win ? 'win' : 'lose'));
+        back.setAttribute('role', 'status');
+        var o2 = h('div', 'ob-end-oni');
+        back.appendChild(o2);
+        var e3 = null, cv2 = document.createElement('canvas');
+        cv2.className = 'ob-cv';
+        try { e3 = Oni3D(cv2, stage, { mode: win ? 'defeat' : 'flee', noFloor: true }); } catch (e) { e3 = null; }
+        if (e3) { back.classList.add('ob-end-3d'); o2.appendChild(cv2); } else o2.innerHTML = bigOniSvg(stage);
+        if (win) {
+          for (var i = 0; i < 16; i++) {
+            var sp = h('span', 'ob-end-star'); sp.innerHTML = (S.Stars && S.Stars.SVG_STAR) || '';
+            sp.style.setProperty('--a', (i * 22.5) + 'deg');
+            sp.style.setProperty('--d', (110 + (i % 3) * 40) + 'px');
+            back.appendChild(sp);
+          }
+        }
+        back.appendChild(h('div', 'ob-end-big', win ? (ONI_NAMES[stage] || '鬼') + 'を たおした！' : (ONI_NAMES[stage] || '鬼') + 'は にげていった…'));
+        back.appendChild(h('div', 'ob-end-sub', win ? 'ぜんぶ○！ おめでとう！' : 'のこりHP ' + hp + '。ぜんぶ○で たおせるよ。またちょうせんしよう！'));
+        back.appendChild(h('div', 'ob-end-tap', 'タップしてけっかを見る'));
+        var gone = false;
+        function close() { if (gone) return; gone = true; back.remove(); }
+        back.addEventListener('click', close);
+        document.body.appendChild(back);
+        setTimeout(close, win ? 4500 : 3500);
+      }
+    };
+  }
+
   function oniRuns() { var ss = starState(); return ss && ss.oni ? ss.oni.run || 0 : 0; }
   // 自作のSVG：ツノとほのおの鬼ムズのしるし・鍵
   var SVG_ONI = '<svg class="oni-ic" viewBox="0 0 48 48" aria-hidden="true" focusable="false">' +
@@ -21204,6 +21841,8 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     var oniOpen = hasOni && oniUnlocked();
     var justOpened = oniOpen && openOni();   // 前からの記録で開けるようになっていたとき
     if (level === 'oni' && !oniOpen) level = 'easy';
+    var osd = oniStageData();
+    var stage = Math.min(osd.max, Math.max(1, Number(last.oniStage) || osd.max));
     var card = h('section', 'mm-setup');
     if (justOpened) card.appendChild(oniBanner());
     card.appendChild(h('p', 'mm-lead', 'これまでに学習した、いろいろな問題が出るよ。レベルと時間をえらんで「スタート」をおそう。'));
@@ -21229,6 +21868,28 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       return b;
     });
     card.appendChild(lv);
+    // 鬼ムズの「だん」（鬼ムズをえらんだときだけ出す）
+    var stWrap = h('div', 'mm-oni-stages');
+    stWrap.appendChild(h('h2', 'mm-h', '鬼の だん'));
+    var stRow = h('div', 'mm-choices mm-stages');
+    var stBtns = ONI_STAGE_INFO.map(function (si) {
+      var open = si.n <= osd.max;
+      var b = button('', 'mm-choice mm-stage' + (open ? '' : ' locked'), function () { if (!open) return; stage = si.n; mark(); });
+      b.dataset.stage = si.n;
+      var t = h('span', 'mm-choice-t');
+      if (!open) t.appendChild(svgSpan(SVG_LOCK, 'mm-lock-ic'));
+      t.appendChild(document.createTextNode(si.label));
+      b.appendChild(t);
+      b.appendChild(h('span', 'mm-choice-sub', open ? si.sub : oniStageLabel(si.n - 1) + 'を8わり以上○で さいごまで'));
+      var best = osd.best[si.n];
+      if (open && best) b.appendChild(h('span', 'mm-choice-sub mm-stage-best', 'さいこう ' + best.pts + 'ポイント' + (osd.boss[si.n] ? '・ボス撃破' : '')));
+      if (!open) b.disabled = true;
+      stRow.appendChild(b);
+      return b;
+    });
+    stWrap.appendChild(stRow);
+    stWrap.appendChild(h('p', 'mm-note', 'さいごに ボス問題 が出るよ。ヒントを使わずに○なら3ポイント、ヒント1つで2ポイント、2つ以上で1ポイント。ボス問題は2倍！'));
+    card.appendChild(stWrap);
     card.appendChild(h('h2', 'mm-h', '時間'));
     var tm = h('div', 'mm-choices mm-times');
     var tmBtns = matomeTimes().map(function (m) {
@@ -21241,7 +21902,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       return { b: b, sub: sub, m: m };
     });
     card.appendChild(tm);
-    var go = button('スタート ▶', 'primary mm-start', function () { startMatome(main, level, minutes); });
+    var go = button('スタート ▶', 'primary mm-start', function () { startMatome(main, level, minutes, level === 'oni' ? stage : 0); });
     var foot = h('div', 'mm-foot');
     foot.appendChild(go);
     card.appendChild(foot);
@@ -21252,33 +21913,37 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     main.appendChild(card);
     function mark() {
       lvBtns.forEach(function (b) { var on = b.dataset.id === level; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+      stWrap.hidden = level !== 'oni';
+      stBtns.forEach(function (b) { var on = Number(b.dataset.stage) === stage; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
       tmBtns.forEach(function (x) {
         var on = x.m === minutes;
         x.b.classList.toggle('on', on);
         x.b.setAttribute('aria-pressed', on);
-        var n = matomeCount(level, x.m);
+        var n = matomeCount(level, x.m, level === 'oni' ? stage : 0);
         x.sub.textContent = n ? '約' + n + '問' : '';
       });
     }
     mark();
   }
 
-  function startMatome(main, level, minutes) {
+  function startMatome(main, level, minutes, stage) {
     var built = null;
     var last = matomeLast();
-    try { built = matomeApi().build({ level: level, minutes: minutes, weak: last.weak || undefined }); }
+    stage = level === 'oni' ? Math.min(oniStageData().max, Math.max(1, Number(stage) || 1)) : 0;
+    try { built = matomeApi().build({ level: level, minutes: minutes, stage: stage || undefined, weak: last.weak || undefined }); }
     catch (e) { console.error('Matome.build', e); }
     var probs = built && Array.isArray(built.problems) ? built.problems.filter(Boolean) : [];
     if (!probs.length) { toast('問題を作れませんでした'); return; }
     var stamp = Date.now().toString(36);
     var st = {
-      level: level, minutes: minutes, stamp: stamp,
+      level: level, minutes: minutes, stamp: stamp, oniStage: stage || undefined,
       items: probs.map(function (p, i) { return { p: p, pid: 'mt-' + stamp + '-' + i, tag: p.tag || '' }; }),
       results: {}, elapsed: 0, timeUp: false
     };
     sessSave('matome', st);
     var l = matomeLast();
     l.level = level; l.minutes = minutes;
+    if (stage) l.oniStage = stage;
     sessSave('matome-last', l);
     runMatome(main, st);
   }
@@ -21363,7 +22028,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
 
     var start = firstOpen(items, st.results);
     var ctl = runSet(area, items, cfg.recKey, function () { finish(); }, {
-      results: st.results, start: start < 0 ? 0 : start, level: cfg.level,
+      results: st.results, start: start < 0 ? 0 : start, level: cfg.level, onBoss: cfg.onBoss,
       onAnswer: function (it, r, results, first) {
         st.results = cleanResults(items, results);
         if (cfg.onAnswer) { try { cfg.onAnswer(it, r, results, first); } catch (e) { console.error(e); } }
@@ -21407,10 +22072,17 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
 
   function runMatome(main, st) {
     var items = st.items;
+    var battle = st.oniStage ? oniBattle(items, st.results || {}, st.oniStage) : null;
     runTimed(main, st, {
-      sessKey: 'matome', recKey: 'matome', label: levelLabel(st.level) + '・' + st.minutes + '分', level: st.level,
+      before: battle ? battle.el : undefined,
+      onBoss: battle ? function () { battle.enterBoss(); } : undefined,
+      sessKey: 'matome', recKey: 'matome', label: levelLabel(st.level) + (st.oniStage ? ' ' + oniStageLabel(st.oniStage) : '') + '・' + st.minutes + '分', level: st.level,
+      onAnswer: function (it, r, results, first) {
+        if (battle && first) battle.answer(it, r);
+      },
       onFinish: function (took, n) {
         var res = st.results;
+        if (battle) battle.finale();
         var ok = 0;
         var byTag = {}, tagOrder = [];
         items.forEach(function (it) {
@@ -21438,7 +22110,21 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
           oniNew = openOni();
           if (oniNew) got = got.concat(starNewSince(before));
         }
-        matomeResult(main, st, { n: n, ok: ok, took: took, byTag: byTag, tagOrder: tagOrder, got: got, finished: finished, oniNew: oniNew });
+        var oni = null;
+        if (st.oniStage) {
+          oni = oniScore(items, res);
+          var od = oniStageData(), sk = st.oniStage, prevBest = od.best[sk];
+          oni.prevBest = prevBest ? prevBest.pts : null;
+          oni.record = !prevBest || oni.pts > prevBest.pts;
+          if (oni.record && oni.pts > 0) od.best[sk] = { pts: oni.pts, max: oni.max, t: Date.now() };
+          else if (!prevBest) oni.record = false;
+          if (oni.boss === 'win') od.boss[sk] = 1;
+          oni.clear = finished && items.length > 0 && ok / items.length >= 0.8;
+          oni.newStage = 0;
+          if (oni.clear && sk < 3 && od.max <= sk) { od.max = sk + 1; oni.newStage = sk + 1; }
+          sessSave('oni-stage', od);
+        }
+        matomeResult(main, st, { n: n, ok: ok, took: took, byTag: byTag, tagOrder: tagOrder, got: got, finished: finished, oniNew: oniNew, oni: oni });
       }
     });
   }
@@ -21503,10 +22189,36 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     score.appendChild(h('span', 'mm-score-of', ' / ' + st.items.length + '問'));
     box.appendChild(score);
     var meta = h('div', 'mm-meta');
-    meta.appendChild(h('span', null, levelLabel(st.level) + '・' + st.minutes + '分コース'));
+    meta.appendChild(h('span', null, levelLabel(st.level) + (st.oniStage ? ' ' + oniStageLabel(st.oniStage) : '') + '・' + st.minutes + '分コース'));
     meta.appendChild(h('span', null, 'かかった時間 ' + mmss(R.took)));
     if (R.n < st.items.length) meta.appendChild(h('span', null, 'のこした問題 ' + (st.items.length - R.n) + '問'));
     box.appendChild(meta);
+    if (R.oni) {
+      var O = R.oni, ob = h('div', 'mm-oni-pts');
+      if (O.newStage) {
+        var nb = h('div', 'oni-banner');
+        nb.setAttribute('role', 'status');
+        nb.appendChild(svgSpan(SVG_ONI, 'oni-banner-ic'));
+        var nt = h('div', 'oni-banner-tx');
+        nt.appendChild(h('div', 'oni-banner-big', oniStageLabel(O.newStage) + 'が開いた！'));
+        nt.appendChild(h('div', 'oni-banner-sub', 'つぎの だん「' + ONI_STAGE_INFO[O.newStage - 1].sub + '」に ちょうせんできるよ。'));
+        nb.appendChild(nt);
+        box.insertBefore(nb, box.firstChild);
+      }
+      ob.appendChild(h('div', 'mm-oni-pts-t', '鬼ポイント'));
+      var big = h('div', 'mm-oni-pts-big');
+      big.appendChild(h('span', 'mm-oni-pts-n', String(O.pts)));
+      big.appendChild(h('span', 'mm-oni-pts-of', ' / ' + O.max));
+      ob.appendChild(big);
+      if (O.record && O.pts > 0) ob.appendChild(h('div', 'mm-oni-rec', O.prevBest == null ? 'はじめての記録！' : '新記録！（前のさいこう ' + O.prevBest + '）'));
+      else if (O.prevBest != null) ob.appendChild(h('div', 'mm-oni-prev', 'さいこう記録 ' + O.prevBest + 'ポイント'));
+      var info = h('div', 'mm-oni-pts-info');
+      info.appendChild(h('span', null, 'ヒントなしで○ ' + O.noHint + '問'));
+      info.appendChild(h('span', 'boss-' + O.boss, O.boss === 'win' ? 'ボス：撃破！' : O.boss === 'lose' ? 'ボス：またちょうせん' : 'ボス：まだ'));
+      ob.appendChild(info);
+      if (!O.newStage && !O.clear && st.oniStage < 3 && oniStageData().max <= st.oniStage) ob.appendChild(h('p', 'mm-note', oniStageLabel(st.oniStage + 1) + 'は、' + oniStageLabel(st.oniStage) + 'を8わり以上○で さいごまでやると開くよ。'));
+      box.appendChild(ob);
+    }
 
     var tbl = h('div', 'mm-tags');
     tbl.appendChild(h('h2', 'mm-h', '内容ごとのできぐあい'));
@@ -21543,7 +22255,8 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     box.appendChild(gotBox);
 
     var row = h('div', 'matome-actions');
-    row.appendChild(button('もう一回（同じレベル・時間）', 'primary', function () { startMatome(main, st.level, st.minutes); }));
+    if (R.oni && R.oni.newStage) row.appendChild(button(oniStageLabel(R.oni.newStage) + 'に ちょうせん ▶', 'primary', function () { startMatome(main, st.level, st.minutes, R.oni.newStage); }));
+    row.appendChild(button('もう一回（同じレベル・時間）', R.oni && R.oni.newStage ? '' : 'primary', function () { startMatome(main, st.level, st.minutes, st.oniStage); }));
     row.appendChild(button('レベル・時間をえらぶ', '', function () { matomeSetup(main); }));
     row.appendChild(link('ホームへ', 'btn', '#/'));
     box.appendChild(row);

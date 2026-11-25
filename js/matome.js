@@ -130,8 +130,57 @@
     return { problems: problems, seconds: seconds, total: total };
   }
 
+  /* 鬼ムズの「だん」（追加9）：鬼1＝計算（けた数を多く）、鬼2＝文章題・くふう、鬼3＝ひらめき中心。
+     さいごに「ボス問題」を1問（p.boss = true）。stage がないときは今までと同じ。 */
+  var ONI_STAGES = {
+    1: { gens: ['oniAdd', 'oniMulDiv', 'oniAdd', 'oniMulDiv', 'oniMix'], ok: function (p) { return !/^word/.test(p.src.kind || ''); },
+         boss: 'oniAdd', bossOk: function (p) { return p.src.kind === 'mix4' || p.src.kind === 'add4'; } },
+    2: { gens: ['oniAdd', 'oniMix', 'oniMulDiv', 'oniMix'], ok: function (p) { return p.src.gen === 'oniMix' || /^word/.test(p.src.kind || ''); },
+         boss: 'oniAdd', bossOk: function (p) { return p.src.kind === 'word' && (p.src.ops || []).length >= 3; } },
+    3: { gens: ['oniIdea', 'oniMix', 'oniIdea', 'oniMulDiv', 'oniIdea'], ok: function () { return true; },
+         boss: 'oniIdea', bossOk: function (p) { return p.src.kind === 'card' || p.src.kind === 'mushikui'; } }
+  };
+  var BOSS_EXTRA = 30; // ボス問題は目安を少し長く
+  function buildOniStage(minutes, rng, stage) {
+    var cf = ONI_STAGES[stage], Gen = G(), seen = {}, lastKind = {};
+    var problems = [], seconds = [], total = 0, t, c, p;
+    // 先にボス問題を作って、その時間をとっておく
+    var boss = null;
+    for (t = 0; t < 300; t++) { c = Gen.make(cf.boss, rng); boss = c; if (cf.bossOk(c)) break; }
+    var bossSec = estimate(boss, 'oni') + BOSS_EXTRA;
+    seen[signature(boss)] = true;
+    var target = minutes * 60 - bossSec;
+    for (var i = 0; i < 200; i++) {
+      var name = cf.gens[i % cf.gens.length];
+      p = null;
+      for (t = 0; t < 60; t++) {
+        c = Gen.make(name, rng);
+        if (seen[signature(c)]) continue;
+        if (!cf.ok(c) && t < 50) continue;
+        p = c;
+        if (c.src.kind !== lastKind[name] || t >= 6) break;
+      }
+      if (!p) continue;
+      var sec = estimate(p, 'oni');
+      if (problems.length >= 2 && total + sec / 2 > target) break;
+      seen[signature(p)] = true;
+      lastKind[name] = p.src.kind;
+      p.id = 'M-' + (problems.length + 1);
+      problems.push(markTap(p, 'oni'));
+      seconds.push(sec);
+      total += sec;
+    }
+    boss.boss = true;
+    boss.id = 'M-BOSS';
+    problems.push(markTap(boss, 'oni'));
+    seconds.push(bossSec);
+    total += bossSec;
+    return { problems: problems, seconds: seconds, total: total };
+  }
+
   function build(opts) {
     opts = opts || {};
+    if (opts.level === 'oni' && ONI_STAGES[opts.stage]) return buildOniStage(Number(opts.minutes) > 0 ? Number(opts.minutes) : 10, typeof opts.rng === 'function' ? opts.rng : Math.random, opts.stage);
     if (opts.level === 'oni') return buildOni(Number(opts.minutes) > 0 ? Number(opts.minutes) : 10, typeof opts.rng === 'function' ? opts.rng : Math.random);
     var level = opts.level === 'easy' || opts.level === 'hard' ? opts.level : 'normal';
     var minutes = Number(opts.minutes) > 0 ? Number(opts.minutes) : 10;
