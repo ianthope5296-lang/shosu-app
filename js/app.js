@@ -1159,7 +1159,7 @@
         items.forEach(function (it) {
           var tag = it.tag || (it.p && it.p.tag) || '';
           // 鬼ムズは、内容（oni-add など）ごとに分ける
-          if (st.level === 'oni' && it.p && typeof it.p.skill === 'string' && MATOME_TAG_LABEL[it.p.skill]) tag = it.p.skill;
+          if (st.level === 'oni') { var osk = skillOfProblem(it.p); if (osk && MATOME_TAG_LABEL[osk]) tag = osk; }
           if (!byTag[tag]) { byTag[tag] = { n: 0, ok: 0, total: 0 }; tagOrder.push(tag); }
           byTag[tag].total++;
           var r = res[it.pid];
@@ -1169,7 +1169,8 @@
         var weak = {};
         tagOrder.forEach(function (t) { if (t && byTag[t].n) weak[t] = Math.round((1 - byTag[t].ok / byTag[t].n) * 100) / 100; });
         var l = matomeLast();
-        l.level = st.level; l.minutes = st.minutes; l.weak = weak; l.t = Date.now();
+        l.level = st.level; l.minutes = st.minutes; l.t = Date.now();
+        if (st.level !== 'oni') l.weak = weak;   // 鬼ムズは weak を使わない（7つの内容の記録はそのまま残す）
         sessSave('matome-last', l);
         var finished = n === items.length;
         var got = starLog('matome', { level: st.level, minutes: st.minutes, total: items.length, answered: n, correct: ok, finished: finished, seconds: Math.round(took / 1000) });
@@ -1268,7 +1269,7 @@
       tbl.appendChild(row);
     });
     box.appendChild(tbl);
-    box.appendChild(h('div', 'mm-weak', weakNames.length ? 'にがてな内容：' + weakNames.join('、') + '（次の回に少し多めに出るよ）' : 'にがてな内容は なかったよ。すばらしい！'));
+    box.appendChild(h('div', 'mm-weak', weakNames.length ? 'にがてな内容：' + weakNames.join('、') + (st.level === 'oni' ? '（ヒントを見ながら、もう一度ちょうせんしよう）' : '（次の回に少し多めに出るよ）') : 'にがてな内容は なかったよ。すばらしい！'));
     if (st.level === 'oni') { var rv = oniReview(st); if (rv) box.appendChild(rv); }
     else if (st.level === 'hard' && hasOniLevel() && !oniUnlocked()) box.appendChild(h('p', 'mm-note mm-oni-hint', '「鬼ムズ」は、' + ONI_LOCK_MSG + '。'));
 

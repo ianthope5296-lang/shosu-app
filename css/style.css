@@ -341,6 +341,7 @@ button.tab.on { background: var(--su, var(--primary)); border-color: var(--su, v
 /* 追加8：小数点を自分で打つマス（pointMode:'tap'） */
 .slot.slot-tap { gap: 0; align-items: flex-start; padding: 0 0.3rem; }
 .slot-tap .dot-zone { flex: none; width: 30px; min-height: calc(var(--cell, 76px) + 36px); }
+.slot-tap .dot-zone.need .dot-mark { border-color: var(--ng); border-style: solid; }
 .fill-tip { margin-top: 0.4rem; font-size: 0.9rem; color: var(--ink-soft); }
 .p-beyond {
   display: inline-block; margin-bottom: 0.4rem; padding: 0.05em 0.7em; font-size: 0.78rem; font-weight: bold;
@@ -380,6 +381,7 @@ button.tab.on { background: var(--su, var(--primary)); border-color: var(--su, v
 /* choice */
 .choice-row { display: flex; flex-wrap: wrap; gap: 1rem; margin: 0.6rem 0; }
 .choice-btn { min-width: 110px; min-height: 80px; font-size: 1.8rem; font-weight: bold; border-radius: 16px; border-width: 3px; }
+.choice-btn.long { font-size: 1.25rem; white-space: normal; max-width: 100%; min-width: 180px; line-height: 1.35; padding: 0.4rem 1rem; text-align: center; }
 .choice-btn.ok { border-color: var(--ok); background: var(--ok-bg); color: var(--ok); }
 .choice-btn.ng { border-color: var(--ng); background: var(--ng-bg); color: var(--ng); }
 .choice-btn:disabled { opacity: 0.4; }

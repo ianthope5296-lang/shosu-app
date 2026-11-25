@@ -349,6 +349,15 @@ button.tab.on { background: var(--su, var(--primary)); border-color: var(--su, v
   align-self: flex-start; margin-top: calc(var(--box, 76px) - 2.4rem); width: 0.4em; text-align: center;
 }
 .print-ch { font-size: 1.6rem; align-self: center; }
+/* 追加8：小数点を自分で打つマス（pointMode:'tap'） */
+.slot.slot-tap { gap: 0; align-items: flex-start; padding: 0 0.3rem; }
+.slot-tap .dot-zone { flex: none; width: 30px; min-height: calc(var(--cell, 76px) + 36px); }
+.slot-tap .dot-zone.need .dot-mark { border-color: var(--ng); border-style: solid; }
+.fill-tip { margin-top: 0.4rem; font-size: 0.9rem; color: var(--ink-soft); }
+.p-beyond {
+  display: inline-block; margin-bottom: 0.4rem; padding: 0.05em 0.7em; font-size: 0.78rem; font-weight: bold;
+  color: #8a2d12; background: #fff0e8; border: 1.5px solid #f0a07a; border-radius: 999px;
+}
 
 /* 手書きマス */
 .digit-cell { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; }
@@ -383,6 +392,7 @@ button.tab.on { background: var(--su, var(--primary)); border-color: var(--su, v
 /* choice */
 .choice-row { display: flex; flex-wrap: wrap; gap: 1rem; margin: 0.6rem 0; }
 .choice-btn { min-width: 110px; min-height: 80px; font-size: 1.8rem; font-weight: bold; border-radius: 16px; border-width: 3px; }
+.choice-btn.long { font-size: 1.25rem; white-space: normal; max-width: 100%; min-width: 180px; line-height: 1.35; padding: 0.4rem 1rem; text-align: center; }
 .choice-btn.ok { border-color: var(--ok); background: var(--ok-bg); color: var(--ok); }
 .choice-btn.ng { border-color: var(--ng); background: var(--ng-bg); color: var(--ng); }
 .choice-btn:disabled { opacity: 0.4; }
@@ -552,6 +562,37 @@ html, body { overflow-anchor: none; }
 .mm-foot { display: flex; justify-content: center; margin-top: 1.4rem; }
 .btn.mm-start { min-height: 76px; min-width: 300px; font-size: 1.6rem; }
 .mm-note { color: var(--ink-soft); text-align: center; margin: 0.8rem 0 0; }
+/* 鬼ムズ（追加8） */
+.mm-levels.mm-levels-oni { grid-template-columns: repeat(3, 1fr) 1.25fr; }
+@media (max-width: 700px) { .mm-levels.mm-levels-oni { grid-template-columns: repeat(2, 1fr); } }
+.btn.mm-choice.mm-oni {
+  background: linear-gradient(135deg, #7a0f1c, #c2241f 55%, #ff7a1a); border-color: #5c0a14; color: #fff;
+  text-shadow: 0 1px 2px rgba(60, 0, 0, .5); padding: 0.4rem 0.6rem;
+}
+.btn.mm-choice.mm-oni:hover:not(:disabled) { filter: brightness(1.08); }
+.btn.mm-choice.mm-oni.on { background: linear-gradient(135deg, #5c0a14, #b01818 55%, #ff6a00); border-color: #ffd34d; box-shadow: 0 0 0 4px rgba(255, 211, 77, .85), 0 0 18px rgba(255, 106, 0, .6); }
+.btn.mm-choice.mm-oni.locked, .btn.mm-choice.mm-oni:disabled {
+  background: repeating-linear-gradient(135deg, #4a4f5e 0 10px, #545a6a 10px 20px); border-color: #3a3e4a; color: #e8eaf0; opacity: 1; cursor: not-allowed;
+}
+.mm-oni .mm-choice-t { display: inline-flex; align-items: center; gap: 0.3em; font-size: 1.5rem; letter-spacing: 0.05em; }
+.mm-oni-ic svg { width: 1.7em; height: 1.7em; display: block; }
+.mm-lock-ic svg { width: 1.1em; height: 1.1em; display: block; color: #ffd34d; }
+.mm-oni-sub { font-size: 0.78rem; line-height: 1.3; opacity: 1; }
+.oni-banner {
+  display: flex; align-items: center; gap: 0.8rem; margin: 0 0 0.8rem; padding: 0.6rem 1rem; text-align: left;
+  background: linear-gradient(120deg, #7a0f1c, #c2241f 60%, #ff7a1a); color: #fff; border-radius: 14px;
+  border: 2px solid #ffd34d; box-shadow: 0 0 18px rgba(255, 106, 0, .45);
+}
+.oni-banner-ic svg { width: 56px; height: 56px; display: block; }
+.oni-banner-big { font-size: 1.5rem; font-weight: bold; }
+.oni-banner-sub { font-size: 0.95rem; }
+.mm-oni-review { text-align: left; margin-top: 0.8rem; }
+.mm-oni-item { padding: 0.35rem 0; border-bottom: 1px dashed var(--line); }
+.mm-oni-body { margin-top: 0.4rem; background: #eef6ff; border-left: 6px solid #5a8fd0; padding: 0.4rem 0.8rem; border-radius: 6px; white-space: pre-line; }
+.mm-oni-q { font-weight: bold; }
+.mm-oni-a { color: var(--ok); font-weight: bold; font-family: var(--num-font); }
+.mm-oni-hint { font-weight: bold; color: #8a2d12; }
+.mm-result-oni { border: 3px solid #c2241f; }
 
 .mm-status {
   position: sticky; top: 64px; z-index: 15;
@@ -3330,7 +3371,10 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
  *   { v:1, got:{星id: もらった時刻ms}, made:{tokenハッシュ: kind}, friend:{tokenハッシュ: {c:0|1, a:authorKeyハッシュ}},
  *     present:{tokenハッシュ:1}, more:もっとれんしゅう○の数(記録したぶん), title:いまの称号id, ev:[出来事の記録(新しい100こ)],
  *     plan:{日付:1}（今日の計画を立てた日）, refl:{日付: 1=めあて◎ | 2=計画どおり | 4=前回のTをやった}（ふりかえりを書いた日）,
- *     road:{goalIdハッシュ:1}（地図をやりきったゴール）, reco:おすすめモードをさいごまでやった回数（追加5） }
+ *     road:{goalIdハッシュ:1}（地図をやりきったゴール）, reco:おすすめモードをさいごまでやった回数（追加5）,
+ *     oni:{open:0|1, run:鬼ムズをやった回数, fin:さいごまでやった回数, ok:鬼ムズの○の合計}（追加8） }
+ * 追加8：鬼ムズの星（kind:'special', group:'oni', title:false）は、とくべつな星の合計（表示）には入るが、
+ *   称号の条件（とくべつな星のしゅるい・合計）には数えない。
  * token は長い（最大6000字）ので、ハッシュにしてから保存する。
  * classic script。Node でも require できる（DOM を使う部分は呼ばなければ動かない）。
  */
@@ -3353,6 +3397,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
   var MAKE_KINDS = ['hissan', 'fill', 'compare', 'masu', 'numberline'];
   var KIND_ALIAS = { word: 'fill', bunsho: 'fill', story: 'fill', daisho: 'compare', line: 'numberline', suchokusen: 'numberline' };
   var MORE_STEPS = [10, 30, 50];
+  var ONI_OK_STEPS = [10, 30, 50];
   var REFLECT_STEPS = [1, 5, 10];
   var DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
   var RF = { double: 1, planDone: 2, prevT: 4 };
@@ -3431,11 +3476,29 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       how: 'ちがう人が作った問題を、5人分といてみよう' });
     add({ id: 'sp-present', kind: 'special', group: 'present', label: '「みんなに見せる」で発表した', short: '発表した',
       how: '自分の問題を「みんなに見せる」で、みんなに発表しよう' });
+    // 鬼ムズ（追加8）8こ。とくべつな星だが、称号には関係しない（title:false）
+    add({ id: 'oni-open', kind: 'special', group: 'oni', sub: 'open', title: false, label: '鬼ムズを開いた', short: '鬼ムズを開いた',
+      how: 'まとめモード「むずかしい」を、8わり以上○で さいごまでやろう' });
+    add({ id: 'oni-fin1', kind: 'special', group: 'oni', sub: 'finish', title: false, label: '鬼ムズを さいごまで 1回', short: 'さいごまで1回',
+      how: 'まとめモード「鬼ムズ」を、さいごの問題までやろう' });
+    add({ id: 'oni-fin3', kind: 'special', group: 'oni', sub: 'finish', title: false, label: '鬼ムズを さいごまで 3回', short: 'さいごまで3回',
+      how: 'まとめモード「鬼ムズ」を、さいごの問題まで あわせて3回やろう' });
+    add({ id: 'oni-80', kind: 'special', group: 'oni', sub: 'good', title: false, label: '鬼ムズで 8わり以上○', short: '8わり以上○',
+      how: 'まとめモード「鬼ムズ」をさいごまでやって、8わり以上○をとろう' });
+    add({ id: 'oni-all', kind: 'special', group: 'oni', sub: 'good', title: false, label: '鬼ムズで 全問○', short: '全問○',
+      how: 'まとめモード「鬼ムズ」をさいごまでやって、ぜんぶ○にしよう' });
+    for (i = 0; i < ONI_OK_STEPS.length; i++) {
+      add({ id: 'oni-ok' + ONI_OK_STEPS[i], kind: 'special', group: 'oni', sub: 'ok', title: false,
+        label: '鬼ムズの問題で ○' + ONI_OK_STEPS[i] + 'こ', short: '○' + ONI_OK_STEPS[i] + 'こ',
+        how: '鬼ムズの問題で、○をあわせて' + ONI_OK_STEPS[i] + 'こ とろう' });
+    }
   })();
   var BY_ID = {};
   CATALOG.forEach(function (s) { BY_ID[s.id] = s; });
   var NORMAL_MAX = CATALOG.filter(function (s) { return s.kind === 'normal'; }).length;   // 67
-  var SPECIAL_MAX = CATALOG.filter(function (s) { return s.kind === 'special'; }).length; // 8
+  function forTitle(s) { return s.title !== false; }   // 鬼ムズの星（title:false）は称号の計算に入れない
+  var SPECIAL_MAX = CATALOG.filter(function (s) { return s.kind === 'special' && forTitle(s); }).length; // 8
+  var ONI_MAX = CATALOG.filter(function (s) { return s.group === 'oni'; }).length; // 8
 
   /* ---------- 自前のSVG（絵文字は使わない） ---------- */
   function starPts(cx, cy, ro, ri, n, rot) {
@@ -3530,7 +3593,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       return ls;
     } catch (e) { return null; }
   }
-  function blank() { return { v: 1, got: {}, made: {}, friend: {}, present: {}, more: 0, title: 'earth', ev: [], plan: {}, refl: {}, road: {}, reco: 0, fresh: true }; }
+  function blank() { return { v: 1, got: {}, made: {}, friend: {}, present: {}, more: 0, title: 'earth', ev: [], plan: {}, refl: {}, road: {}, reco: 0, oni: { open: 0, run: 0, fin: 0, ok: 0 }, fresh: true }; }
   function isObj(o) { return !!o && typeof o === 'object' && !Array.isArray(o); }
   function sanitize(d) {
     var s = blank();
@@ -3546,6 +3609,8 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     if (isObj(d.road)) for (k in d.road) s.road[k] = 1;
     var m = Number(d.more); s.more = isFinite(m) && m > 0 ? Math.floor(m) : 0;
     var rc = Number(d.reco); s.reco = isFinite(rc) && rc > 0 ? Math.floor(rc) : 0;
+    if (isObj(d.oni)) ['open', 'run', 'fin', 'ok'].forEach(function (f) { var x = Number(d.oni[f]); s.oni[f] = isFinite(x) && x > 0 ? Math.floor(x) : 0; });
+    if (s.oni.open) s.oni.open = 1;
     s.title = typeof d.title === 'string' && titleIndex(d.title) >= 0 ? d.title : 'earth';
     if (Array.isArray(d.ev)) s.ev = d.ev.filter(function (e) { return Array.isArray(e); }).slice(-100);
     return s;
@@ -3558,7 +3623,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
   }
   function save() {
     var o = { v: 1, got: state.got, made: state.made, friend: state.friend, present: state.present, more: state.more, title: state.title, ev: state.ev,
-      plan: state.plan, refl: state.refl, road: state.road, reco: state.reco };
+      plan: state.plan, refl: state.refl, road: state.road, reco: state.reco, oni: state.oni };
     var str;
     for (var tries = 0; tries < 3; tries++) {
       try { str = JSON.stringify(o); } catch (e) { return false; }
@@ -3666,7 +3731,16 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     var allKinds = MAKE_KINDS.every(function (x) { return kinds[x]; });
     return { made: made, allKinds: allKinds, kinds: countKeys(kinds), answered: answered, ok: ok, people: countKeys(people), present: countKeys(state.present) };
   }
-  function specialTotal() { var c = specialCounts(); return c.made + c.ok + c.present; }
+  function specialTotal() { var c = specialCounts(); return c.made + c.ok + c.present; }   // 称号の計算に使う とくべつな星の合計
+  function oniGot() { var n = 0; for (var id in state.got) if (BY_ID[id] && BY_ID[id].group === 'oni') n++; return n; }
+  function displayTotal() { return specialTotal() + oniGot(); }   // 表示する とくべつな星の合計（鬼ムズの星も入る）
+  // 鬼ムズ（level:'oni'）の1回の結果からもらえる星
+  function oniIds(d) {
+    var total = Number(d.total) || 0, correct = Number(d.correct) || 0, fin = !!d.finished, out = [];
+    if (fin && total >= 1 && correct >= total * 0.8) out.push('oni-80');
+    if (fin && total >= 1 && correct >= total) out.push('oni-all');
+    return out;
+  }
   function planCounts() {
     var refl = 0, dbl = 0, done = 0, prevT = 0;
     for (var d in state.refl) {
@@ -3714,6 +3788,10 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     if (pc.double >= 3) ids.push('reflect-double3');
     if (state.reco >= 1) ids.push('reco-1');
     if (state.reco >= 3) ids.push('reco-3');
+    if (state.oni.open) ids.push('oni-open');
+    if (state.oni.fin >= 1) ids.push('oni-fin1');
+    if (state.oni.fin >= 3) ids.push('oni-fin3');
+    ONI_OK_STEPS.forEach(function (n) { if (state.oni.ok >= n) ids.push('oni-ok' + n); });
     return ids;
   }
   // ids のうち、まだもらっていない星をもらう。カタログの順で返す
@@ -3727,8 +3805,8 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
 
   function summary() {
     var normal = 0, kinds = 0;
-    for (var id in state.got) { var s = BY_ID[id]; if (!s) continue; if (s.kind === 'normal') normal++; else kinds++; }
-    var total = specialTotal();
+    for (var id in state.got) { var s = BY_ID[id]; if (!s || !forTitle(s)) continue; if (s.kind === 'normal') normal++; else kinds++; }
+    var total = specialTotal();   // 称号の計算用（鬼ムズの星は入れない）
     var have = { normal: normal, specialKinds: kinds, specialTotal: total };
     var ti = 0;
     for (var i = 0; i < TITLES.length; i++) {
@@ -3742,7 +3820,9 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       need.specialKinds = Math.max(0, next.need.specialKinds - kinds);
       need.specialTotal = Math.max(0, next.need.specialTotal - total);
     }
-    return { normal: normal, normalMax: NORMAL_MAX, specialTotal: total, specialKinds: kinds, specialKindsMax: SPECIAL_MAX,
+    var og = oniGot();
+    return { normal: normal, normalMax: NORMAL_MAX, specialTotal: total + og, specialTotalForTitle: total, specialKinds: kinds, specialKindsMax: SPECIAL_MAX,
+      oni: { got: og, max: ONI_MAX, open: !!state.oni.open, run: state.oni.run, fin: state.oni.fin, ok: state.oni.ok },
       title: TITLES[ti], next: next, needForNext: need };
   }
   function plain(str) {
@@ -3799,7 +3879,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
 
   function log(type, data) {
     data = data || {};
-    var totalBefore = specialTotal(), extra = [], info = 0;
+    var totalBefore = displayTotal(), extra = [], info = 0;
     try {
       switch (type) {
         case 'lesson': info = Number(data.no) || 0; break;
@@ -3813,6 +3893,14 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
           info = data.correct ? 1 : 0;
           break;
         case 'matome':
+          if (String(data.level) === 'oni') {   // 鬼ムズ（追加8）：称号に関係するまとめの星は出さない
+            extra = oniIds(data);
+            state.oni.run++;
+            if (data.finished) state.oni.fin++;
+            state.oni.ok += Math.max(0, Math.floor(Number(data.correct) || 0));
+            info = 'oni:' + (Number(data.correct) || 0) + '/' + (Number(data.total) || 0) + (data.finished ? ':f' : '');
+            break;
+          }
           extra = matomeIds(data);
           info = String(data.level) + ':' + (Number(data.correct) || 0) + '/' + (Number(data.total) || 0) + (data.finished ? ':f' : '');
           break;
@@ -3851,6 +3939,10 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
           if (data.improved) extra.push('reco-up');
           info = (Number(data.minutes) || 0) + ':' + (Number(data.correct) || 0) + '/' + (Number(data.total) || 0) + (data.finished ? ':f' : '');
           break;
+        case 'oniUnlock':     // 鬼ムズが開いた（追加8）
+          state.oni.open = 1;
+          info = 1;
+          break;
         case 'roadmapDone':   // ゴールまでの地図をやりきった {goalId}
           state.road[hash(data.goalId != null && data.goalId !== '' ? data.goalId : 'goal')] = 1;
           info = 1;
@@ -3871,7 +3963,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
   // 起動時：前からの記録も星に変える。おいわいは連発せず、まとめて1回だけ表示する
   function evaluate() {
     try {
-      var totalBefore = specialTotal();
+      var totalBefore = displayTotal();
       // つくった問題（Store.myList）も「作った」に数える
       var my = [];
       try { my = S.Store && S.Store.myList ? S.Store.myList() || [] : []; } catch (e) { my = []; }
@@ -4181,15 +4273,25 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       sec.appendChild(rowOf('できるようになった', group('recommend').filter(function (s) { return s.sub === 'good'; })));
       wrap.appendChild(sec);
       // とくべつな星
-      var spAll = CATALOG.filter(function (s) { return s.kind === 'special'; });
+      var spAll = CATALOG.filter(function (s) { return s.kind === 'special' && forTitle(s); });
       sec = section('{S} とくべつな星', spAll, null, 'st-sec-sp');
       var tot = el('div', 'st-sp-total');
       tot.appendChild(rich(el('span', 'st-sp-total-v'), '{S}' + sm.specialTotal + 'こ'));
-      tot.appendChild(el('span', 'st-sp-total-l', '問題を1こ作るごと、ともだちの問題で○をとるごと、自分の問題を発表するごとに、とくべつな星が1こずつふえるよ（同じ問題は1回だけ）。'));
+      tot.appendChild(el('span', 'st-sp-total-l', '問題を1こ作るごと、ともだちの問題で○をとるごと、自分の問題を発表するごとに、とくべつな星が1こずつふえるよ（同じ問題は1回だけ）。' +
+        (sm.oni.got ? '鬼ムズの星（' + sm.oni.got + 'こ）も入っているよ。' : '')));
       sec.appendChild(tot);
       sec.appendChild(rowOf('もんだいづくり', group('make'), 'st-row-sp'));
       sec.appendChild(rowOf('ともだちの問題', group('friend'), 'st-row-sp'));
       sec.appendChild(rowOf('はっぴょう', group('present'), 'st-row-sp'));
+      wrap.appendChild(sec);
+      // 鬼ムズ（追加8）：とくべつな星の合計には入るが、称号には関係しない
+      sec = section('{S} 鬼ムズ（称号には関係しないよ）', group('oni'),
+        (state.oni.open ? 'まとめモードの「鬼ムズ」でもらえる、とくべつな星だよ。いま さいごまで ' + state.oni.fin + '回・○' + state.oni.ok + 'こ。'
+          : 'まとめモード「むずかしい」を8わり以上○で さいごまでやると、「鬼ムズ」が開くよ。') +
+        'とくべつな星の合計にはふえるけど、称号の条件には数えないよ。', 'st-sec-sp st-sec-oni');
+      sec.appendChild(rowOf('開いた・さいごまで', group('oni').filter(function (s) { return s.sub === 'open' || s.sub === 'finish'; }), 'st-row-sp'));
+      sec.appendChild(rowOf('できぐあい', group('oni').filter(function (s) { return s.sub === 'good'; }), 'st-row-sp'));
+      sec.appendChild(rowOf('○の数', group('oni').filter(function (s) { return s.sub === 'ok'; }), 'st-row-sp'));
       wrap.appendChild(sec);
     }
     render();
@@ -6108,6 +6210,9 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
  *   opts.reportRetry が true なら、×のあとやり直して○になったときにも onResult({..., retry:true, retried:true}) を呼ぶ
  *   （このときの correct は前に知らせた結果のまま。記録の○×は変えない）。
  * 戻り値の pause()/resume() で、時間の計測を止められる（おすすめモードで「みる」を重ねて開いている間など）。
+ * 追加8：fill の pointMode:'tap' … 小数点のある答えのスロットは「数字の数＋1」のマスにし、小数点は印刷せず、
+ *   マスの間をタップして打つ（筆算と同じ。1スロットに1つ）。丸つけは数でくらべる（先頭・末尾の0は許す）。
+ *   beyond:true の問題には「4年のはんいをこえる問題」の印を出す。
  */
 (function (S) {
   'use strict';
@@ -6240,6 +6345,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       au.appendChild(inkCanvas(problem.authorInk, { height: 40, width: 320, trim: true, lineWidth: 6, label: 'つくった人の名前' }));
       root.appendChild(au);
     }
+    if (problem.beyond) root.appendChild(h('div', 'p-beyond', '4年のはんいをこえる問題'));   // 追加8
     if (problem.q) root.appendChild(h('div', 'p-q', problem.q));
     if (hasInk(problem.qInk)) {
       var qi = h('div', 'p-qink');
@@ -6413,15 +6519,48 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
   }
 
   /* ================= fill ================= */
+  var TAP_RE = /^\d*\.\d+$|^\d+\.\d*$/;   // 数字と小数点1つだけの答え
+  function sigDigits(s) { return String(s).replace(/[^\d]/g, '').replace(/^0+/, '').replace(/0+$/, ''); }
   function renderFill(container, p, opts) {
     var f = Frame(container, p, opts, 'fill');
     var size = boxSize();
-    var slots = []; // {a, items:[{box}|{dot}]}
+    var slots = []; // {a, items:[{box}|{dot}]}　小数点を自分で打つマスは {a, tap:true, items:[{box}], zones, point}
     var line = h('div', 'fill-line');
     line.style.setProperty('--box', size + 'px');
+    // 追加8：pointMode:'tap' … 小数点のある答えは「数字の数＋1」のマス。小数点は印刷せず、マスの間をタップして打つ
+    var tapMode = p.pointMode === 'tap';
+    function tapSlot(a) {
+      var nd = a.replace(/\D/g, '').length + 1;
+      var slot = { a: a, tap: true, items: [], zones: [], point: null };
+      var se = h('span', 'slot slot-tap');
+      se.style.setProperty('--cell', size + 'px');
+      for (var i = 0; i < nd; i++) {
+        var b = S.Pad.digitBox({ size: size });
+        se.appendChild(b.el);
+        slot.items.push({ box: b });
+        if (i < nd - 1) {
+          (function (g) {
+            var z = h('button', 'dot-zone');
+            z.type = 'button';
+            z.setAttribute('aria-label', '小数点を打つ');
+            z.appendChild(h('span', 'dot-mark'));
+            z.addEventListener('click', function () {
+              slot.point = slot.point === g ? null : g;
+              slot.zones.forEach(function (zz, k) { zz.classList.toggle('on', k === slot.point); zz.classList.remove('ng', 'need'); });
+            });
+            slot.zones.push(z);
+            se.appendChild(z);
+          })(i);
+        }
+      }
+      line.appendChild(se);
+      slots.push(slot);
+    }
     (p.parts || []).forEach(function (part) {
       if (typeof part === 'string') {
         line.appendChild(h('span', 'fill-text', part));
+      } else if (part && part.a != null && tapMode && TAP_RE.test(String(part.a))) {
+        tapSlot(String(part.a));
       } else if (part && part.a != null) {
         var slot = { a: String(part.a), items: [] };
         var se = h('span', 'slot');
@@ -6440,6 +6579,8 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       }
     });
     f.body.appendChild(line);
+    var hasTap = slots.some(function (s) { return s.tap; });
+    if (hasTap) f.body.appendChild(h('div', 'fill-tip', '小数点は、数字と数字の間をタップして打とう。（左のマスは使わなくてもいいよ）'));
 
     function allBoxes() {
       var r = [];
@@ -6452,11 +6593,14 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
         if (typeof part === 'string') w.appendChild(h('span', null, part));
         else if (part && part.a != null) w.appendChild(h('span', 'answer-num', String(part.a)));
       });
+      if (hasTap) w.appendChild(h('span', 'answer-note', '（小数点の位置も くらべよう）'));
       return w;
     }
 
+    function clearZoneNg() { slots.forEach(function (s) { (s.zones || []).forEach(function (z) { z.classList.remove('ng', 'need'); }); }); }
     function initialActions() {
       allBoxes().forEach(function (b) { b.mark(null); });
+      clearZoneNg();
       f.showMark(null);
       if (f.mode === 'auto') f.setActions([button('こたえあわせ', 'primary check', check), f.hintButton(), f.memoButton()]);
       else f.setActions([button('答えを見る', 'primary show', selfShow), f.hintButton(), f.memoButton()]);
@@ -6480,20 +6624,49 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       slots.forEach(function (s) {
         s.items.forEach(function (it) { if (it.box && it.box.box.classList.contains('mark-ng')) it.box.clear(); });
       });
+      clearZoneNg();
       initialActions();
     }
 
     function check() {
-      var boxes = allBoxes();
-      var empty = boxes.filter(function (b) { return b.isEmpty(); });
+      clearZoneNg();
+      // ふつうのマスは全部、小数点を打つマスは1つ以上書いてあればよい（左の空のマスは使わなくてよい）
+      var empty = [];
+      slots.forEach(function (s) {
+        var bx = s.items.filter(function (it) { return it.box; }).map(function (it) { return it.box; });
+        if (s.tap) { if (bx.every(function (b) { return b.isEmpty(); })) empty = empty.concat(bx); }
+        else empty = empty.concat(bx.filter(function (b) { return b.isEmpty(); }));
+      });
       if (empty.length) {
         empty.forEach(function (b) { b.mark('unsure'); });
         f.setStatus('まだ書いていないマスがあるよ。', 'warn');
         return;
       }
-      var anyUnsure = false, readParts = [], slotOk = [];
+      var anyUnsure = false, readParts = [], slotOk = [], pointBad = [];
       slots.forEach(function (s, si) {
         var str = '', chars = [];
+        if (s.tap) {
+          s.items.forEach(function (it, i) {
+            if (!it.box.isEmpty()) {
+              var r = recognizeBox(it.box);
+              it.res = r;
+              var unsure = r.digit == null || r.conf < UNSURE;
+              if (unsure) { anyUnsure = true; it.box.mark('unsure'); }
+              var c = r.digit == null ? '?' : String(r.digit);
+              str += c;
+              chars.push({ ch: c, unsure: unsure });
+            } else it.res = { empty: true };
+            if (s.point === i) { str += '.'; chars.push({ ch: '.' }); }
+          });
+          if (si > 0) readParts.push({ ch: '、' });
+          readParts = readParts.concat(chars);
+          s.read = str;
+          var good = str.indexOf('?') < 0 && numEq(str.charAt(0) === '.' ? '0' + str : str, s.a);
+          slotOk.push(good);
+          // 小数点がない・位置ちがい（数字の並びはあっている）
+          pointBad.push(!good && str.indexOf('?') < 0 && (s.point === null || (sigDigits(str) !== '' && sigDigits(str) === sigDigits(s.a))));
+          return;
+        }
         s.items.forEach(function (it) {
           if (it.box) {
             var r = recognizeBox(it.box);
@@ -6509,6 +6682,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
         readParts = readParts.concat(chars);
         s.read = str;
         slotOk.push(str.indexOf('?') < 0 && numEq(str, s.a));
+        pointBad.push(false);
       });
       var rn = readNode(readParts);
       if (anyUnsure) {
@@ -6531,10 +6705,19 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
         f.showExplain();
         f.setActions([misreadButton(), f.nextButton()]);
       } else {
+        var anyPoint = false;
         slots.forEach(function (s, i) {
-          if (!slotOk[i]) s.items.forEach(function (it) { if (it.box) it.box.mark('ng'); });
+          if (slotOk[i]) return;
+          if (pointBad[i]) {
+            anyPoint = true;
+            // 数字は消さずに残す（小数点だけ打ち直せばよいように）。打った小数点に色をつける
+            if (s.point !== null && s.zones[s.point]) s.zones[s.point].classList.add('ng');
+            else s.zones.forEach(function (z) { z.classList.add('need'); });
+            return;
+          }
+          s.items.forEach(function (it) { if (it.box && !it.box.isEmpty()) it.box.mark('ng'); });
         });
-        w2.appendChild(h('div', 'msg', 'ざんねん。もう一度考えてみよう。'));
+        w2.appendChild(h('div', 'msg', anyPoint ? '小数点の位置を見直そう。' : 'ざんねん。もう一度考えてみよう。'));
         f.setStatus(w2, 'bad');
         f.showMark('ng');
         f.report(false, 'auto');
@@ -6563,7 +6746,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     var btns = [];
     var solved = false;
     (p.options || []).forEach(function (o) {
-      var b = button(String(o), 'choice-btn', function () { choose(o, b); });
+      var b = button(String(o), 'choice-btn' + (String(o).length > 6 ? ' long' : ''), function () { choose(o, b); });
       btns.push(b);
       row.appendChild(b);
     });
@@ -6701,7 +6884,6 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     var canon = full.indexOf('.') >= 0 ? full.replace(/0+$/, '').replace(/\.$/, '') : full;
     return { full: (neg ? '-' : '') + full, canon: (neg ? '-' : '') + canon, value: (neg ? -1 : 1) * r / Math.pow(10, nd) };
   }
-  function sigDigits(s) { return String(s).replace(/[^\d]/g, '').replace(/^0+/, '').replace(/0+$/, ''); }
 
   function renderHissan(container, p, opts) {
     if (!p.hints || !p.hints.length) {
@@ -7478,6 +7660,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
  *   細かい技能（おすすめモード用。担当O）。下の「細かい技能」を見よ。
  * 小数の計算は、浮動小数の誤差をさけるため整数（100倍・1000倍）で行い、文字列にする。
  * 生成した問題には src（再検証用の元データ）を付ける。
+ * 鬼ムズ（追加8）：make('oniAdd'|'oniMulDiv'|'oniMix'|'oniIdea', rng)。oniNames() で名前。names() には入れない。
  */
 (function (S) {
   'use strict';
@@ -9012,6 +9195,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
   function skillOf(p) {
     if (!p || typeof p !== 'object') return null;
     var src = p.src || {}, gen = src.gen, t = textOf(p);
+    if (ONI_SKILL[gen]) return src.skill || ONI_SKILL[gen]; // 鬼ムズ
     if (p.type === 'hissan' && p.a != null && p.b != null) {
       try { return hissanSkill(p.op === '-' ? '-' : '+', String(p.a), String(p.b)); } catch (e) { return p.op === '-' ? 'sub-borrow' : 'add-carry'; }
     }
@@ -9090,6 +9274,730 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     return last;
   }
 
+  // =====================================================================
+  // 鬼ムズ（まとめモードの level 'oni'。追加8・担当U）
+  //   make('oniAdd'|'oniMulDiv'|'oniMix'|'oniIdea', rng) … level・skill は見ない（いつも鬼ムズ）。
+  //   tag は 'oni'、src.skill は 'oni-add' など、src.kind は問題の種類。4年の範囲をこえるものは beyond:true。
+  //   ヒントは3段階（何を考えるか → 途中まで → 見つけ方）。答えそのものはヒントに出さない。explain は正解後の説明。
+  //   数は 1000倍した整数で計算する（浮動小数を使わない）。
+  // =====================================================================
+  var ONI_NAMES = ['oniAdd', 'oniMulDiv', 'oniMix', 'oniIdea'];
+  var ONI_SKILL = { oniAdd: 'oni-add', oniMulDiv: 'oni-muldiv', oniMix: 'oni-mix', oniIdea: 'oni-idea' };
+  var BEYOND = 'まだ習っていないけど、0.1や0.01の何こ分で考えればできるよ。';
+  var UNIT_OF = ['1', '0.1', '0.01', '0.001'];
+  var TEN_TEXT = ['', '0.1が10こで1だよ。', '0.01が100こで1、10こで0.1だよ。', '0.001が1000こで1、100こで0.1、10こで0.01だよ。'];
+
+  function F(v) { return fmt(v, 3); }            // 1000倍の整数 → 小数の文字列
+  function decOf(v) { return decimals(F(v)); }    // 1000倍の整数の小数のけた数
+  function cnt(v) { return v / POW[3 - decOf(v)]; } // 「0.01 が何こ」の「何こ」（いちばん下の位の単位で）
+  function opc(op) { return op === '+' ? '＋' : '−'; }
+  // [lo, hi]（1000倍）の中で、小数第e位まで（第e位は0でない。e=0 は整数）の数
+  function oniNum(rng, lo, hi, e) {
+    var u = POW[3 - e], a = Math.ceil(lo / u), b = Math.floor(hi / u);
+    for (var t = 0; t < 200; t++) {
+      var k = ri(rng, a, b);
+      if (e === 0 || k % 10 !== 0) return k * u;
+    }
+    return (a % 10 === 0 ? a + 1 : a) * u; // ここにはふつう来ない
+  }
+  function padTo(s, e) { var p = s.split('.'), f = p[1] || ''; while (f.length < e) f += '0'; return p[0] + '.' + f; }
+  function chainText(nums, ops) {
+    var s = F(nums[0]);
+    for (var i = 1; i < nums.length; i++) s += opc(ops[i - 1]) + F(nums[i]);
+    return s;
+  }
+  function chainSteps(nums, ops) {
+    var acc = nums[0], out = [];
+    for (var i = 1; i < nums.length; i++) { acc = ops[i - 1] === '+' ? acc + nums[i] : acc - nums[i]; out.push(acc); }
+    return out;
+  }
+  function exprFill(q, text, ans) { return { type: 'fill', tag: 'oni', q: q, parts: [text + '＝', { a: F(ans) }] }; }
+
+  // ヒントに答えが出ていないか（1けたの整数の答えは見ない）
+  function oniLeak(p) {
+    var ans = [];
+    if (p.type === 'fill') p.parts.forEach(function (x) { if (x && typeof x === 'object') ans.push(String(x.a)); });
+    if (p.type === 'choice') ans.push(p.a, p.src.ansVal);
+    return ans.some(function (a) {
+      if (!a || (a.length < 2 && a.indexOf('.') < 0)) return false;
+      return p.hints.some(function (h) {
+        if (p.type === 'choice' && h.indexOf(p.a) >= 0) return true;
+        return (h.match(/\d+(?:\.\d+)?/g) || []).indexOf(a) >= 0;
+      });
+    });
+  }
+  function oniMake(name, one, rng) {
+    var p;
+    for (var t = 0; t < 60; t++) { p = one(rng); if (!oniLeak(p)) break; }
+    p.tag = 'oni';
+    p.src.skill = ONI_SKILL[name];
+    if (!p.beyond) delete p.beyond;
+    return finish(name, p);
+  }
+
+  // ---------- ① たし算・ひき算（大きな数、小数第三位、3〜4この数、文章題）----------
+  var ONI_WORD_UNITS = {
+    L: { big: 'L', small: 'mL', dl: true },
+    km: { big: 'km', small: 'm' },
+    kg: { big: 'kg', small: 'g' }
+  };
+  var ONI_WORDS = [
+    { u: 'L', ops: ['-', '+', '-'], start: [8000, 30000], q: function (v) { return '水そうに水が' + v[0] + '入っています。はじめに' + v[1] + '使い、つぎに' + v[2] + '入れて、さいごに' + v[3] + '使いました。水そうの水は何Lになりましたか。'; }, ans: ['水そうの水は', 'Lになりました。'] },
+    { u: 'L', ops: ['-', '-', '-'], start: [5000, 20000], q: function (v) { return 'お楽しみ会のために、ジュースを' + v[0] + '用意しました。ゆいさんのはんが' + v[1] + '、そうたさんのはんが' + v[2] + '、先生が' + v[3] + '飲みました。ジュースののこりは何Lですか。'; }, ans: ['のこりは', 'Lです。'] },
+    { u: 'km', ops: ['+', '+', '+'], start: [1000, 9000], q: function (v) { return '家から公園まで' + v[0] + '、公園から図書館まで' + v[1] + '、図書館から駅まで' + v[2] + '、駅から家まで' + v[3] + 'あります。家から公園・図書館・駅を通って家にもどると、道のりは全部で何kmですか。'; }, ans: ['道のりは全部で', 'kmです。'] },
+    { u: 'km', ops: ['-', '-'], start: [10000, 30000], q: function (v) { return 'ハイキングコースは全部で' + v[0] + 'あります。午前中に' + v[1] + '、お昼ごはんのあとに' + v[2] + '歩きました。ゴールまで、のこりは何kmですか。'; }, ans: ['のこりは', 'kmです。'] },
+    { u: 'kg', ops: ['+', '+', '-'], start: [500, 3000], q: function (v) { return 'リュックサックの重さは' + v[0] + 'です。そこに' + v[1] + 'の本と' + v[2] + 'の水とうを入れ、あとで' + v[3] + 'のおべんとうを取り出しました。リュックサック全体の重さは何kgになりましたか。'; }, ans: ['全体の重さは', 'kgになりました。'] },
+    { u: 'kg', ops: ['-', '-', '+'], start: [5000, 20000], q: function (v) { return '小麦粉が' + v[0] + 'ありました。パンを作るのに' + v[1] + '、クッキーを作るのに' + v[2] + '使いました。そのあと' + v[3] + '買い足しました。小麦粉は何kgになりましたか。'; }, ans: ['小麦粉は', 'kgになりました。'] }
+  ];
+  function wordQty(rng, form, lo, hi) { // 1000倍（小さい単位の数）
+    if (form === 'dec') return oniNum(rng, lo, hi, ri(rng, 1, 3));
+    if (form === 'mix') return ri(rng, Math.max(1, Math.floor(lo / 1000)), Math.max(1, Math.floor(hi / 1000))) * 1000 + wpick(rng, [[2, ri(rng, 1, 9)], [3, ri(rng, 10, 99)], [4, ri(rng, 100, 999)]]);
+    if (form === 'small') return wpick(rng, [[1, ri(rng, 10, 99)], [4, ri(rng, 100, 999)]]);
+    return ri(rng, 1, 9) * 100; // dL
+  }
+  function wordShow(v, form, U) {
+    if (form === 'dec') return F(v) + U.big;
+    if (form === 'mix') return Math.floor(v / 1000) + U.big + (v % 1000) + U.small;
+    if (form === 'small') return v + U.small;
+    return (v / 100) + 'dL';
+  }
+  function oniAddWord(rng) {
+    var sc = pick(rng, ONI_WORDS), U = ONI_WORD_UNITS[sc.u], vals, forms, t;
+    for (t = 0; t < 500; t++) {
+      forms = [rng() < 0.6 ? 'dec' : 'mix'];
+      var opts = U.dl ? ['dec', 'dec', 'mix', 'small', 'dl'] : ['dec', 'dec', 'mix', 'small'];
+      for (var i = 0; i < sc.ops.length; i++) forms.push(pick(rng, opts));
+      var conv = forms.filter(function (f) { return f !== 'dec'; }).length;
+      if (conv < 1 || conv > 3 || forms.indexOf('dec') < 0) continue;
+      vals = forms.map(function (f, k) { return k === 0 ? wordQty(rng, f, sc.start[0], sc.start[1]) : wordQty(rng, f, 150, 4500); });
+      if (vals.some(function (v, k) { return forms[k] === 'mix' && v % 1000 === 0; })) continue;
+      var steps = chainSteps(vals, sc.ops);
+      if (steps.some(function (s) { return s <= 0; })) continue;
+      var last = steps[steps.length - 1];
+      if (last % 1000 === 0 || last >= 1000000) continue;
+      break;
+    }
+    var shows = vals.map(function (v, k) { return wordShow(v, forms[k], U); });
+    var ans = chainSteps(vals, sc.ops).pop();
+    var expr = chainText(vals, sc.ops);
+    var ci = forms.indexOf(forms.filter(function (f) { return f !== 'dec'; })[0]);
+    var hasDl = forms.indexOf('dl') >= 0;
+    return {
+      type: 'fill', tag: 'oni',
+      q: sc.q(shows),
+      parts: [sc.ans[0], { a: F(ans) }, sc.ans[1]],
+      hints: [
+        '単位を' + U.big + 'にそろえよう。「' + shows[ci] + '」は何' + U.big + 'かな？　1' + U.small + '＝0.001' + U.big + (hasDl ? '、1dL＝0.1L' : '') + 'だよ。',
+        '単位をそろえると、式は ' + expr + ' になるね。',
+        '前から順に、小数点の位置をたてにそろえて計算しよう。ひけない位は、1つ上の位からくり下げるよ。'
+      ],
+      explain: '単位を' + U.big + 'にそろえると、' + expr + '＝' + F(ans) + '（' + U.big + '）だよ。',
+      src: { kind: 'word', u: U.big, show: shows, ops: sc.ops.slice(), expr: vals.map(F).join('|') }
+    };
+  }
+  function oniAdd1(rng) {
+    var kind = wpick(rng, [[3, 'mix3'], [2, 'mix4'], [2, 'intSub'], [1, 'add4'], [3, 'word']]);
+    if (kind === 'word') return oniAddWord(rng);
+    var nums, ops, es, t, n, i;
+    for (t = 0; t < 2000; t++) {
+      if (kind === 'mix3') ops = pick(rng, [['+', '-'], ['-', '+'], ['-', '-']]);
+      else if (kind === 'mix4') ops = pick(rng, [['+', '-', '+'], ['-', '+', '-'], ['+', '+', '-'], ['-', '-', '+'], ['+', '-', '-']]);
+      else if (kind === 'add4') ops = ['+', '+', '+'];
+      else ops = rng() < 0.5 ? ['-', '-'] : ['-', '-', '-'];
+      n = ops.length + 1;
+      es = [];
+      for (i = 0; i < n; i++) es.push(ri(rng, 1, 3));
+      if (kind === 'intSub') es[0] = 0;
+      if (es.indexOf(3) < 0) es[ri(rng, 1, n - 1)] = 3;
+      if (es.filter(function (e, k) { return es.indexOf(e) === k; }).length < 2) continue;
+      nums = [];
+      if (kind === 'intSub') nums.push(rng() < 0.6 ? pick(rng, [10, 20, 30, 50, 100]) * 1000 : oniNum(rng, 11000, 99000, 0));
+      else nums.push(oniNum(rng, 10000, 299999, es[0]));
+      for (i = 1; i < n; i++) nums.push(rng() < 0.4 ? oniNum(rng, 100, 9999, es[i]) : oniNum(rng, 10000, kind === 'intSub' ? 39999 : 79999, es[i]));
+      var steps = chainSteps(nums, ops);
+      if (steps.some(function (s) { return s <= 0; })) continue;
+      var fin = steps[steps.length - 1];
+      if (fin >= 1000000 || fin === 0) continue;
+      var acc = nums[0], k = 0;
+      for (i = 1; i < n; i++) {
+        k += ops[i - 1] === '+' ? (kind === 'add4' ? carryCount(acc, nums[i]) : 0) : borrowCount(acc, nums[i]);
+        acc = ops[i - 1] === '+' ? acc + nums[i] : acc - nums[i];
+      }
+      if (k < (kind === 'add4' ? 3 : 2)) continue;
+      break;
+    }
+    var st = chainSteps(nums, ops), ans = st[st.length - 1];
+    var maxE = Math.max.apply(null, nums.map(decOf));
+    var shortN = nums.filter(function (v) { return decOf(v) < maxE; })[0];
+    var h1 = 'けたの数がちがう数は、小数点の位置をたてにそろえて書こう。' + (shortN !== undefined ? F(shortN) + 'は「' + padTo(F(shortN), maxE) + '」と考えるといいよ。' : '');
+    var h2 = '前から順に計算しよう。はじめの ' + F(nums[0]) + opc(ops[0]) + F(nums[1]) + ' は ' + F(st[0]) + ' だね。';
+    var h3 = kind === 'add4'
+      ? 'くり上がりの1を わすれないように、小さく書いておこう。のこりの数も 同じように順に たしていこう。'
+      : 'ひけない位は、1つ上の位から1くり下げよう。上の位が0のときは、さらに上の位から順にくり下げるよ。';
+    var ex = [], acc2 = nums[0];
+    for (var j = 1; j < nums.length; j++) { ex.push(F(acc2) + opc(ops[j - 1]) + F(nums[j]) + '＝' + F(st[j - 1])); acc2 = st[j - 1]; }
+    var p = exprFill('計算しましょう。', chainText(nums, ops), ans);
+    p.hints = [h1, h2, h3];
+    p.explain = '前から順に、' + ex.join('、') + '。小数点の位置をそろえて計算するよ。';
+    p.src = { kind: kind, nums: nums.map(F), ops: ops };
+    return p;
+  }
+  gens.oniAdd = function (rng) { return oniMake('oniAdd', oniAdd1, rng); };
+
+  // ---------- ② 小数×整数・小数÷整数（わりきれるもの。4年の後半の内容）----------
+  var ONI_WMUL = [
+    { u: 'm', q: function (a, m) { return 'リボンを1人に' + a + 'mずつ、' + m + '人に配ります。リボンは全部で何mいりますか。'; }, ans: ['全部で', 'mいります。'] },
+    { u: 'L', q: function (a, m) { return '1本' + a + 'Lのジュースが' + m + '本あります。ジュースは全部で何Lですか。'; }, ans: ['全部で', 'Lです。'] },
+    { u: 'kg', q: function (a, m) { return '1こ' + a + 'kgのかんづめが' + m + 'こあります。かんづめの重さは全部で何kgですか。'; }, ans: ['全部で', 'kgです。'] }
+  ];
+  var ONI_WDIV = [
+    { u: 'L', q: function (a, d) { return a + 'Lのジュースを' + d + '人で同じように分けます。1人分は何Lですか。'; }, ans: ['1人分は', 'Lです。'] },
+    { u: 'm', q: function (a, d) { return a + 'mのリボンを' + d + '等分します。1本の長さは何mですか。'; }, ans: ['1本の長さは', 'mです。'] },
+    { u: 'kg', q: function (a, d) { return a + 'kgのさとうを、' + d + 'つのふくろに同じ重さずつ入れます。1ふくろは何kgですか。'; }, ans: ['1ふくろは', 'kgです。'] }
+  ];
+  function mulHints(as, m, A, e) {
+    var u = UNIT_OF[e];
+    return [
+      as + '×' + m + ' は、' + u + ' が ' + A + 'こ の ' + m + 'つ分 と考えよう。' + BEYOND,
+      A + '×' + m + '＝' + (A * m) + '。' + u + ' が ' + (A * m) + 'こ は いくつかな？',
+      TEN_TEXT[e] + 'だから、' + (A * m) + ' の右から' + e + 'けたのところに小数点を打てばいいね。小数点より右のいちばん後ろの0は消そう。'
+    ];
+  }
+  function divHints(ds, d, N, q, e) {
+    var u = UNIT_OF[e];
+    return [
+      ds + '÷' + d + ' は、' + u + ' が ' + N + 'こ を ' + d + 'つに同じ数ずつ分ける と考えよう。' + BEYOND,
+      N + '÷' + d + '＝' + q + '。' + u + ' が ' + q + 'こ は いくつかな？',
+      TEN_TEXT[e] + 'だから、' + q + ' の右から' + e + 'けたのところに小数点を打てばいいね。一の位が0なら「0.」と書くよ。'
+    ];
+  }
+  function oniMulDiv1(rng) {
+    var kind = wpick(rng, [[3, 'mul1'], [2, 'mul2'], [3, 'div'], [1, 'wordMul'], [1, 'wordDiv']]);
+    var e, A, m, t, p, sc;
+    if (kind === 'mul1' || kind === 'mul2' || kind === 'wordMul') {
+      var two = kind === 'mul2' || (kind === 'wordMul' && rng() < 0.4);
+      for (t = 0; t < 200; t++) {
+        if (!two && rng() < 0.15) { var sp = pick(rng, [[125, 3, 8], [25, 2, 4], [375, 3, 8], [75, 2, 4], [125, 3, 4], [25, 2, 8]]); A = sp[0]; e = sp[1]; m = sp[2]; break; }
+        if (two) { e = rng() < 0.6 ? 2 : 1; m = ri(rng, 11, 25); A = e === 1 ? ri(rng, 11, 99) : ri(rng, 11, 499); }
+        else { e = wpick(rng, [[2, 1], [3, 2], [2, 3]]); m = ri(rng, 2, 9); A = e === 1 ? ri(rng, 11, 299) : e === 2 ? ri(rng, 11, 999) : ri(rng, 11, 2999); }
+        if (A % 10 !== 0) break;
+      }
+      var a = A * POW[3 - e], as = F(a), ans = a * m;
+      if (kind === 'wordMul') {
+        sc = pick(rng, ONI_WMUL);
+        p = { type: 'fill', tag: 'oni', q: sc.q(as, m), parts: [sc.ans[0], { a: F(ans) }, sc.ans[1]] };
+        p.hints = mulHints(as, m, A, e);
+        p.hints[0] = '「1つ分の量 × いくつ分」で、式は ' + as + '×' + m + ' だね。' + p.hints[0];
+      } else {
+        p = exprFill('計算しましょう。', as + '×' + m, ans);
+        p.hints = mulHints(as, m, A, e);
+      }
+      p.explain = as + '×' + m + ' は、' + UNIT_OF[e] + ' が ' + A + '×' + m + '＝' + (A * m) + 'こ分だから、' + F(ans) + ' だよ。';
+      p.src = { kind: kind, op: '*', a: as, b: String(m) };
+    } else {
+      var q, d, N;
+      for (t = 0; t < 400; t++) {
+        e = wpick(rng, [[3, 1], [3, 2], [1, 3]]);
+        d = ri(rng, 2, 9);
+        q = e === 1 ? ri(rng, 11, 99) : e === 2 ? ri(rng, 1, 499) : ri(rng, 1, 299);
+        if (q % 10 === 0) continue;
+        N = q * d;
+        if (N % 10 !== 0) break;
+      }
+      var ds = F(N * POW[3 - e]), qa = q * POW[3 - e];
+      if (kind === 'wordDiv') {
+        sc = pick(rng, ONI_WDIV);
+        p = { type: 'fill', tag: 'oni', q: sc.q(ds, d), parts: [sc.ans[0], { a: F(qa) }, sc.ans[1]] };
+        p.hints = divHints(ds, d, N, q, e);
+        p.hints[0] = '同じように分けるから、式は ' + ds + '÷' + d + ' だね。' + p.hints[0];
+      } else {
+        p = exprFill('計算しましょう。', ds + '÷' + d, qa);
+        p.hints = divHints(ds, d, N, q, e);
+      }
+      p.explain = ds + '÷' + d + ' は、' + UNIT_OF[e] + ' が ' + N + '÷' + d + '＝' + q + 'こ分だから、' + F(qa) + ' だよ。';
+      p.src = { kind: kind, op: '/', a: ds, b: String(d) };
+    }
+    p.beyond = true;
+    return p;
+  }
+  gens.oniMulDiv = function (rng) { return oniMake('oniMulDiv', oniMulDiv1, rng); };
+
+  // ---------- ③ まじった式・計算のくふう・□をつかう式 ----------
+  function oniMix1(rng) {
+    var kind = wpick(rng, [[2, 'parenMul'], [2, 'kufuMul'], [2, 'kufuAdd'], [2, 'parenSub'], [1, 'kufuSub'], [2, 'order'], [1, 'divMix'], [4, 'box']]);
+    var a, b, c, d, m, t, s, p, ans, txt, u;
+    switch (kind) {
+      case 'parenMul': {
+        var intSum = rng() < 0.5, op = rng() < 0.75 ? '+' : '-';
+        for (t = 0; t < 300; t++) {
+          a = oniNum(rng, 1010, 8990, 2);
+          if (intSum) {
+            if (op === '+') b = ri(rng, 0, 4) * 1000 + (1000 - a % 1000);
+            else b = ri(rng, 0, Math.floor(a / 1000) - 1) * 1000 + a % 1000;
+          } else b = oniNum(rng, 110, 4990, ri(rng, 1, 2));
+          s = op === '+' ? a + b : a - b;
+          if (b <= 0 || s < 1000 || (s % 1000 === 0) !== intSum) continue;
+          break;
+        }
+        m = ri(rng, 2, 9); ans = s * m;
+        u = UNIT_OF[decOf(s)];
+        p = exprFill('計算しましょう。', '(' + F(a) + opc(op) + F(b) + ')×' + m, ans);
+        p.hints = [
+          '( )の中を先に計算しよう。' + (intSum ? '' : BEYOND),
+          F(a) + opc(op) + F(b) + '＝' + F(s) + ' だね。',
+          intSum ? 'つぎに、その答えに' + m + 'をかけよう。整数のかけ算になるね。' : F(s) + '×' + m + ' は、' + u + ' が ' + cnt(s) + 'こ の ' + m + 'つ分 と考えよう。'
+        ];
+        p.explain = '( )の中を先に計算して ' + F(s) + '。' + F(s) + '×' + m + '＝' + F(ans) + ' だよ。';
+        p.beyond = !intSum;
+        p.src = { kind: kind };
+        break;
+      }
+      case 'kufuMul': {
+        var pr = pick(rng, [[250, 4], [500, 2], [125, 8], [2500, 4], [1250, 8], [200, 5], [400, 5]]);
+        a = pr[0]; m = pr[1];
+        var P = a * m / 1000; // 1, 2, 10
+        var X = oniNum(rng, 1100, 99900, ri(rng, 1, 2));
+        ans = X * P;
+        txt = rng() < 0.5 ? F(a) + '×' + F(X) + '×' + m : m + '×' + F(X) + '×' + F(a);
+        u = UNIT_OF[decOf(a)];
+        p = exprFill('くふうして計算しましょう。', txt, ans);
+        p.hints = [
+          'かけ算は、かける順番をかえても答えは同じだよ。かけると きりのよい数になる2つを 先に計算しよう。' + BEYOND,
+          F(a) + '×' + m + ' は、' + u + ' が ' + cnt(a) + '×' + m + '＝' + (cnt(a) * m) + 'こ分 だね。',
+          P === 1 ? '1に どんな数をかけても、答えは その数のままだね。' : P === 2 ? 'のこりの数を 2倍しよう。' : '10倍すると、どの数字も位が1つ上がるよ。'
+        ];
+        p.explain = F(a) + '×' + m + '＝' + P + ' を先に計算すると、' + P + '×' + F(X) + '＝' + F(ans) + ' だよ。';
+        p.beyond = true;
+        p.src = { kind: kind };
+        break;
+      }
+      case 'kufuAdd': {
+        for (t = 0; t < 200; t++) {
+          a = oniNum(rng, 1010, 9990, 2);
+          c = (Math.ceil(a / 1000) + ri(rng, 0, 5)) * 1000 - a;
+          b = oniNum(rng, 1100, 9900, ri(rng, 1, 2));
+          d = (Math.ceil(b / 1000) + ri(rng, 0, 4)) * 1000 - b;
+          if (c > 100 && d > 100 && decOf(c) === 2) break;
+        }
+        ans = a + b + c + d;
+        p = exprFill('くふうして計算しましょう。', F(a) + '＋' + F(b) + '＋' + F(c) + '＋' + F(d), ans);
+        p.hints = [
+          'たす順番をかえても、答えは同じだよ。たすと きりのよい数（整数）になる組を さがそう。',
+          F(a) + ' と組にすると、小数の部分がちょうど1になる数は どれかな？',
+          '2つずつ組にして たしてから、その2つの答えを たそう。'
+        ];
+        p.explain = '(' + F(a) + '＋' + F(c) + ')＋(' + F(b) + '＋' + F(d) + ')＝' + F(a + c) + '＋' + F(b + d) + '＝' + F(ans) + ' だよ。';
+        p.src = { kind: kind };
+        break;
+      }
+      case 'parenSub': case 'kufuSub': {
+        for (t = 0; t < 300; t++) {
+          a = oniNum(rng, 5100, 39900, ri(rng, 1, 2));
+          if (kind === 'parenSub') {
+            b = ri(rng, 1, Math.max(1, Math.floor(a / 1000) - 2)) * 1000 + a % 1000;
+            c = oniNum(rng, 110, 9900, ri(rng, 1, 2));
+          } else {
+            b = oniNum(rng, 1010, 9990, ri(rng, 1, 2));
+            c = (Math.ceil(b / 1000) + ri(rng, 0, 3)) * 1000 - b;
+            if (c < 100) continue;
+          }
+          if (b <= 0 || a - b - c <= 0) continue;
+          break;
+        }
+        ans = a - b - c;
+        if (kind === 'parenSub') {
+          p = exprFill('くふうして計算しましょう。', F(a) + '−(' + F(b) + '＋' + F(c) + ')', ans);
+          p.hints = [
+            'まとめてひくのと、1つずつ順にひくのは 同じだよ。' + F(a) + '−' + F(b) + '−' + F(c) + ' と考えてもいいね。',
+            F(a) + '−' + F(b) + ' を先に計算すると、きりのよい数になるね。',
+            'その答えから ' + F(c) + ' をひこう。'
+          ];
+          p.explain = F(a) + '−' + F(b) + '−' + F(c) + '＝' + F(a - b) + '−' + F(c) + '＝' + F(ans) + ' だよ。';
+        } else {
+          p = exprFill('くふうして計算しましょう。', F(a) + '−' + F(b) + '−' + F(c), ans);
+          p.hints = [
+            'ひく数を先に たしてから まとめてひいても、答えは同じだよ。',
+            F(b) + '＋' + F(c) + ' を先に計算すると、きりのよい数になるね。',
+            'その答えを ' + F(a) + ' からひこう。'
+          ];
+          p.explain = F(a) + '−(' + F(b) + '＋' + F(c) + ')＝' + F(a) + '−' + F(b + c) + '＝' + F(ans) + ' だよ。';
+        }
+        p.src = { kind: kind };
+        break;
+      }
+      case 'order': case 'divMix': {
+        var op2 = rng() < 0.6 ? '+' : '-', mid, midTxt, midH;
+        for (t = 0; t < 300; t++) {
+          if (kind === 'order') {
+            b = oniNum(rng, 110, 4990, ri(rng, 1, 2)); m = ri(rng, 2, 9); mid = b * m;
+          } else {
+            var e2 = ri(rng, 1, 2), qq = e2 === 1 ? ri(rng, 11, 99) : ri(rng, 11, 299);
+            if (qq % 10 === 0) continue;
+            m = ri(rng, 2, 9);
+            if ((qq * m) % 10 === 0) continue;
+            mid = qq * POW[3 - e2]; b = mid * m;
+          }
+          a = oniNum(rng, op2 === '-' ? mid + 1000 : 1100, op2 === '-' ? mid + 30000 : 30000, ri(rng, 1, 3));
+          if (op2 === '-' && a <= mid) continue;
+          break;
+        }
+        ans = op2 === '+' ? a + mid : a - mid;
+        midTxt = kind === 'order' ? F(b) + '×' + m : F(b) + '÷' + m;
+        txt = op2 === '+' ? (rng() < 0.5 ? F(a) + '＋' + midTxt : midTxt + '＋' + F(a)) : F(a) + '−' + midTxt;
+        u = kind === 'order' ? UNIT_OF[decOf(b)] : UNIT_OF[decOf(mid)];
+        midH = kind === 'order'
+          ? F(b) + '×' + m + ' は、' + u + ' が ' + cnt(b) + '×' + m + '＝' + (cnt(b) * m) + 'こ分 だね。'
+          : F(b) + '÷' + m + ' は、' + u + ' が ' + (b / POW[3 - decOf(mid)]) + 'こ を ' + m + 'つに分けた1つ分 だね。';
+        p = exprFill('計算しましょう。', txt, ans);
+        p.hints = [
+          (kind === 'order' ? '×' : '÷') + 'と' + opc(op2) + 'がまじった式では、' + (kind === 'order' ? '×' : '÷') + 'を先に計算するよ。' + BEYOND,
+          midH,
+          op2 === '+' ? 'その答えと ' + F(a) + ' を たそう。' : F(a) + ' から その答えを ひこう。'
+        ];
+        p.explain = midTxt + '＝' + F(mid) + ' を先に計算して、' + (op2 === '+' ? F(a) + '＋' + F(mid) : F(a) + '−' + F(mid)) + '＝' + F(ans) + ' だよ。';
+        p.beyond = true;
+        p.src = { kind: kind };
+        break;
+      }
+      default: { // box
+        var bk = wpick(rng, [[2, 'boxA'], [2, 'boxB'], [2, 'boxC'], [2, 'boxP'], [1, 'boxM']]), x, parts, hints, eq;
+        for (t = 0; t < 300; t++) {
+          if (bk === 'boxA') { x = oniNum(rng, 1010, 49999, ri(rng, 1, 3)); b = oniNum(rng, 1010, 29999, ri(rng, 1, 3)); c = x + b; }
+          else if (bk === 'boxB') { x = oniNum(rng, 10100, 59999, ri(rng, 1, 3)); b = oniNum(rng, 1010, x - 500, ri(rng, 1, 3)); c = x - b; }
+          else if (bk === 'boxC') { a = oniNum(rng, 10000, 59999, ri(rng, 0, 3)); c = oniNum(rng, 1010, a - 500, ri(rng, 1, 3)); x = a - c; }
+          else if (bk === 'boxP') { var K = ri(rng, 3, 12); m = ri(rng, 3, 9); b = oniNum(rng, 110, K * 1000 - 100, ri(rng, 1, 3)); x = K * 1000 - b; c = K * m * 1000; }
+          else { var e3 = ri(rng, 1, 2), qx = e3 === 1 ? ri(rng, 11, 99) : ri(rng, 11, 499); m = ri(rng, 2, 9); if (qx % 10 === 0 || (qx * m) % 10 === 0) continue; x = qx * POW[3 - e3]; c = x * m; }
+          if (x > 0 && c > 0 && F(x) !== F(c) && x % 1000 !== 0) break;
+        }
+        if (bk === 'boxA') {
+          parts = [{ a: F(x) }, '＋' + F(b) + '＝' + F(c)];
+          hints = ['□に ' + F(b) + ' をたすと ' + F(c) + ' になるね。たし算とひき算の関係を使おう。', '□は、' + F(c) + '−' + F(b) + ' で もとめられるよ。', '小数点の位置をそろえて計算しよう。答えが出たら、□に入れて たしかめよう。'];
+        } else if (bk === 'boxB') {
+          parts = [{ a: F(x) }, '−' + F(b) + '＝' + F(c)];
+          hints = ['□から ' + F(b) + ' をひくと ' + F(c) + ' になるね。ひく前の数に もどすには どうすればいいかな？', '□は、' + F(c) + '＋' + F(b) + ' で もとめられるよ。', '小数点の位置をそろえて計算しよう。答えが出たら、□に入れて たしかめよう。'];
+        } else if (bk === 'boxC') {
+          parts = [F(a) + '−', { a: F(x) }, '＝' + F(c)];
+          hints = [F(a) + ' から□をひくと ' + F(c) + ' になるね。□は、ひかれる数とのこりの数の ちがいだよ。', '□は、' + F(a) + '−' + F(c) + ' で もとめられるよ。', '小数点の位置をそろえて計算しよう。答えが出たら、□に入れて たしかめよう。'];
+        } else if (bk === 'boxP') {
+          parts = ['(', { a: F(x) }, '＋' + F(b) + ')×' + m + '＝' + F(c)];
+          hints = ['( )の中を1つのかたまりと考えよう。（かたまり）×' + m + '＝' + F(c) + ' だね。', 'かたまりは ' + F(c) + '÷' + m + ' で もとめられるね。', 'かたまりが分かったら、□＋' + F(b) + '＝（かたまり） の□を もとめよう。'];
+        } else {
+          var em = decOf(x), N2 = c / POW[3 - em];
+          parts = [{ a: F(x) }, '×' + m + '＝' + F(c)];
+          hints = ['□×' + m + '＝' + F(c) + ' だから、□は ' + F(c) + '÷' + m + ' で もとめられるね。' + BEYOND, F(c) + '÷' + m + ' は、' + UNIT_OF[em] + ' が ' + N2 + 'こ を ' + m + 'つに分けた1つ分 と考えよう。', N2 + '÷' + m + ' を計算して、' + UNIT_OF[em] + ' が何こ分かを 小数になおそう。'];
+        }
+        p = { type: 'fill', tag: 'oni', q: '□にあてはまる数を書きましょう。', parts: parts, hints: hints };
+        eq = parts.map(function (y) { return typeof y === 'string' ? y : '□'; }).join('');
+        p.explain = eq.replace('□', F(x)) + ' だから、□は ' + F(x) + ' だよ。';
+        p.beyond = bk === 'boxM';
+        p.src = { kind: bk };
+      }
+    }
+    return p;
+  }
+  gens.oniMix = function (rng) { return oniMake('oniMix', oniMix1, rng); };
+
+  // ---------- ④ ひらめき ----------
+  function perms(arr) {
+    if (arr.length <= 1) return [arr.slice()];
+    var out = [];
+    arr.forEach(function (x, i) {
+      perms(arr.slice(0, i).concat(arr.slice(i + 1))).forEach(function (r) { out.push([x].concat(r)); });
+    });
+    return out;
+  }
+  // カードで作れる数（1000倍）。k は整数部分のけた数。いちばん右は0にしない、2けた以上ならいちばん左も0にしない
+  function cardValues(cards, k) {
+    var out = [];
+    perms(cards).forEach(function (r) {
+      if (r[r.length - 1] === 0) return;
+      if (k >= 2 && r[0] === 0) return;
+      out.push(parseInt(r.join(''), 10) * POW[3 - (r.length - k)]);
+    });
+    return out;
+  }
+  function cardIdea(rng) {
+    var mode = wpick(rng, [[2, 'max'], [2, 'min'], [3, 'near']]), cards, k, vals, ans, T, n, t, lo, hi;
+    for (t = 0; t < 500; t++) {
+      n = ri(rng, 3, 5);
+      var pool = shuffle(rng, [1, 2, 3, 4, 5, 6, 7, 8, 9]).slice(0, n);
+      if (rng() < 0.55) pool[ri(rng, 0, n - 1)] = 0;
+      cards = pool;
+      k = n === 3 ? ri(rng, 1, 2) : n === 4 ? ri(rng, 1, 3) : ri(rng, 2, 3);
+      vals = cardValues(cards, k);
+      var mx = Math.max.apply(null, vals), mn = Math.min.apply(null, vals);
+      if (mode === 'max') { ans = mx; break; }
+      if (mode === 'min') { ans = mn; break; }
+      var tlo = Math.ceil(mn / 1000), thi = Math.floor(mx / 1000);
+      if (tlo > thi) continue;
+      T = ri(rng, tlo, thi) * 1000;
+      var best = null, bd = Infinity, tie = false;
+      lo = null; hi = null;
+      vals.forEach(function (v) {
+        var dd = Math.abs(v - T);
+        if (dd < bd) { bd = dd; best = v; tie = false; } else if (dd === bd && v !== best) tie = true;
+        if (v < T && (lo === null || v > lo)) lo = v;
+        if (v > T && (hi === null || v < hi)) hi = v;
+      });
+      if (tie || best === mx || best === mn || lo === null || hi === null) continue;
+      ans = best;
+      break;
+    }
+    var form = '', i;
+    for (i = 0; i < n; i++) form += (i === k ? '.' : '') + '□';
+    var has0 = cards.indexOf(0) >= 0;
+    var rule = has0 ? (k >= 2 ? '（いちばん左と いちばん右には、0のカードを おけません）' : '（いちばん右には、0のカードを おけません）') : '';
+    var cardTxt = cards.map(function (x) { return '［' + x + '］'; }).join('') + '［．］';
+    var what = mode === 'max' ? 'いちばん大きい数' : mode === 'min' ? 'いちばん小さい数' : F(T) + 'に いちばん近い数';
+    var sorted = cards.slice().sort(function (x, y) { return y - x; });
+    var hints, explain;
+    if (mode === 'max') {
+      hints = ['大きい数にするには、上の位ほど 大きい数字のカードを おこう。',
+        'いちばん上の位には、いちばん大きい「' + sorted[0] + '」を おくといいね。',
+        has0 ? 'いちばん右に0をおけないので、0を どこにおけば いちばん大きくなるか考えよう。' : 'のこりのカードも、大きい順に 左から おこう。'];
+      explain = '上の位から 大きい数字を順におくと、いちばん大きい数は ' + F(ans) + ' だよ。';
+    } else if (mode === 'min') {
+      var first = String(F(ans)).replace('.', '')[0];
+      hints = ['小さい数にするには、上の位ほど 小さい数字のカードを おこう。' + (has0 && k === 1 ? '一の位は 0 でもいいよ。' : ''),
+        'いちばん上の位には「' + first + '」を おくといいね。',
+        'のこりのカードを 小さい順に おこう。' + (has0 ? 'いちばん右に0をおけないことに 気をつけよう。' : '')];
+      explain = '上の位から 小さい数字を順におくと、いちばん小さい数は ' + F(ans) + ' だよ。';
+    } else {
+      hints = [F(T) + ' より少し小さい数と、少し大きい数を それぞれ作って くらべよう。',
+        '上の位から、' + F(T) + ' にできるだけ近くなるように カードを えらぼう。上の位が ' + F(T) + ' より小さいときは のこりを大きく、大きいときは のこりを小さくするよ。',
+        '作った2つの数と ' + F(T) + ' のちがいを ひき算で もとめよう。ちがいが小さいほうが 答えだよ。'];
+      explain = F(T) + ' より小さいほうで いちばん近いのは ' + F(lo) + '（ちがい ' + F(T - lo) + '）、大きいほうで いちばん近いのは ' + F(hi) + '（ちがい ' + F(hi - T) + '）。だから ' + F(ans) + ' だよ。';
+    }
+    return {
+      type: 'fill', tag: 'oni',
+      q: 'カード ' + cardTxt + ' を全部1回ずつ使って、「' + form + '」の形の小数を作ります。' + rule + what + 'を書きましょう。',
+      parts: [what + 'は', { a: F(ans) }, 'です。'],
+      hints: hints, explain: explain,
+      src: { kind: 'card', mode: mode, cards: cards, k: k, target: mode === 'near' ? F(T) : null }
+    };
+  }
+
+  function d2s(v) { return Math.floor(v / 100) + '.' + (v % 100 < 10 ? '0' : '') + (v % 100); } // 100倍 → 「1.05」
+  function mushikui(rng) {
+    var op, a, b, c, strs, hide, t, sol = 0;
+    for (t = 0; t < 400; t++) {
+      op = rng() < 0.6 ? '+' : '-';
+      a = ri(rng, 101, 899); b = ri(rng, 101, 899);
+      if (op === '-' && a < b) { var tt = a; a = b; b = tt; }
+      c = op === '+' ? a + b : a - b;
+      if (a % 10 === 0 || b % 10 === 0 || c % 10 === 0 || c >= 1000 || c < 11) continue;
+      if (op === '+' ? carryCount(a, b) < 1 : borrowCount(a, b) < 1) continue;
+      strs = [d2s(a), d2s(b), d2s(c)];
+      var pos = [];
+      [0, 1, 2].forEach(function (w) { for (var i = 0; i < 4; i++) if (i !== 1) pos.push([w, i]); });
+      var kk = rng() < 0.7 ? 3 : 4;
+      hide = shuffle(rng, pos).slice(0, kk);
+      var who = {}; hide.forEach(function (h) { who[h[0]] = 1; });
+      if (Object.keys(who).length < 2) continue;
+      // 解の数（□に0〜9を入れて全部ためす）
+      sol = 0;
+      var total = Math.pow(10, kk);
+      for (var z = 0; z < total; z++) {
+        var ch = strs.map(function (s) { return s.split(''); }), zz = z;
+        hide.forEach(function (h) { ch[h[0]][h[1]] = String(zz % 10); zz = Math.floor(zz / 10); });
+        var v = ch.map(function (x) { return parseInt(x.join('').replace('.', ''), 10); });
+        if ((op === '+' ? v[0] + v[1] : v[0] - v[1]) === v[2]) sol++;
+        if (sol > 1) break;
+      }
+      if (sol === 1) break;
+    }
+    // 表示（□はスロット）
+    var parts = [], buf = '';
+    var seq = [[0, strs[0]], [-1, op === '+' ? '＋' : '−'], [1, strs[1]], [-1, '＝'], [2, strs[2]]];
+    seq.forEach(function (sg) {
+      if (sg[0] < 0) { buf += sg[1]; return; }
+      sg[1].split('').forEach(function (chr, i) {
+        var hidden = hide.some(function (h) { return h[0] === sg[0] && h[1] === i; });
+        if (hidden) { if (buf) parts.push(buf); buf = ''; parts.push({ a: chr }); } else buf += chr;
+      });
+    });
+    if (buf) parts.push(buf);
+    var word = op === '+' ? 'くり上がり' : 'くり下がり';
+    return {
+      type: 'fill', tag: 'oni',
+      q: '□にあてはまる数字を書きましょう。（□には 0〜9 の数字が1つずつ入ります）',
+      parts: parts,
+      hints: ['たての筆算の形に書いて、いちばん右の位（小数第二位）から順に考えよう。',
+        '小数第二位の計算で、' + word + 'があるかどうかを たしかめよう。' + (op === '+' ? 'くり上がった1は、小数第一位に たすよ。' : 'くり下げたら、小数第一位は1へるよ。'),
+        '□に入る数字がきまったら、全部うめた式で たしかめ算をしよう。' + (op === '+' ? 'ひき算で' : 'たし算で') + 'たしかめてもいいね。'],
+      explain: strs[0] + (op === '+' ? '＋' : '−') + strs[1] + '＝' + strs[2] + ' だよ。',
+      src: { kind: 'mushikui', op: op, nums: strs }
+    };
+  }
+
+  function seqIdea(rng) {
+    var rule = wpick(rng, [[3, 'add'], [2, 'sub'], [2, 'x10'], [2, 'x2'], [2, 'diff2']]), terms, blank, t, d, i;
+    for (t = 0; t < 300; t++) {
+      terms = [];
+      if (rule === 'add' || rule === 'sub') {
+        d = pick(rng, [15, 25, 35, 45, 50, 75, 125, 150, 175, 250, 350, 450]);
+        var s0 = rule === 'add' ? oniNum(rng, 100, 5000, ri(rng, 1, 3)) : oniNum(rng, 5 * d + 500, 9000, ri(rng, 1, 3));
+        for (i = 0; i < 5; i++) terms.push(rule === 'add' ? s0 + i * d : s0 - i * d);
+        blank = ri(rng, 2, 4);
+      } else if (rule === 'x10') {
+        var s1 = rng() < 0.5 ? ri(rng, 1, 9) : ri(rng, 11, 99);
+        if (s1 % 10 === 0) continue;
+        for (i = 0; i < 5; i++) terms.push(s1 * POW[i]);
+        if (rng() < 0.5) terms.reverse();
+        blank = ri(rng, 1, 4);
+      } else if (rule === 'x2') {
+        var s2 = rng() < 0.3 ? pick(rng, [125, 25, 75, 375, 15, 35]) : ri(rng, 11, 400);
+        if (s2 % 10 === 0 && rng() < 0.7) continue;
+        for (i = 0; i < 5; i++) terms.push(s2 * POW[0] * Math.pow(2, i));
+        blank = ri(rng, 2, 4);
+      } else {
+        var s3 = oniNum(rng, 1000, 5000, ri(rng, 1, 2)), d0 = pick(rng, [10, 20, 50, 100, 5, 25]), cc = pick(rng, [10, 20, 50, 100, 5]);
+        terms.push(s3);
+        for (i = 1; i < 5; i++) terms.push(terms[i - 1] + d0 + (i - 1) * cc);
+        blank = 4;
+      }
+      if (terms.every(function (v) { return v > 0 && v < 1000000; })) break;
+    }
+    // 知っている となりどうし（□をふくまない）
+    var pi = 0;
+    while (pi === blank || pi + 1 === blank) pi++;
+    var x0 = F(terms[pi]), x1 = F(terms[pi + 1]);
+    var hints, explain;
+    if (rule === 'add' || rule === 'sub') {
+      hints = ['となりどうしの数の ちがいを 調べよう。', x0 + ' から ' + x1 + ' へは ' + F(d) + (rule === 'add' ? ' ふえて' : ' へって') + 'いるね。',
+        '□のとなりの数に 同じだけ' + (rule === 'add' ? 'たして' : 'ひいて') + 'みよう。後ろの数から もどって考えてもいいね。'];
+      explain = F(d) + 'ずつ' + (rule === 'add' ? 'ふえて' : 'へって') + 'いるので、□は ' + F(terms[blank]) + ' だよ。';
+    } else if (rule === 'x10') {
+      var up = terms[1] > terms[0];
+      hints = ['数字のならびは同じで、小数点の位置が かわっているね。', x0 + ' を' + (terms[pi + 1] > terms[pi] ? '10倍' : '1/10に') + 'すると ' + x1 + ' だね。',
+        up ? '10倍すると、どの数字も位が1つ上がるよ。' : '1/10にすると、どの数字も位が1つ下がるよ。'];
+      explain = (up ? '10倍' : '1/10') + 'ずつに なっているので、□は ' + F(terms[blank]) + ' だよ。';
+    } else if (rule === 'x2') {
+      hints = ['となりの数が 何倍に なっているか 調べよう。' + BEYOND, x0 + ' の2倍が ' + x1 + ' だね。' + x0 + ' は ' + UNIT_OF[decOf(terms[pi])] + ' が ' + cnt(terms[pi]) + 'こ分だよ。',
+        '□の前の数を 2倍しよう（後ろの数を 半分にしても いいね）。'];
+      explain = '2倍ずつに なっているので、□は ' + F(terms[blank]) + ' だよ。';
+    } else {
+      hints = ['となりどうしの数の ちがいを 調べよう。ちがいにも きまりがあるよ。',
+        'ちがいは ' + F(terms[1] - terms[0]) + '、' + F(terms[2] - terms[1]) + '、' + F(terms[3] - terms[2]) + ' と かわっているね。',
+        'つぎの ちがいは いくつになるかな？ それを さいごの数に たそう。'];
+      explain = 'ちがいが ' + F(terms[2] - terms[1] - (terms[1] - terms[0])) + 'ずつ ふえていくので、つぎのちがいは ' + F(terms[4] - terms[3]) + '。□は ' + F(terms[blank]) + ' だよ。';
+    }
+    var parts = [], buf = '';
+    terms.forEach(function (v, k) {
+      if (k > 0) buf += '、';
+      if (k === blank) { if (buf) parts.push(buf); buf = ''; parts.push({ a: F(v) }); } else buf += F(v);
+    });
+    if (buf) parts.push(buf);
+    var p = {
+      type: 'fill', tag: 'oni', q: 'きまりを見つけて、□にあてはまる数を書きましょう。', parts: parts,
+      hints: hints, explain: explain,
+      src: { kind: 'seq', rule: rule, terms: terms.map(F), blank: blank }
+    };
+    if (rule === 'x2') p.beyond = true;
+    return p;
+  }
+
+  function unitsIdea(rng) {
+    var kind = wpick(rng, [[2, 'collect2'], [2, 'tobun'], [1, 'rev'], [2, 'countOf'], [2, 'sumCount']]), A, B, x, y, ans, q, hints, explain, slotTxt;
+    if (kind === 'collect2' || kind === 'tobun') {
+      A = ri(rng, 11, 999); B = ri(rng, 1, 99);
+      if (A % 10 === 0) A++;
+      ans = A * 10 + B * 100;
+      q = kind === 'collect2'
+        ? '0.01を' + A + 'こと、0.1を' + B + 'こ合わせた数はいくつですか。'
+        : '1を100等分した1つ分を' + A + 'こと、1を10等分した1つ分を' + B + 'こ合わせた数はいくつですか。';
+      hints = [kind === 'tobun' ? '1を100等分した1つ分は0.01、1を10等分した1つ分は0.1だよ。' : '0.01が10こで0.1、100こで1だよ。',
+        '0.01を' + A + 'こ集めた数を、1が何こ、0.1が何こ、0.01が何こ…と分けて考えよう。',
+        'どちらも 0.01が何こ分かに そろえて たすと 計算しやすいよ。'];
+      explain = '0.01が ' + A + '＋' + (B * 10) + '＝' + (A + B * 10) + 'こ分だから、' + F(ans) + ' だよ。';
+      slotTxt = ['', 'です。'];
+    } else if (kind === 'rev') {
+      for (var t = 0; t < 100; t++) { B = ri(rng, 11, 99); A = ri(rng, 11, 999); if (A % 10 !== 0 && B * 100 > A * 10 + 100) break; }
+      ans = B * 100 - A * 10;
+      q = '0.1を' + B + 'こ集めた数から、0.01を' + A + 'こ集めた数をひくといくつですか。';
+      hints = ['0.1は 0.01の10こ分だよ。', '0.1を' + B + 'こ集めた数は、0.01が何こ分かな？', 'どちらも 0.01が何こ分かに そろえて ひき算しよう。'];
+      explain = '0.01が ' + (B * 10) + '−' + A + '＝' + (B * 10 - A) + 'こ分だから、' + F(ans) + ' だよ。';
+      slotTxt = ['', 'です。'];
+    } else if (kind === 'countOf') {
+      var e = rng() < 0.7 ? 2 : 3;
+      x = oniNum(rng, 1100, 39990, ri(rng, 1, e));
+      ans = x / POW[3 - e] * 1000;
+      q = F(x) + 'は、' + UNIT_OF[e] + 'を何こ集めた数ですか。';
+      hints = ['1は' + UNIT_OF[e] + 'の' + POW[e] + 'こ分、0.1は' + UNIT_OF[e] + 'の' + POW[e - 1] + 'こ分だよ。',
+        F(x) + ' を、1が何こ、0.1が何こ…と 位ごとに分けてみよう。',
+        'それぞれを ' + UNIT_OF[e] + 'が何こ分かに なおして 合わせよう。小数点がない位にも 気をつけよう。'];
+      explain = F(x) + ' は ' + UNIT_OF[e] + 'が ' + F(ans) + 'こ分 だよ。';
+      slotTxt = [UNIT_OF[e] + 'を', 'こ集めた数です。'];
+    } else {
+      x = oniNum(rng, 1100, 9900, 1); y = oniNum(rng, 10, 990, 2);
+      ans = (x + y) / 10 * 1000;
+      q = F(x) + 'と' + F(y) + 'をたした数は、0.01を何こ集めた数ですか。';
+      hints = ['まず ' + F(x) + '＋' + F(y) + ' を、小数点の位置をそろえて計算しよう。', '1は0.01の100こ分、0.1は0.01の10こ分だよ。', '答えの数を 位ごとに分けて、0.01が何こ分かに なおそう。'];
+      explain = F(x) + '＋' + F(y) + '＝' + F(x + y) + '。これは 0.01が ' + F(ans) + 'こ分 だよ。';
+      slotTxt = ['0.01を', 'こ集めた数です。'];
+    }
+    return {
+      type: 'fill', tag: 'oni', q: q, parts: [slotTxt[0], { a: F(ans) }, slotTxt[1]].filter(function (s) { return s !== ''; }),
+      hints: hints, explain: explain, src: { kind: 'units', sub: kind }
+    };
+  }
+
+  // 「どれがいちばん大きい（小さい）？」 いろいろな表し方
+  function reprOf(rng, v) {
+    var list = [['plain', F(v)]];
+    if (v % 100 === 0) list.push(['c01', '0.1を' + (v / 100) + 'こ集めた数']);
+    if (v % 10 === 0) list.push(['c001', '0.01を' + (v / 10) + 'こ集めた数']);
+    list.push(['c0001', '0.001を' + v + 'こ集めた数']);
+    if (v % 10 === 0) list.push(['x10', F(v / 10) + 'を10倍した数']);
+    list.push(['d10', F(v * 10) + 'の1/10']);
+    if (v % 10 === 0 && v % 1000 !== 0 && v >= 1000) list.push(['comp', '1を' + Math.floor(v / 1000) + 'こと0.01を' + ((v % 1000) / 10) + 'こ合わせた数']);
+    return list;
+  }
+  function choiceIdea(rng) {
+    var big = rng() < 0.6, vals, reps, t;
+    for (t = 0; t < 300; t++) {
+      var I = ri(rng, 1, 9);
+      vals = [];
+      while (vals.length < 4) {
+        var v = I * 1000 + oniNum(rng, 10, 990, ri(rng, 1, 3));
+        if (vals.indexOf(v) < 0) vals.push(v);
+      }
+      var kinds = {}, plain = 0;
+      reps = vals.map(function (v) {
+        var r = pick(rng, reprOf(rng, v));
+        kinds[r[0]] = 1; if (r[0] === 'plain') plain++;
+        return r[1];
+      });
+      if (Object.keys(kinds).length >= 3 && plain <= 1) break;
+    }
+    var ai = 0;
+    vals.forEach(function (v, i) { if (big ? v > vals[ai] : v < vals[ai]) ai = i; });
+    var other = vals.map(function (v, i) { return i; }).filter(function (i) { return i !== ai && reps[i] !== F(vals[i]); })[0];
+    if (other === undefined) other = ai === 0 ? 1 : 0;
+    var order = shuffle(rng, [0, 1, 2, 3]);
+    return {
+      type: 'choice', tag: 'oni',
+      q: 'つぎの中で、いちばん' + (big ? '大きい' : '小さい') + '数はどれですか。',
+      options: order.map(function (i) { return reps[i]; }),
+      a: reps[ai],
+      hints: ['それぞれを、ふつうの小数に なおしてから くらべよう。',
+        '「' + reps[other] + '」は ' + F(vals[other]) + ' だね。ほかも 同じように なおそう。',
+        '小数点の位置をそろえて、上の位から順に くらべよう。'],
+      explain: order.map(function (i) { return reps[i] + '＝' + F(vals[i]); }).join('、') + '。いちばん' + (big ? '大きい' : '小さい') + 'のは「' + reps[ai] + '」だよ。',
+      src: { kind: 'choice', vals: vals.map(F), ansVal: F(vals[ai]) }
+    };
+  }
+
+  function oniIdea1(rng) {
+    var kind = wpick(rng, [[3, 'card'], [2, 'mushikui'], [2, 'seq'], [2, 'units'], [2, 'choice']]);
+    if (kind === 'card') return cardIdea(rng);
+    if (kind === 'mushikui') return mushikui(rng);
+    if (kind === 'seq') return seqIdea(rng);
+    if (kind === 'units') return unitsIdea(rng);
+    return choiceIdea(rng);
+  }
+  gens.oniIdea = function (rng) { return oniMake('oniIdea', oniIdea1, rng); };
+
   var NAMES = ['masuRead', 'unitConvert', 'compose', 'decompose', 'countUnits',
     'compare', 'order', 'times10', 'numberlineRead', 'hissanAdd', 'hissanSub', 'laws',
     'threeSum', 'wordAdd', 'wordSub'];
@@ -9099,6 +10007,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
   function make(name, rng, opts) {
     if (!gens[name]) throw new Error('unknown generator: ' + name);
     var r = typeof rng === 'function' ? rng : Math.random;
+    if (ONI_SKILL[name]) return gens[name](r); // 鬼ムズ（level・skill は見ない）
     var lv = opts && (opts.level === 'easy' || opts.level === 'hard') ? opts.level : null;
     if (opts && opts.skill) return makeSkill(name, r, lv || 'normal', opts.skill);
     var p = lv && LV[lv][name] ? LV[lv][name](r) : gens[name](r, lv || undefined);
@@ -9114,6 +10023,8 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     skillOf: skillOf,
     skillGens: function (skill) { return SKILL_GENS[skill] ? SKILL_GENS[skill].slice() : []; },
     skillIds: function () { return Object.keys(SKILL_GENS); },
+    oniNames: function () { return ONI_NAMES.slice(); },  // 鬼ムズの生成器（names() には入れない）
+    ONI_SKILL: ONI_SKILL,
     util: { fmt: fmt, parse: parse, decimals: decimals, unitAnswer: unitAnswer, carryCount: carryCount, borrowCount: borrowCount, hasKui: hasKui }
   };
   S.Generators = G;
@@ -9130,17 +10041,26 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
  * Shosu.Matome.estimate(problem, level) -> 秒
  * 7つの内容（TAGS）を順番にかわるがわる出す。×が多かった内容（weak）は少し多めに出す。
  * 問題そのもの（src つき）を返すので、つづきから用にはそのまま保存すればよい。
+ * 追加8（担当U）：level 'oni'（鬼ムズ）は 7つの内容のかわりに、鬼ムズの4種類（ONI_GENS）を順番に出す。weak は見ない。
+ *   level が 'normal'・'hard'・'oni' のとき、fill で答えのスロットに小数点があるものに pointMode:'tap' を付ける
+ *   （小数点を自分で打つ。'easy' は今までどおり小数点を印刷）。
  */
 (function (S) {
   'use strict';
 
-  var LEVELS = [{ id: 'easy', label: 'かんたん' }, { id: 'normal', label: 'ふつう' }, { id: 'hard', label: 'むずかしい' }];
+  var LEVELS = [{ id: 'easy', label: 'かんたん' }, { id: 'normal', label: 'ふつう' }, { id: 'hard', label: 'むずかしい' }, { id: 'oni', label: '鬼ムズ' }];
   var TIMES = [5, 10, 15, 20];
   var TAGS = ['hyoshikata', 'shikumi', 'daisho', 'jubai', 'tashizan', 'hikizan', 'kimari'];
   var TAG_LABELS = {
     hyoshikata: '表し方・単位', shikumi: 'しくみ・数の構成', daisho: '大小', jubai: '10倍・1/10',
-    tashizan: 'たし算', hikizan: 'ひき算', kimari: '計算のきまり'
+    tashizan: 'たし算', hikizan: 'ひき算', kimari: '計算のきまり', oni: '鬼ムズ'
   };
+  // 鬼ムズ：この順番にかわるがわる出す（skill は 'oni-add','oni-muldiv','oni-mix','oni-idea'）
+  var ONI_GENS = ['oniAdd', 'oniMulDiv', 'oniMix', 'oniIdea'];
+  // 鬼ムズの1問の目安（秒）
+  var ONI_SEC = { oniAdd: 70, oniMulDiv: 70, oniMix: 80, oniIdea: 90 };
+  var ONI_WORD = 90, ONI_CHOICE = 70;
+  var TAP_LEVELS = { normal: 1, hard: 1, oni: 1 };
 
   // 内容ごとの生成器と重み（レベル別）
   var POOLS = {
@@ -9187,6 +10107,11 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
   function estimate(p, level) {
     var gen = p && p.src && p.src.gen;
     var s;
+    if (ONI_SEC[gen]) {
+      if (gen === 'oniIdea' && p.type === 'choice') return ONI_CHOICE;
+      if (/^word/.test(p.src.kind || '')) return ONI_WORD;
+      return ONI_SEC[gen];
+    }
     if (gen === 'wordAdd' || gen === 'wordSub') s = WORD;
     else if (gen === 'threeSum') s = THREE;
     else s = BASE[p.type] || 40;
@@ -9210,8 +10135,42 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     return list[list.length - 1][0];
   }
 
+  // 答えのスロットに小数点がある fill に、小数点を自分で打つしるしを付ける
+  function markTap(p, level) {
+    if (!TAP_LEVELS[level] || p.type !== 'fill' || !Array.isArray(p.parts)) return p;
+    var dot = p.parts.some(function (x) { return x && typeof x === 'object' && String(x.a).indexOf('.') >= 0; });
+    if (dot) p.pointMode = 'tap';
+    return p;
+  }
+
+  // 鬼ムズ：4種類を順番に。時間に合う数（最低3問）
+  function buildOni(minutes, rng) {
+    var Gen = G(), target = minutes * 60, seen = {}, lastKind = {};
+    var problems = [], seconds = [], total = 0;
+    for (var i = 0; i < 200; i++) {
+      var name = ONI_GENS[i % ONI_GENS.length], p = null;
+      for (var t = 0; t < 40; t++) {
+        var c = Gen.make(name, rng);
+        if (seen[signature(c)]) continue;
+        p = c;
+        if (c.src.kind !== lastKind[name] || t >= 6) break; // 同じ種類の問題はなるべく続けない
+      }
+      if (!p) continue;
+      var sec = estimate(p, 'oni');
+      if (problems.length >= 3 && total + sec / 2 > target) break;
+      seen[signature(p)] = true;
+      lastKind[name] = p.src.kind;
+      p.id = 'M-' + (problems.length + 1);
+      problems.push(markTap(p, 'oni'));
+      seconds.push(sec);
+      total += sec;
+    }
+    return { problems: problems, seconds: seconds, total: total };
+  }
+
   function build(opts) {
     opts = opts || {};
+    if (opts.level === 'oni') return buildOni(Number(opts.minutes) > 0 ? Number(opts.minutes) : 10, typeof opts.rng === 'function' ? opts.rng : Math.random);
     var level = opts.level === 'easy' || opts.level === 'hard' ? opts.level : 'normal';
     var minutes = Number(opts.minutes) > 0 ? Number(opts.minutes) : 10;
     var rng = typeof opts.rng === 'function' ? opts.rng : Math.random;
@@ -9254,7 +10213,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       if (problems.length >= 3 && total + sec / 2 > target) break;
       seen[signature(p)] = true;
       p.id = 'M-' + (problems.length + 1);
-      problems.push(p);
+      problems.push(markTap(p, level));
       seconds.push(sec);
       total += sec;
       prevTag = best;
@@ -9290,6 +10249,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     TAGS: TAGS,
     TAG_LABELS: TAG_LABELS,
     POOLS: POOLS,
+    ONI_GENS: ONI_GENS,
     build: build,
     estimate: estimate,
     signature: signature
@@ -18976,7 +19936,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       ['plan', '計画', [['days', '立てた日', '日'], ['ok', '計画どおり', '日']]],
       ['reflect', 'ふりかえり', [['n', '', '回'], ['ev', '', 'ev'], ['w', 'わかったことを書いた', '回'], ['prevT', '前の「次に」を生かした', '回'], ['extra', 'アプリの外でやったこと', '回'], ['match', '自己評価と結果が合った', 'match']]],
       ['habit', '取り組み方', [['q', '答えた問題', '問'], ['hint', 'ヒント', '%'], ['miss', '最初が×', '問'], ['fixed', 'やり直して○', '問']]],
-      ['stars', '星と称号', [['n', '★', ''], ['sp', '✦', ''], ['title', '', 'text']]]
+      ['stars', '星と称号', [['n', '星', 'こ'], ['sp', 'とくべつな星', 'こ'], ['title', '', 'text']]]
     ];
     var LEVEL_JA = { easy: 'かんたん', normal: 'ふつう', hard: 'むずかしい' };
     var KIND_JA = { hissan: '筆算', fill: '文章題・□うめ', compare: '大小くらべ', masu: 'ますの図', numberline: '数直線' };
@@ -20118,7 +21078,9 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
   /* ---------- まとめモード（問題選びは Shosu.Matome：担当I） ---------- */
   var MATOME_TAG_LABEL = {
     hyoshikata: '表し方・単位', shikumi: 'しくみ・数の構成', daisho: '大小', jubai: '10倍・1/10',
-    tashizan: 'たし算', hikizan: 'ひき算', kimari: '計算のきまり'
+    tashizan: 'たし算', hikizan: 'ひき算', kimari: '計算のきまり',
+    // 鬼ムズ（追加8）
+    oni: '鬼ムズ', 'oni-add': 'たし算・ひき算', 'oni-muldiv': 'かけ算・わり算', 'oni-mix': 'まじった式・くふう', 'oni-idea': 'ひらめき'
   };
   var MATOME_LEVELS = [{ id: 'easy', label: 'かんたん' }, { id: 'normal', label: 'ふつう' }, { id: 'hard', label: 'むずかしい' }];
   var MATOME_TIMES = [5, 10, 15, 20];
@@ -20164,6 +21126,53 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     return st && validItems(st.items) && typeof st.minutes === 'number' && st.level;
   }
 
+  /* ---------- 鬼ムズ（追加8） ---------- */
+  var ONI_LOCK_MSG = 'むずかしいを 8わり以上○で さいごまでやると開くよ';
+  function hasOniLevel() { return matomeLevels().some(function (l) { return l && l.id === 'oni'; }); }
+  function starState() { try { return S.Stars && S.Stars._state ? S.Stars._state() : null; } catch (e) { return null; } }
+  // まとめモードの hard を「さいごまで」かつ「○の割合 0.8 以上」で1回以上やったか（または、もう開いたことがあるか）
+  function hardPassed(level, correct, total, finished) {
+    return level === 'hard' && !!finished && total > 0 && correct / total >= 0.8;
+  }
+  function oniUnlocked() {
+    var mark = sessLoad('oni-open');
+    if (mark && mark.open) return true;
+    var ss = starState();
+    if (!ss) return false;
+    if (ss.oni && ss.oni.open) return true;
+    var got = ss.got || {};
+    if (got['oni-open'] || got['matome-hard-80']) return true;   // matome-hard-80 は「さいごまで・8わり以上」の星
+    // 出来事の記録（'matome', 'hard:8/10:f'）
+    return (ss.ev || []).some(function (e) {
+      if (!Array.isArray(e) || e[0] !== 'matome') return false;
+      var m = /^hard:(\d+)\/(\d+):f$/.exec(String(e[2]));
+      return !!m && hardPassed('hard', +m[1], +m[2], true);
+    });
+  }
+  function oniOpenLogged() { var ss = starState(); return !!(ss && ss.oni && ss.oni.open) || !!(sessLoad('oni-open') || {}).logged; }
+  // 開いた瞬間：記録して「鬼ムズが開いた！」を出す。新しく開いたときだけ true
+  function openOni() {
+    if (oniOpenLogged()) return false;
+    sessSave('oni-open', { open: true, logged: true, t: Date.now() });
+    starLog('oniUnlock', {});
+    toast('鬼ムズが開いた！');
+    return true;
+  }
+  function oniRuns() { var ss = starState(); return ss && ss.oni ? ss.oni.run || 0 : 0; }
+  // 自作のSVG：ツノとほのおの鬼ムズのしるし・鍵
+  var SVG_ONI = '<svg class="oni-ic" viewBox="0 0 48 48" aria-hidden="true" focusable="false">' +
+    '<path d="M24 46c-9 0-15-6-15-14 0-6 3-9 5-13 1 4 3 6 5 6-1-6 2-12 7-17 0 6 3 9 6 12 2-2 2-5 2-7 4 4 5 9 5 14 0 11-6 19-15 19z" fill="#ff7a1a"/>' +
+    '<path d="M24 46c-5 0-9-4-9-9 0-4 2-6 4-8 0 3 2 4 3 4 0-4 2-7 4-9 1 4 3 5 4 7 1-1 2-2 2-4 2 3 2 6 2 9 0 6-4 10-10 10z" fill="#ffd34d"/>' +
+    '<path d="M11 21 6 4l11 10zM37 21l5-17-11 10z" fill="#fff4e8" stroke="#7a1010" stroke-width="2" stroke-linejoin="round"/>' +
+    '<circle cx="19" cy="34" r="2.4" fill="#7a1010"/><circle cx="29" cy="34" r="2.4" fill="#7a1010"/>' +
+    '<path d="M16 29.5l6 2M32 29.5l-6 2" stroke="#7a1010" stroke-width="2.2" stroke-linecap="round"/>' +
+    '<path d="M20 40.5q4 2.5 8 0" stroke="#7a1010" stroke-width="2" fill="none" stroke-linecap="round"/></svg>';
+  var SVG_LOCK = '<svg class="lock-ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+    '<path d="M7.5 10.5V8a4.5 4.5 0 0 1 9 0v2.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>' +
+    '<rect x="4.5" y="10.5" width="15" height="11" rx="2.5" fill="currentColor"/>' +
+    '<circle cx="12" cy="15.3" r="1.7" fill="#fff"/><path d="M12 16.5v2.4" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>';
+  function svgSpan(svg, cls) { var e = h('span', cls); e.innerHTML = svg; return e; }
+
   function viewMatome() {
     app.appendChild(topbar('まとめモード', { sub: 'いろいろな問題にちょうせん' }));
     var main = h('main', 'mm');
@@ -20192,11 +21201,28 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     main.innerHTML = '';
     var last = matomeLast();
     var level = last.level || 'easy', minutes = last.minutes || 5;
+    var hasOni = hasOniLevel();
+    var oniOpen = hasOni && oniUnlocked();
+    var justOpened = oniOpen && openOni();   // 前からの記録で開けるようになっていたとき
+    if (level === 'oni' && !oniOpen) level = 'easy';
     var card = h('section', 'mm-setup');
+    if (justOpened) card.appendChild(oniBanner());
     card.appendChild(h('p', 'mm-lead', 'これまでに学習した、いろいろな問題が出るよ。レベルと時間をえらんで「スタート」をおそう。'));
     card.appendChild(h('h2', 'mm-h', 'レベル'));
-    var lv = h('div', 'mm-choices mm-levels');
+    var lv = h('div', 'mm-choices mm-levels' + (hasOni ? ' mm-levels-oni' : ''));
     var lvBtns = matomeLevels().map(function (l) {
+      if (l.id === 'oni') {
+        var ob = button('', 'mm-choice mm-oni' + (oniOpen ? '' : ' locked'), function () { if (!oniOpen) return; level = l.id; mark(); });
+        ob.dataset.id = l.id;
+        var ot = h('span', 'mm-choice-t');
+        ot.appendChild(svgSpan(oniOpen ? SVG_ONI : SVG_LOCK, oniOpen ? 'mm-oni-ic' : 'mm-lock-ic'));
+        ot.appendChild(document.createTextNode(l.label || '鬼ムズ'));
+        ob.appendChild(ot);
+        ob.appendChild(h('span', 'mm-choice-sub mm-oni-sub', oniOpen ? '4年のはんいをこえる問題も！' : ONI_LOCK_MSG));
+        if (!oniOpen) { ob.disabled = true; ob.setAttribute('aria-label', '鬼ムズ（鍵がかかっています。' + ONI_LOCK_MSG + '）'); }
+        lv.appendChild(ob);
+        return ob;
+      }
       var b = button('', 'mm-choice', function () { level = l.id; mark(); });
       b.appendChild(h('span', 'mm-choice-t', l.label));
       b.dataset.id = l.id;
@@ -20390,6 +21416,8 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
         var byTag = {}, tagOrder = [];
         items.forEach(function (it) {
           var tag = it.tag || (it.p && it.p.tag) || '';
+          // 鬼ムズは、内容（oni-add など）ごとに分ける
+          if (st.level === 'oni') { var osk = skillOfProblem(it.p); if (osk && MATOME_TAG_LABEL[osk]) tag = osk; }
           if (!byTag[tag]) { byTag[tag] = { n: 0, ok: 0, total: 0 }; tagOrder.push(tag); }
           byTag[tag].total++;
           var r = res[it.pid];
@@ -20399,18 +21427,77 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
         var weak = {};
         tagOrder.forEach(function (t) { if (t && byTag[t].n) weak[t] = Math.round((1 - byTag[t].ok / byTag[t].n) * 100) / 100; });
         var l = matomeLast();
-        l.level = st.level; l.minutes = st.minutes; l.weak = weak; l.t = Date.now();
+        l.level = st.level; l.minutes = st.minutes; l.t = Date.now();
+        if (st.level !== 'oni') l.weak = weak;   // 鬼ムズは weak を使わない（7つの内容の記録はそのまま残す）
         sessSave('matome-last', l);
         var finished = n === items.length;
         var got = starLog('matome', { level: st.level, minutes: st.minutes, total: items.length, answered: n, correct: ok, finished: finished, seconds: Math.round(took / 1000) });
-        matomeResult(main, st, { n: n, ok: ok, took: took, byTag: byTag, tagOrder: tagOrder, got: got, finished: finished });
+        var oniNew = false;
+        if (hasOniLevel() && hardPassed(st.level, ok, items.length, finished)) {
+          sessSave('oni-open', Object.assign({}, sessLoad('oni-open') || {}, { open: true }));
+          var before = starGotIds();
+          oniNew = openOni();
+          if (oniNew) got = got.concat(starNewSince(before));
+        }
+        matomeResult(main, st, { n: n, ok: ok, took: took, byTag: byTag, tagOrder: tagOrder, got: got, finished: finished, oniNew: oniNew });
       }
     });
   }
 
+  function starGotIds() { var ss = starState(); return ss ? Object.keys(ss.got || {}) : []; }
+  function starNewSince(before) {
+    var cat = S.Stars && Array.isArray(S.Stars.CATALOG) ? S.Stars.CATALOG : [];
+    return starGotIds().filter(function (id) { return before.indexOf(id) < 0; })
+      .map(function (id) { var c = null; cat.forEach(function (x) { if (x.id === id) c = x; }); return c || { id: id, label: id }; });
+  }
+  function oniBanner() {
+    var b = h('div', 'oni-banner');
+    b.setAttribute('role', 'status');
+    b.appendChild(svgSpan(SVG_ONI, 'oni-banner-ic'));
+    var t = h('div', 'oni-banner-tx');
+    t.appendChild(h('div', 'oni-banner-big', '鬼ムズが開いた！'));
+    t.appendChild(h('div', 'oni-banner-sub', 'まとめモードで「鬼ムズ」をえらべるようになったよ。4年のはんいをこえる問題にも ちょうせんしよう。'));
+    b.appendChild(t);
+    return b;
+  }
+  // まちがえた鬼ムズの問題の「せつめい」を見るボタン（結果画面のアドバイス）
+  function oniReview(st) {
+    var wrong = [];
+    st.items.forEach(function (it, i) { var r = st.results && st.results[it.pid]; if (r && !r.correct) wrong.push({ it: it, no: i + 1 }); });
+    if (!wrong.length) return null;
+    var sec = h('div', 'mm-oni-review');
+    sec.appendChild(h('h2', 'mm-h', 'まちがえた問題の せつめいを見よう'));
+    wrong.forEach(function (w) {
+      var p = w.it.p || {};
+      var row = h('div', 'mm-oni-item');
+      var body = h('div', 'mm-oni-body');
+      body.hidden = true;
+      var b = button(w.no + '問目の せつめいを見る', 'small mm-oni-explain', function () {
+        body.hidden = !body.hidden;
+        b.textContent = w.no + '問目の せつめいを' + (body.hidden ? '見る' : 'とじる');
+        b.setAttribute('aria-expanded', !body.hidden);
+      });
+      b.setAttribute('aria-expanded', 'false');
+      row.appendChild(b);
+      var q = p.q || (p.type === 'hissan' ? p.a + ' ' + (p.op === '-' ? '−' : '＋') + ' ' + p.b : '');
+      if (Array.isArray(p.parts)) q += (q ? '\n' : '') + p.parts.map(function (x) { return typeof x === 'string' ? x : '□'; }).join('');
+      if (q) body.appendChild(h('div', 'mm-oni-q', q));
+      var ans = p.type === 'fill' && Array.isArray(p.parts) ? p.parts.filter(function (x) { return x && typeof x === 'object' && x.a != null; }).map(function (x) { return String(x.a); }).join('、')
+        : p.type === 'hissan' && S.Problems && S.Problems.hissanAnswer ? S.Problems.hissanAnswer(p.op === '-' ? '-' : '+', p.a, p.b).canon
+        : p.type === 'order' && Array.isArray(p.items) ? '' : (p.a != null ? String(p.a) : '');
+      if (ans) body.appendChild(h('div', 'mm-oni-a', '答え：' + ans));
+      if (p.explain) body.appendChild(h('div', 'mm-oni-ex', p.explain));
+      else if (Array.isArray(p.hints) && p.hints.length) body.appendChild(h('div', 'mm-oni-ex', p.hints.filter(function (x) { return typeof x === 'string'; }).join('\n')));
+      row.appendChild(body);
+      sec.appendChild(row);
+    });
+    return sec;
+  }
+
   function matomeResult(main, st, R) {
     main.innerHTML = '';
-    var box = h('section', 'mm-result');
+    var box = h('section', 'mm-result' + (st.level === 'oni' ? ' mm-result-oni' : ''));
+    if (R.oniNew) box.appendChild(oniBanner());
     box.appendChild(h('div', 'done-msg', R.finished ? 'まとめモード おつかれさま！' : 'ここまで よくがんばったね！'));
     var score = h('div', 'mm-score');
     score.appendChild(h('span', 'mm-score-big', '○ ' + R.ok));
@@ -20440,7 +21527,9 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
       tbl.appendChild(row);
     });
     box.appendChild(tbl);
-    box.appendChild(h('div', 'mm-weak', weakNames.length ? 'にがてな内容：' + weakNames.join('、') + '（次の回に少し多めに出るよ）' : 'にがてな内容は なかったよ。すばらしい！'));
+    box.appendChild(h('div', 'mm-weak', weakNames.length ? 'にがてな内容：' + weakNames.join('、') + (st.level === 'oni' ? '（ヒントを見ながら、もう一度ちょうせんしよう）' : '（次の回に少し多めに出るよ）') : 'にがてな内容は なかったよ。すばらしい！'));
+    if (st.level === 'oni') { var rv = oniReview(st); if (rv) box.appendChild(rv); }
+    else if (st.level === 'hard' && hasOniLevel() && !oniUnlocked()) box.appendChild(h('p', 'mm-note mm-oni-hint', '「鬼ムズ」は、' + ONI_LOCK_MSG + '。'));
 
     var gotBox = h('div', 'mm-got');
     gotBox.appendChild(h('h2', 'mm-h', 'もらった星'));
@@ -20978,7 +22067,7 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     var rows = [];
     lessons().forEach(function (l) { rows.push({ key: 'lesson-' + l.no, label: '第' + l.no + '時 ' + (l.title || '') }); });
     topics().forEach(function (t) { rows.push({ key: 'review-' + t.id, label: 'ふくしゅう：' + t.title }); });
-    rows.push({ key: 'matome', label: 'まとめモード' });
+    rows.push({ key: 'matome', label: 'まとめモード' + (hasOniLevel() || oniRuns() ? '（うち 鬼ムズ ' + oniRuns() + '回）' : '') });
     rows.push({ key: 'osusume', label: 'おすすめモード' });
     rows.push({ key: 'friend', label: 'ともだちの問題' });
     var known = rows.map(function (r) { return r.key; });

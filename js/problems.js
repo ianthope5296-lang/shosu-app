@@ -344,7 +344,7 @@
             z.appendChild(h('span', 'dot-mark'));
             z.addEventListener('click', function () {
               slot.point = slot.point === g ? null : g;
-              slot.zones.forEach(function (zz, k) { zz.classList.toggle('on', k === slot.point); zz.classList.remove('ng'); });
+              slot.zones.forEach(function (zz, k) { zz.classList.toggle('on', k === slot.point); zz.classList.remove('ng', 'need'); });
             });
             slot.zones.push(z);
             se.appendChild(z);
@@ -395,7 +395,7 @@
       return w;
     }
 
-    function clearZoneNg() { slots.forEach(function (s) { (s.zones || []).forEach(function (z) { z.classList.remove('ng'); }); }); }
+    function clearZoneNg() { slots.forEach(function (s) { (s.zones || []).forEach(function (z) { z.classList.remove('ng', 'need'); }); }); }
     function initialActions() {
       allBoxes().forEach(function (b) { b.mark(null); });
       clearZoneNg();
@@ -508,8 +508,9 @@
           if (slotOk[i]) return;
           if (pointBad[i]) {
             anyPoint = true;
+            // 数字は消さずに残す（小数点だけ打ち直せばよいように）。打った小数点に色をつける
             if (s.point !== null && s.zones[s.point]) s.zones[s.point].classList.add('ng');
-            else s.items.forEach(function (it) { if (it.box && !it.box.isEmpty()) it.box.mark('ng'); });
+            else s.zones.forEach(function (z) { z.classList.add('need'); });
             return;
           }
           s.items.forEach(function (it) { if (it.box && !it.box.isEmpty()) it.box.mark('ng'); });
@@ -543,7 +544,7 @@
     var btns = [];
     var solved = false;
     (p.options || []).forEach(function (o) {
-      var b = button(String(o), 'choice-btn', function () { choose(o, b); });
+      var b = button(String(o), 'choice-btn' + (String(o).length > 6 ? ' long' : ''), function () { choose(o, b); });
       btns.push(b);
       row.appendChild(b);
     });
