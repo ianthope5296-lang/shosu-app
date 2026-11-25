@@ -774,7 +774,9 @@
     var p = planner();
     var g = p && p.goal ? tryCall(function () { return p.goal(); }, null) : null;
     var u = g && typeof g.formsUrl === 'string' ? g.formsUrl : '';
-    // ゴールに無いときは、この端末で先生が入れた Forms のURL（クラスのきろく）
+    // ゴールに無いときは、配られたアプリに入っている Forms のURL（preset）
+    if (!u && typeof window !== 'undefined' && window.SHOSU_PRESET && typeof window.SHOSU_PRESET.formsUrl === 'string') u = window.SHOSU_PRESET.formsUrl;
+    // それも無いときは、この端末で先生が入れた Forms のURL（クラスのきろく）
     if (!u && S.Classbook && typeof S.Classbook.formsUrl === 'function') u = tryCall(function () { return S.Classbook.formsUrl(); }, '') || '';
     var sh = S.Share;
     if (u && sh && sh.isFormsUrl && !sh.isFormsUrl(u)) return '';

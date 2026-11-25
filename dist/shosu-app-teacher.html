@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <script id="teacher-start">/* 先生用 */ if(!location.hash||location.hash==='#'||location.hash==='#/'){location.hash='#/teacher';}</script>
-<!-- 小数アプリ（1ファイル版） 作成日 2026-11-24 -->
+<!-- 小数アプリ（1ファイル版） 作成日 2026-11-25 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>（先生用）小数コスモス 〜小数の星を集める旅〜</title>
@@ -15620,7 +15620,9 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     var p = planner();
     var g = p && p.goal ? tryCall(function () { return p.goal(); }, null) : null;
     var u = g && typeof g.formsUrl === 'string' ? g.formsUrl : '';
-    // ゴールに無いときは、この端末で先生が入れた Forms のURL（クラスのきろく）
+    // ゴールに無いときは、配られたアプリに入っている Forms のURL（preset）
+    if (!u && typeof window !== 'undefined' && window.SHOSU_PRESET && typeof window.SHOSU_PRESET.formsUrl === 'string') u = window.SHOSU_PRESET.formsUrl;
+    // それも無いときは、この端末で先生が入れた Forms のURL（クラスのきろく）
     if (!u && S.Classbook && typeof S.Classbook.formsUrl === 'function') u = tryCall(function () { return S.Classbook.formsUrl(); }, '') || '';
     var sh = S.Share;
     if (u && sh && sh.isFormsUrl && !sh.isFormsUrl(u)) return '';
@@ -21858,8 +21860,17 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
   var EXT_CSS_RE = new RegExp('<li' + 'nk rel="stylesheet" href="([^"]+)">\\s*', 'g');
   var EXT_JS_RE = new RegExp('<scr' + 'ipt src="([^"]+)"><\\/script>\\s*', 'g');
   var MANIFEST_RE = new RegExp('<li' + 'nk rel="manifest"[^>]*>\\s*', 'i');
+  function presetForms(goal) {
+    var u = goal && goal.formsUrl ? goal.formsUrl : '';
+    if (!u) { try { u = S.Classbook && S.Classbook.formsUrl ? S.Classbook.formsUrl() || '' : ''; } catch (e) { u = ''; } }
+    return u;
+  }
   function presetScript(goal) {
-    var json = JSON.stringify({ goal: goal }).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+    var pre = {};
+    if (goal) pre.goal = goal;
+    var fu = presetForms(goal);
+    if (fu) pre.formsUrl = fu;
+    var json = JSON.stringify(pre).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
     return '<script>' + PRESET_MARK + '\nwindow.SHOSU_PRESET = ' + json + ';\n</' + 'script>';
   }
   function putPreset(html, goal) {
@@ -21968,19 +21979,20 @@ window.DIGIT_MODEL = {"version":1,"input":[28,28,1],"note":"MNIST + augmentation
     }), 'copy', 'ゴールのコードをコピー');
     var dlB = withIcon(button('', '', function () {
       var gg = currentGoal();
-      if (!gg) { warn('先にゴールを決めてください。'); return; }
+      if (!gg && !presetForms(null)) { warn('先にゴールを決めるか、Forms のURLを入れてください。'); return; }
       msg.textContent = 'アプリを作っています…'; msg.className = 'box-msg';
       buildGoalApp(gg).then(function (html) {
         downloadText(html, 'shosu-app.html');
-        msg.textContent = 'ゴール入りの shosu-app.html をダウンロードしました（' + Math.round(html.length / 1024) + 'KB）。このファイルを配れば、開くだけでゴールが入ります。';
+        var what = (gg ? 'ゴール' : '') + (gg && presetForms(gg) ? '・' : '') + (presetForms(gg) ? 'FormsのURL' : '');
+        msg.textContent = what + '入りの shosu-app.html をダウンロードしました（' + Math.round(html.length / 1024) + 'KB）。このファイルを配れば、開くだけで入ります。';
         msg.className = 'box-msg';
       }, function (e) {
         console.warn('buildGoalApp', e);
         if (e && e.code === 'NEED_SINGLE') warn('このボタンは、1ファイル版（shosu-app.html）か、Webで開いているときに使えます。');
         else warn('アプリを作れませんでした。1ファイル版（shosu-app.html）で開いて、もう一度ためしてください。');
       });
-    }), 'download', 'ゴール入りのアプリをダウンロード');
-    if (!g) { copyB.disabled = true; dlB.disabled = true; }
+    }), 'download', 'ゴール・Forms入りのアプリをダウンロード');
+    if (!g) { copyB.disabled = true; if (!presetForms(null)) dlB.disabled = true; }
     row.appendChild(copyB);
     row.appendChild(dlB);
     sec.appendChild(row);

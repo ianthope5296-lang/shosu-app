@@ -2569,8 +2569,17 @@
   var EXT_CSS_RE = new RegExp('<li' + 'nk rel="stylesheet" href="([^"]+)">\\s*', 'g');
   var EXT_JS_RE = new RegExp('<scr' + 'ipt src="([^"]+)"><\\/script>\\s*', 'g');
   var MANIFEST_RE = new RegExp('<li' + 'nk rel="manifest"[^>]*>\\s*', 'i');
+  function presetForms(goal) {
+    var u = goal && goal.formsUrl ? goal.formsUrl : '';
+    if (!u) { try { u = S.Classbook && S.Classbook.formsUrl ? S.Classbook.formsUrl() || '' : ''; } catch (e) { u = ''; } }
+    return u;
+  }
   function presetScript(goal) {
-    var json = JSON.stringify({ goal: goal }).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+    var pre = {};
+    if (goal) pre.goal = goal;
+    var fu = presetForms(goal);
+    if (fu) pre.formsUrl = fu;
+    var json = JSON.stringify(pre).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
     return '<script>' + PRESET_MARK + '\nwindow.SHOSU_PRESET = ' + json + ';\n</' + 'script>';
   }
   function putPreset(html, goal) {
@@ -2679,19 +2688,20 @@
     }), 'copy', 'ゴールのコードをコピー');
     var dlB = withIcon(button('', '', function () {
       var gg = currentGoal();
-      if (!gg) { warn('先にゴールを決めてください。'); return; }
+      if (!gg && !presetForms(null)) { warn('先にゴールを決めるか、Forms のURLを入れてください。'); return; }
       msg.textContent = 'アプリを作っています…'; msg.className = 'box-msg';
       buildGoalApp(gg).then(function (html) {
         downloadText(html, 'shosu-app.html');
-        msg.textContent = 'ゴール入りの shosu-app.html をダウンロードしました（' + Math.round(html.length / 1024) + 'KB）。このファイルを配れば、開くだけでゴールが入ります。';
+        var what = (gg ? 'ゴール' : '') + (gg && presetForms(gg) ? '・' : '') + (presetForms(gg) ? 'FormsのURL' : '');
+        msg.textContent = what + '入りの shosu-app.html をダウンロードしました（' + Math.round(html.length / 1024) + 'KB）。このファイルを配れば、開くだけで入ります。';
         msg.className = 'box-msg';
       }, function (e) {
         console.warn('buildGoalApp', e);
         if (e && e.code === 'NEED_SINGLE') warn('このボタンは、1ファイル版（shosu-app.html）か、Webで開いているときに使えます。');
         else warn('アプリを作れませんでした。1ファイル版（shosu-app.html）で開いて、もう一度ためしてください。');
       });
-    }), 'download', 'ゴール入りのアプリをダウンロード');
-    if (!g) { copyB.disabled = true; dlB.disabled = true; }
+    }), 'download', 'ゴール・Forms入りのアプリをダウンロード');
+    if (!g) { copyB.disabled = true; if (!presetForms(null)) dlB.disabled = true; }
     row.appendChild(copyB);
     row.appendChild(dlB);
     sec.appendChild(row);
